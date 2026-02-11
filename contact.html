@@ -5,6 +5,25 @@
     <title>Contact Us | Sungroup Engineering</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .phone-input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .country-code {
+            width: 130px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .phone-number {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
     <nav>
@@ -20,25 +39,47 @@
             </ul>
         </div>
     </nav>
+
     <main>
-        <div class="page-header"><div class="container"><h1>Contact Us</h1></div></div>
+        <div class="page-header">
+            <div class="container"><h1>Contact Us</h1></div>
+        </div>
+        
         <div class="container section-padding">
-            <div class="grid-3">
-                <div class="highlight-box">
-                    <h3>Office Address</h3>
-                    <p>5 Soon Lee Street,<br>#06-41 Pioneer Point,<br>Singapore 627607</p>
-                </div>
-                <div class="highlight-box" style="grid-column: span 2;">
-                    <h3>Send us a Message</h3>
-                    <form action="https://formspree.io/f/xgolopvd" method="POST" style="margin-top:20px;">
-                        <input type="text" name="name" placeholder="Your Name" required style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc;">
-                        <textarea name="message" placeholder="Message" required style="width:100%; height:100px; padding:10px; margin-bottom:15px; border:1px solid #ccc;"></textarea>
-                        <button type="submit" class="main-btn" style="border:none; cursor:pointer; width:100%;">Send</button>
-                    </form>
-                </div>
+            <div style="max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h3>Send us a Message</h3>
+                <p>Fill out the form below and we will get back to you via email or phone.</p>
+
+                <form action="https://formspree.io/f/xgolopvd" method="POST">
+                    <label>Full Name</label><br>
+                    <input type="text" name="name" required style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"><br>
+
+                    <label>Email Address</label><br>
+                    <input type="email" name="email" required placeholder="example@email.com" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"><br>
+
+                    <label>Phone Number</label>
+                    <div class="phone-input-container">
+                        <select name="country_code" class="country-code">
+                            <option value="+65" selected>SG (+65)</option>
+                            <option value="+60">MY (+60)</option>
+                            <option value="+91">IN (+91)</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="tel" name="phone" placeholder="Phone Number" class="phone-number" required>
+                    </div>
+
+                    <label>Subject</label><br>
+                    <input type="text" name="subject" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"><br>
+
+                    <label>Message</label><br>
+                    <textarea name="message" required style="width:100%; height:120px; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"></textarea><br>
+
+                    <button type="submit" class="main-btn" style="width:100%; border:none; cursor:pointer;">Send Message</button>
+                </form>
             </div>
         </div>
     </main>
+
     <footer>
         <div class="container">
             <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
