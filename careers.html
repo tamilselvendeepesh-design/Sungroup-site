@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Careers | Sungroup Engineering</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .phone-input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .country-code {
+            width: 130px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+        }
+        .phone-number {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container nav-flex">
+            <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about-company.html">About Us</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="projects.html">Projects</a></li>
+                <li><a href="careers.html">Careers</a></li>
+                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="page-header">
+            <div class="container"><h1>Careers</h1></div>
+        </div>
+        <div class="container section-padding">
+            <div class="highlight-box" style="max-width:600px; margin:auto;">
+                <h3>Join Our Team</h3>
+                <p>Please provide your details. Our HR team will contact you directly for a discussion.</p>
+                
+                <form action="https://formspree.io/f/xgolopvd" method="POST" style="margin-top:20px;">
+                    
+                    <label>Full Name</label><br>
+                    <input type="text" name="name" required style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"><br>
+                    
+                    <label>Email Address</label><br>
+                    <input type="email" name="email" required style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"><br>
+
+                    <label>Phone Number</label>
+                    <div class="phone-input-container">
+                        <select name="country_code" class="country-code">
+                            <option value="+65" selected>SG (+65)</option>
+                            <option value="+60">MY (+60)</option>
+                            <option value="+62">ID (+62)</option>
+                            <option value="+91">IN (+91)</option>
+                            <option value="+63">PH (+63)</option>
+                            <option value="+86">CN (+86)</option>
+                            <option value="+1">US (+1)</option>
+                            <option value="+44">UK (+44)</option>
+                            <option value="+61">AU (+61)</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="tel" name="phone" placeholder="Phone Number" class="phone-number" required>
+                    </div>
+
+                    <label>Position Applying For</label><br>
+                    <input type="text" name="job_title" placeholder="e.g. Electrical Technician" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"><br>
+                    
+                    <label>Brief Experience Summary</label><br>
+                    <textarea name="experience" placeholder="Tell us about your background..." style="width:100%; height:100px; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;"></textarea><br>
+
+                    <button type="submit" class="main-btn" style="border:none; cursor:pointer; width:100%;">Submit Interest</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+        </div>
+    </footer>
+</body>
+</html>
