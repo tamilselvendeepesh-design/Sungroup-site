@@ -1,0 +1,20 @@
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+body { display: flex; flex-direction: column; min-height: 100vh; color: #333; line-height: 1.6; }
+.container { width: 90%; max-width: 1100px; margin: auto; }
+main { flex: 1; }
+.section-padding { padding: 60px 0; }
+nav { background: #fff; padding: 15px 0; border-bottom: 3px solid #1e73be; }
+.nav-flex { display: flex; justify-content: space-between; align-items: center; }
+.nav-links { list-style: none; display: flex; align-items: center; }
+.nav-links li { margin-left: 20px; }
+.nav-links a { text-decoration: none; color: #333; font-weight: 600; font-size: 14px; }
+.nav-contact-btn { background: #1e73be; color: #fff !important; padding: 8px 15px; border-radius: 4px; }
+.hero { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('banner.jpg'); background-size: cover; background-position: center; height: 500px; display: flex; align-items: center; justify-content: center; color: white; text-align: center; border-top: 5px solid #f0a123; }
+.page-header { background: #1e73be; color: white; padding: 40px 0; text-align: center; }
+.main-btn { display: inline-block; background: #f0a123; color: #fff !important; padding: 12px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; }
+.secondary-btn { display: inline-block; margin-top: 10px; color: #1e73be; text-decoration: none; font-weight: bold; border: 2px solid #1e73be; padding: 5px 15px; border-radius: 4px; font-size: 12px; }
+.highlight-box { background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 5px solid #1e73be; }
+.capabilities-grid, .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.cap-card { padding: 20px; border: 1px solid #eee; text-align: center; border-radius: 8px; }
+.cap-icon { font-size: 30px; color: #1e73be; margin-bottom: 10px; }
+footer { background: #222; color: #bbb; text-align: center; padding: 30px 0; font-size: 12px; border-top: 5px solid #1e73be; }
