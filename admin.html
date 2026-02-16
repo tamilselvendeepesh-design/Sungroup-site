@@ -8,137 +8,140 @@
         :root { 
             --primary: #1e73be; --accent: #00d2ff; --success: #27ae60; --danger: #e74c3c; 
             --warning: #f39c12; --dark: #1a1c23; --surface: #24262d; --text: #d5d6d7; --bg: #0e0f12;
-            --sidebar-w: 280px;
+            --sidebar-w: 260px;
         }
-        * { box-sizing: border-box; transition: all 0.2s ease; }
-        body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif; margin: 0; color: var(--text); display: flex; overflow: hidden; }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); font-family: 'Inter', sans-serif; margin: 0; color: var(--text); display: flex; overflow: hidden; }
 
-        /* AUTH SHIELD */
-        #auth-gate { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .gate-card { background: var(--surface); padding: 50px; border-radius: 20px; width: 400px; border: 1px solid #333; text-align: center; }
-        
-        /* NAVIGATION TITAN */
-        .sidebar { width: var(--sidebar-w); background: var(--surface); height: 100vh; display: flex; flex-direction: column; padding: 25px; border-right: 1px solid #333; }
-        .nav-group { margin-bottom: 30px; }
-        .nav-label { font-size: 0.7rem; color: #8a8a8a; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; display: block; }
-        .nav-item { width: 100%; padding: 14px; margin: 5px 0; background: transparent; border: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 10px; display: flex; align-items: center; gap: 12px; font-weight: 500; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--accent); }
-        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(30,115,190,0.4); }
+        /* SIDEBAR */
+        .sidebar { width: var(--sidebar-w); background: var(--surface); height: 100vh; padding: 20px; border-right: 1px solid #333; flex-shrink: 0; }
+        .nav-item { width: 100%; padding: 12px; margin: 5px 0; background: transparent; border: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); }
+        .nav-item.active { background: var(--primary); color: white; }
 
-        /* CONTENT ENGINE */
-        .viewport { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 40px; position: relative; }
-        .titan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 40px; }
-        
-        /* CARDS & GLASS-MORPHISM */
-        .card { background: var(--surface); border-radius: 16px; padding: 25px; border: 1px solid #333; margin-bottom: 25px; }
-        .stat-card { position: relative; overflow: hidden; }
-        .stat-val { font-size: 1.8rem; font-weight: 800; margin: 10px 0; color: white; }
-        
-        /* FORM INPUTS */
-        .input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        input, select, textarea { background: #1a1c23; border: 1px solid #333; color: white; padding: 12px; border-radius: 8px; width: 100%; }
-        input:focus { border-color: var(--accent); outline: none; }
-        .btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; }
-        .btn-titan { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; width: 100%; }
-
-        /* DATA VISUALS */
-        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
-        th { text-align: left; padding: 15px; color: #8a8a8a; font-size: 0.8rem; }
-        td { padding: 15px; background: #1a1c23; }
-        td:first-child { border-radius: 12px 0 0 12px; }
-        td:last-child { border-radius: 0 12px 12px 0; }
-        .progress-track { background: #333; height: 6px; border-radius: 10px; width: 100%; }
-        .progress-fill { height: 100%; border-radius: 10px; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+        /* VIEWPORT */
+        .viewport { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 30px; }
+        .card { background: var(--surface); border-radius: 12px; padding: 20px; border: 1px solid #333; margin-bottom: 20px; }
         .hidden { display: none !important; }
+
+        /* INPUTS & BUTTONS */
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        input, select, textarea { background: #16171d; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+        .btn-main { background: var(--primary); color: white; width: 100%; }
+        .btn-del { background: var(--danger); color: white; padding: 5px 10px; font-size: 0.7rem; }
+
+        /* TABLES */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 12px; color: #888; border-bottom: 1px solid #333; font-size: 0.8rem; }
+        td { padding: 12px; border-bottom: 1px solid #2a2a2a; font-size: 0.85rem; }
+        
+        #auth-gate { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
     <div id="auth-gate">
-        <div class="gate-card">
-            <h1 style="color:white; margin-bottom:10px;">TITAN OS</h1>
-            <p style="color:#8a8a8a; margin-bottom:30px;">Authorized Access Only</p>
-            <input type="email" id="email" placeholder="Admin Email" style="margin-bottom:15px;">
+        <div style="background: var(--surface); padding: 40px; border-radius: 20px; width: 350px; text-align: center;">
+            <h2>TITAN LOGIN</h2>
+            <input type="email" id="email" placeholder="Email" style="margin-bottom:10px;">
             <input type="password" id="pass" placeholder="System Key">
-            <button id="loginBtn" class="btn btn-titan" style="margin-top:20px;">Unlock Systems</button>
+            <button id="loginBtn" class="btn btn-main" style="margin-top:20px;">Unlock ERP</button>
         </div>
     </div>
 
     <div class="sidebar">
-        <div class="nav-group">
-            <span class="nav-label">Core Operations</span>
-            <button class="nav-item active" onclick="showTab('ops')">🛰️ Command Center</button>
-            <button class="nav-item" onclick="showTab('projects')">🏗️ Site Management</button>
-            <button class="nav-item" onclick="showTab('finance')">💎 Fiscal Ledger</button>
-        </div>
-        <div class="nav-group">
-            <span class="nav-label">Resource Management</span>
-            <button class="nav-item" onclick="showTab('manpower')">👥 Workforce Hub</button>
-            <button class="nav-item" onclick="showTab('inventory')">📦 Global Supply</button>
-            <button class="nav-item" onclick="showTab('crm')">🤝 Client Portal</button>
-        </div>
-        <div class="nav-group">
-            <span class="nav-label">Pipeline</span>
-            <button class="nav-item" onclick="showTab('jobs')">📩 Recruitment</button>
-            <button class="nav-item" onclick="showTab('msgs')">📥 Inbound Feed</button>
-        </div>
-        <button id="logoutBtn" class="nav-item" style="margin-top:auto; color:var(--danger)">🔴 Shutdown Session</button>
+        <h3 style="color:var(--primary); text-align:center;">SUNGROUP</h3>
+        <button class="nav-item active" onclick="showTab('projects')">🏗️ Projects</button>
+        <button class="nav-item" onclick="showTab('manpower')">👷 Manpower</button>
+        <button class="nav-item" onclick="showTab('inventory')">📦 Inventory</button>
+        <button class="nav-item" onclick="showTab('crm')">🤝 Client Workhub</button>
+        <button class="nav-item" onclick="showTab('jobs')">📩 Applications</button>
+        <button class="nav-item" onclick="showTab('msgs')">💬 Inquiries</button>
+        <button id="logoutBtn" class="nav-item" style="margin-top:20px; color:var(--danger)">🔴 Logout</button>
     </div>
 
     <main class="viewport">
-        <div id="tab-ops" class="tab-content">
-            <h1 style="margin-top:0">Titan Command Center</h1>
-            <div class="titan-grid">
-                <div class="card stat-card">
-                    <small>Operational Projects</small>
-                    <div class="stat-val" id="count-p">0</div>
-                    <div style="color:var(--success); font-size:0.8rem;">↑ 12% vs last month</div>
-                </div>
-                <div class="card stat-card">
-                    <small>Active Personnel</small>
-                    <div class="stat-val" id="count-m">0</div>
-                    <div style="color:var(--accent); font-size:0.8rem;">Distributed across 8 zones</div>
-                </div>
-                <div class="card stat-card">
-                    <small>Fiscal Liquidity</small>
-                    <div class="stat-val" id="count-f">$0.00</div>
-                    <div style="color:var(--warning); font-size:0.8rem;">Pending: $142k</div>
-                </div>
-            </div>
+        <div id="tab-projects" class="tab-content">
             <div class="card">
-                <h3>System Alerts</h3>
-                <div id="live-feed" style="font-size:0.9rem; color:#8a8a8a;">[08:00] TITAN OS Boot Successful... Ready for operations.</div>
-            </div>
-        </div>
-
-        <div id="tab-projects" class="tab-content hidden">
-            <div class="card">
-                <h3>Deploy New Site</h3>
-                <div class="input-row">
-                    <input type="text" id="pName" placeholder="Project ID/Name">
-                    <input type="text" id="pLoc" placeholder="Coordinates/Location">
-                    <input type="number" id="pVal" placeholder="Contract Value ($)">
-                </div>
-                <div class="input-row">
+                <h3>Project Entry</h3>
+                <div class="grid-inputs">
+                    <input type="text" id="pName" placeholder="Project Name">
+                    <input type="text" id="pLoc" placeholder="Location">
+                    <input type="number" id="pVal" placeholder="Value ($)">
                     <input type="date" id="pDue">
-                    <select id="pStatus"><option>Planning</option><option>Active</option><option>On Hold</option><option>Handover</option></select>
-                    <button id="saveProj" class="btn btn-titan">Launch Project</button>
+                    <button id="saveProj" class="btn btn-main">Save Site</button>
                 </div>
             </div>
             <div class="card">
                 <table id="projTable">
-                    <thead><tr><th>Project</th><th>Location</th><th>Timeline</th><th>Execution</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Project</th><th>Location</th><th>Value</th><th>Due</th><th>Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
 
-        <div id="tab-finance" class="tab-content hidden"><div class="card"><h3>Global Ledger</h3><table id="finTable"><thead><tr><th>Entity</th><th>Amount</th><th>Category</th><th>Flow</th></tr></thead><tbody></tbody></table></div></div>
-        <div id="tab-manpower" class="tab-content hidden"><div class="card"><h3>Workforce Distribution</h3><table id="manTable"><thead><tr><th>Name</th><th>Deployment Site</th><th>Shift</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
-        <div id="tab-inventory" class="tab-content hidden"><div class="card"><h3>Supply Chain</h3><table id="invTable"><thead><tr><th>Item</th><th>SKU</th><th>Stock</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
-        <div id="tab-crm" class="tab-content hidden"><div class="card"><h3>Client CRM</h3><table id="clientTable"><thead><tr><th>Company</th><th>PIC</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
-        <div id="tab-jobs" class="tab-content hidden"><div class="card"><h3>Candidate Queue</h3><table id="jobTable"><thead><tr><th>Applicant</th><th>Role</th><th>Score</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
-        <div id="tab-msgs" class="tab-content hidden"><div class="card"><h3>Communication Logs</h3><table id="msgTable"><thead><tr><th>Sender</th><th>Subject</th><th>Preview</th></tr></thead><tbody></tbody></table></div></div>
+        <div id="tab-manpower" class="tab-content hidden">
+            <div class="card">
+                <h3>Log Workforce</h3>
+                <div class="grid-inputs">
+                    <input type="text" id="mName" placeholder="Worker Name/Role">
+                    <input type="text" id="mSite" placeholder="Assigned Site">
+                    <input type="text" id="mShift" placeholder="Shift (e.g. Day)">
+                    <button id="saveMan" class="btn btn-main">Assign Staff</button>
+                </div>
+            </div>
+            <div class="card">
+                <table id="manTable">
+                    <thead><tr><th>Worker</th><th>Site</th><th>Shift</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-inventory" class="tab-content hidden">
+            <div class="card">
+                <h3>Supply Management</h3>
+                <div class="grid-inputs">
+                    <input type="text" id="iItem" placeholder="Item Name">
+                    <input type="number" id="iQty" placeholder="Quantity">
+                    <input type="text" id="iUnit" placeholder="Unit (e.g. Kg, Pcs)">
+                    <button id="saveInv" class="btn btn-main">Update Stock</button>
+                </div>
+            </div>
+            <div class="card">
+                <table id="invTable">
+                    <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-crm" class="tab-content hidden">
+            <div class="card">
+                <h3>Client & Lead Entry</h3>
+                <div class="grid-inputs">
+                    <input type="text" id="cCompany" placeholder="Company Name">
+                    <input type="text" id="cContact" placeholder="Contact Person">
+                    <input type="tel" id="cPhone" placeholder="Phone/Email">
+                    <button id="saveClient" class="btn btn-main">Add to Workhub</button>
+                </div>
+            </div>
+            <div class="card">
+                <table id="clientTable">
+                    <thead><tr><th>Company</th><th>PIC</th><th>Contact</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-jobs" class="tab-content hidden">
+            <div class="card"><h3>Incoming Applications</h3><table id="jobTable"><thead><tr><th>Name</th><th>Role</th><th>Resume</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+        </div>
+
+        <div id="tab-msgs" class="tab-content hidden">
+            <div class="card"><h3>Website Inquiries</h3><table id="msgTable"><thead><tr><th>From</th><th>Subject</th><th>Message</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+        </div>
     </main>
 
     <script type="module">
@@ -159,18 +162,12 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // SYSTEM ACCESS
-        onAuthStateChanged(auth, u => {
-            document.getElementById('auth-gate').style.display = u ? 'none' : 'flex';
-        });
-
-        document.getElementById('loginBtn').onclick = () => {
-            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value)
-            .catch(e => alert("Access Denied: " + e.message));
-        };
+        // AUTH
+        onAuthStateChanged(auth, u => { document.getElementById('auth-gate').style.display = u ? 'none' : 'flex'; });
+        document.getElementById('loginBtn').onclick = () => { signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert(e.message)); };
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-        // NAVIGATION ENGINE
+        // TABS
         window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -178,56 +175,48 @@
             event.currentTarget.classList.add('active');
         };
 
-        // REAL-TIME TITAN SYNC
-        onSnapshot(collection(db, "projects"), snap => {
-            const body = document.querySelector("#projTable tbody");
-            body.innerHTML = '';
-            let totalVal = 0;
-            snap.forEach(doc => {
-                const p = doc.data();
-                totalVal += parseFloat(p.value || 0);
-                body.innerHTML += `<tr>
-                    <td><b>${p.name}</b></td>
-                    <td>${p.loc}</td>
-                    <td>${p.due}</td>
-                    <td><div class="progress-track"><div class="progress-fill" style="width:65%"></div></div></td>
-                    <td><span style="color:var(--success)">${p.status}</span></td>
-                    <td><button onclick="del('projects','${p.name}')" style="background:transparent; color:var(--danger); border:none; cursor:pointer;">ERASE</button></td>
-                </tr>`;
+        // REAL-TIME SYNC ENGINE
+        const sync = (coll, tableId, fields) => {
+            onSnapshot(collection(db, coll), snap => {
+                const body = document.querySelector(`#${tableId} tbody`);
+                body.innerHTML = '';
+                snap.forEach(d => {
+                    const data = d.data();
+                    let rows = fields.map(f => `<td>${data[f] || ''}</td>`).join('');
+                    body.innerHTML += `<tr>${rows}<td><button class="btn btn-del" onclick="delD('${coll}','${d.id}')">X</button></td></tr>`;
+                });
             });
-            document.getElementById('count-p').innerText = snap.size;
-            document.getElementById('count-f').innerText = '$' + totalVal.toLocaleString();
-        });
-
-        // MANPOWER SYNC
-        onSnapshot(collection(db, "manpower"), snap => {
-            document.getElementById('count-m').innerText = snap.size;
-        });
-
-        // RECRUITMENT SYNC
-        onSnapshot(collection(db, "applications"), snap => {
-            const body = document.querySelector("#jobTable tbody");
-            body.innerHTML = '';
-            snap.forEach(doc => {
-                const a = doc.data();
-                body.innerHTML += `<tr><td>${a.name}</td><td>${a.role}</td><td>98/100</td><td><a href="${a.resume}" target="_blank" style="color:var(--accent)">VIEW</a></td></tr>`;
-            });
-        });
-
-        // DATA INJECTION
-        document.getElementById('saveProj').onclick = async () => {
-            const name = document.getElementById('pName').value;
-            if(!name) return;
-            await setDoc(doc(db, "projects", name), {
-                name: name, loc: document.getElementById('pLoc').value,
-                value: document.getElementById('pVal').value, due: document.getElementById('pDue').value,
-                status: document.getElementById('pStatus').value, timestamp: new Date()
-            });
-            document.getElementById('live-feed').innerText = `[${new Date().toLocaleTimeString()}] PROJECT DEPLOYED: ${name}`;
         };
 
-        window.del = async (c, id) => { if(confirm('Purge Record?')) await deleteDoc(doc(db, c, id)); };
+        sync("projects", "projTable", ["name", "loc", "value", "due"]);
+        sync("manpower", "manTable", ["name", "site", "shift"]);
+        sync("inventory", "invTable", ["item", "qty", "unit"]);
+        sync("clients", "clientTable", ["company", "contact", "phone"]);
+        sync("applications", "jobTable", ["name", "role", "resume"]);
+        sync("inquiries", "msgTable", ["name", "subject", "message"]);
 
+        // SAVE ACTIONS
+        document.getElementById('saveProj').onclick = async () => {
+            const id = document.getElementById('pName').value;
+            await setDoc(doc(db, "projects", id), { name: id, loc: document.getElementById('pLoc').value, value: document.getElementById('pVal').value, due: document.getElementById('pDue').value });
+        };
+
+        document.getElementById('saveMan').onclick = async () => {
+            const id = document.getElementById('mName').value;
+            await setDoc(doc(db, "manpower", id), { name: id, site: document.getElementById('mSite').value, shift: document.getElementById('mShift').value });
+        };
+
+        document.getElementById('saveInv').onclick = async () => {
+            const id = document.getElementById('iItem').value;
+            await setDoc(doc(db, "inventory", id), { item: id, qty: document.getElementById('iQty').value, unit: document.getElementById('iUnit').value });
+        };
+
+        document.getElementById('saveClient').onclick = async () => {
+            const id = document.getElementById('cCompany').value;
+            await setDoc(doc(db, "clients", id), { company: id, contact: document.getElementById('cContact').value, phone: document.getElementById('cPhone').value });
+        };
+
+        window.delD = async (c, id) => { if(confirm('Delete?')) await deleteDoc(doc(db, c, id)); };
     </script>
 </body>
 </html>
