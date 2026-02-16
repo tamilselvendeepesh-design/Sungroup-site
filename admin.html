@@ -3,147 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sungroup ERP | Admin Suite</title>
-    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Sungroup ERP | Apex Suite</title>
     <style>
         :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --dark: #2c3e50; --bg: #f0f2f5; --sidebar-w: 260px; }
         body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; color: var(--dark); display: flex; }
         
-        #login-box { position: fixed; inset: 0; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; width: 340px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .hidden { display: none !important; }
-
+        /* 1. FLEX LAYOUT ENGINE */
         #dashboard { display: none; width: 100%; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-w); background: var(--dark); color: white; padding: 20px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; box-sizing: border-box; }
-        .sidebar-logo { width: 140px; margin-bottom: 30px; align-self: center; filter: brightness(0) invert(1); }
+        .sidebar { width: var(--sidebar-w); background: var(--dark); color: white; padding: 20px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; }
         .main-content { flex-grow: 1; padding: 30px; background: var(--bg); overflow-y: auto; width: calc(100% - var(--sidebar-w)); }
 
-        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; font-size: 0.95rem; }
+        /* 2. NAVIGATION & TABS */
+        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
         .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .nav-btn.active { background: var(--primary); color: white; font-weight: bold; }
         
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        .btn-save { background: var(--success); color: white; width: 100%; margin-top: 10px; }
+        /* 3. WIDGETS & CARDS */
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: white; padding: 15px; border-radius: 10px; text-align: center; border-bottom: 4px solid var(--primary); }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; font-size: 0.8rem; }
+        /* 4. FORM ELEMENTS */
+        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.85rem; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 0.85rem; }
+        .btn-save { background: var(--success); color: white; width: 100%; }
+        .btn-export { background: #34495e; color: white; margin-top: 10px; }
+
+        /* 5. DATA TABLES & STATUS BADGES */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; font-size: 0.75rem; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; word-wrap: break-word; }
-        .action-btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
-        .del { background: var(--danger); color: white; }
-        .edit { background: var(--warning); color: white; margin-right: 4px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .bg-paid { background: #e8f5e9; color: #2e7d32; }
+        .bg-unpaid { background: #ffebee; color: #c62828; }
+        
+        /* 6. MODALS & OVERLAYS */
+        #login-box { position: fixed; inset: 0; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; width: 340px; text-align: center; }
+        .hidden { display: none !important; }
+
+        /* 7. PROGRESS BARS */
+        .prog-track { background: #eee; height: 8px; border-radius: 4px; margin-top: 5px; }
+        .prog-fill { background: var(--success); height: 100%; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <div id="login-box">
         <div class="login-card">
-            <img src="logo.png" style="width:160px;">
-            <h3>Admin Portal</h3>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="pass" placeholder="Password">
-            <button id="loginBtn" class="btn btn-save" style="background:var(--primary)">Login</button>
+            <h3>Sungroup Apex Admin</h3>
+            <input type="email" id="email" placeholder="Admin Email">
+            <input type="password" id="pass" placeholder="Security Password">
+            <button id="loginBtn" class="btn btn-save" style="background:var(--primary)">Access System</button>
         </div>
     </div>
 
     <div id="dashboard">
         <div class="sidebar">
-            <img src="logo.png" class="sidebar-logo">
-            <button class="nav-btn active" onclick="showTab('projects')">🏗️ Projects</button>
-            <button class="nav-btn" onclick="showTab('manpower')">👷 Manpower</button>
-            <button class="nav-btn" onclick="showTab('clients')">🤝 Clients</button>
-            <button class="nav-btn" onclick="showTab('jobs')">📄 Applications</button>
+            <h2 style="font-size: 1.2rem; text-align: center;">SUNGROUP ERP</h2>
+            <button class="nav-btn active" onclick="showTab('projects')">🏗️ Project Engine</button>
+            <button class="nav-btn" onclick="showTab('manpower')">👷 Labor Force</button>
+            <button class="nav-btn" onclick="showTab('inventory')">📦 Site Inventory</button>
+            <button class="nav-btn" onclick="showTab('crm')">🤝 Client Hub</button>
+            <button class="nav-btn" onclick="showTab('jobs')">📄 Recruitment</button>
+            <button class="nav-btn" onclick="showTab('finance')">💰 Financials</button>
             <button class="nav-btn" onclick="showTab('msgs')">💬 Inquiries</button>
-            <button class="nav-btn" onclick="showTab('finance')">📉 Notes</button>
-            <button id="logoutBtn" class="nav-btn" style="margin-top:auto; color:var(--danger);">Sign Out</button>
+            <button id="logoutBtn" class="nav-btn" style="margin-top:auto; color:var(--danger);">🔒 Logout Session</button>
         </div>
 
         <div class="main-content">
+            <div class="stats-grid">
+                <div class="stat-box"><small>Active Sites</small><div id="stat-proj" style="font-size: 1.5rem; font-weight: bold;">0</div></div>
+                <div class="stat-box"><small>Total Staff</small><div id="stat-staff" style="font-size: 1.5rem; font-weight: bold;">0</div></div>
+                <div class="stat-box"><small>Pending Invoices</small><div id="stat-unpaid" style="font-size: 1.5rem; font-weight: bold;">0</div></div>
+                <div class="stat-box"><small>Inventory Value</small><div id="stat-inv" style="font-size: 1.5rem; font-weight: bold;">$0</div></div>
+            </div>
+
             <div id="tab-projects" class="tab-content">
                 <div class="card">
-                    <h3>Project Dispatcher</h3>
+                    <h3>Project Controls</h3>
                     <div class="grid-4">
-                        <input type="text" id="pName" placeholder="Project Name">
-                        <select id="pClientSelect"><option value="">-- Client --</option></select>
-                        <select id="pPay"><option>Unpaid</option><option>Partial</option><option>Paid</option></select>
+                        <input type="text" id="pName" placeholder="Project ID/Name">
+                        <select id="pClientSelect"><option value="">-- Assign Client --</option></select>
+                        <input type="number" id="pBudget" placeholder="Total Budget ($)">
                         <input type="date" id="pDeadline">
                     </div>
                     <div class="grid-4">
                         <input type="number" id="pProg" placeholder="Progress %">
-                        <input type="text" id="pLoc" placeholder="Location Link">
-                        <select id="pHse"><option>Standard</option><option>High Risk</option></select>
-                        <button id="saveProjBtn" class="btn btn-save" style="margin:8px 0">Save Project</button>
+                        <select id="pPay"><option>Unpaid</option><option>Partial</option><option>Paid</option></select>
+                        <select id="pHse"><option>Standard HSE</option><option>Critical/High Risk</option></select>
+                        <button id="saveProjBtn" class="btn btn-save">Synchronize Project</button>
                     </div>
                 </div>
                 <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4>Master Project Registry</h4>
+                        <button class="btn btn-export" onclick="exportTable('projTable')">Export to CSV</button>
+                    </div>
                     <table id="projTable">
-                        <thead><tr><th>Project</th><th>Deadline</th><th>%</th><th>Status</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Site</th><th>Due</th><th>Health</th><th>Progress</th><th>Billing</th><th>Action</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
 
-            <div id="tab-manpower" class="tab-content hidden">
+            <div id="tab-inventory" class="tab-content hidden">
                 <div class="card">
-                    <h3>Manpower Log</h3>
+                    <h3>Asset & Tool Inventory</h3>
                     <div class="grid-4">
-                        <select id="mProj"><option value="">-- Project --</option></select>
-                        <input type="number" id="mCount" placeholder="Staff Count">
-                        <input type="text" id="mLeader" placeholder="Supervisor">
-                        <button id="saveManBtn" class="btn btn-save" style="margin:0">Log</button>
+                        <input type="text" id="invItem" placeholder="Item Name">
+                        <input type="number" id="invQty" placeholder="Quantity">
+                        <input type="number" id="invCost" placeholder="Unit Cost ($)">
+                        <button id="saveInvBtn" class="btn btn-save" style="margin:0">Add Asset</button>
                     </div>
                 </div>
-                <div class="card"><table id="manTable"><thead><tr><th>Site</th><th>Staff</th><th>Lead</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+                <div class="card"><table id="invTable"><thead><tr><th>Item</th><th>Qty</th><th>Value</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
             </div>
 
-            <div id="tab-clients" class="tab-content hidden">
-                <div class="card">
-                    <h3>Client CRM</h3>
-                    <div class="grid-4">
-                        <input type="text" id="cCompany" placeholder="Company">
-                        <input type="text" id="cName" placeholder="PIC">
-                        <input type="tel" id="cPhone" placeholder="Phone">
-                        <button id="saveClientBtn" class="btn btn-save" style="margin:0">Add</button>
-                    </div>
-                </div>
-                <div class="card"><table id="clientTable"><thead><tr><th>Company</th><th>PIC</th><th>Phone</th><th>Action</th></tr></thead><tbody></tbody></table></div>
-            </div>
-
-            <div id="tab-jobs" class="tab-content hidden">
-                <div class="card">
-                    <h3>Applications</h3>
-                    <table id="jobTable">
-                        <thead><tr><th>Name</th><th>Role</th><th>Date</th><th>Resume</th><th>Action</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="tab-msgs" class="tab-content hidden">
-                <div class="card">
-                    <h3>Contact Messages</h3>
-                    <table id="msgTable">
-                        <thead><tr><th>From</th><th>Subject</th><th>Message</th><th>Action</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="tab-finance" class="tab-content hidden">
-                <div class="card">
-                    <h3>Admin Notes</h3>
-                    <textarea id="notes" rows="15" oninput="localStorage.setItem('sgNotes', this.value)"></textarea>
-                </div>
-            </div>
+            <div id="tab-manpower" class="tab-content hidden"><div class="card"><h3>Manpower Registry</h3><table id="manTable"><thead><tr><th>Site</th><th>Staff</th><th>Lead</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
+            <div id="tab-crm" class="tab-content hidden"><div class="card"><h3>Client CRM</h3><table id="clientTable"><thead><tr><th>Company</th><th>PIC</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
+            <div id="tab-jobs" class="tab-content hidden"><div class="card"><h3>Candidate Tracking</h3><table id="jobTable"><thead><tr><th>Name</th><th>Role</th><th>Resume</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
+            <div id="tab-msgs" class="tab-content hidden"><div class="card"><h3>Web Inquiries</h3><table id="msgTable"><thead><tr><th>From</th><th>Subject</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
+            <div id="tab-finance" class="tab-content hidden"><div class="card"><h3>Financial Ledger</h3><textarea id="notes" rows="15" placeholder="Detailed financial records..."></textarea></div></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
@@ -158,10 +147,10 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // 8. AUTH CHECK & SECURITY
         onAuthStateChanged(auth, u => {
             document.getElementById('login-box').style.display = u ? 'none' : 'flex';
-            document.getElementById('dashboard').style.display = u ? 'flex' : 'none';
-            if(u && localStorage.getItem('sgNotes')) document.getElementById('notes').value = localStorage.getItem('sgNotes');
+            document.getElementById('dashboard').style.display = u ? 'block' : 'none';
         });
 
         document.getElementById('loginBtn').onclick = () => {
@@ -169,85 +158,85 @@
         };
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
+        // 9. TAB SWITCHING SYSTEM
         window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-'+id).classList.remove('hidden');
-            event.target.classList.add('active');
+            event.currentTarget.classList.add('active');
         };
 
-        // SYNC LOGIC
+        // 10. REAL-TIME DATA RECEPTORS (MULTI-FUNCTION)
         onSnapshot(collection(db, "projects"), snap => {
             const body = document.querySelector("#projTable tbody");
-            const mSelect = document.getElementById('mProj');
-            body.innerHTML = ''; mSelect.innerHTML = '<option value="">-- Project --</option>';
-            snap.forEach(doc => {
-                const p = doc.data();
-                mSelect.innerHTML += `<option value="${p.projectName}">${p.projectName}</option>`;
-                body.innerHTML += `<tr><td><b>${p.projectName}</b></td><td>${p.deadline || '-'}</td><td>${p.progress}%</td><td>${p.payment}</td>
-                <td><button class="action-btn edit" onclick="editP('${p.projectName}','${p.progress}','${p.payment}','${p.deadline}')">✎</button>
-                <button class="action-btn del" onclick="delD('projects','${p.projectName}')">X</button></td></tr>`;
-            });
-        });
-
-        onSnapshot(collection(db, "clients"), snap => {
-            const body = document.querySelector("#clientTable tbody");
-            const pClient = document.getElementById('pClientSelect');
-            body.innerHTML = ''; pClient.innerHTML = '<option value="">-- Client --</option>';
-            snap.forEach(doc => {
-                const c = doc.data();
-                pClient.innerHTML += `<option value="${c.company}">${c.company}</option>`;
-                body.innerHTML += `<tr><td>${c.company}</td><td>${c.contactPerson}</td><td>${c.phone}</td><td><button class="action-btn del" onclick="delD('clients','${c.company}')">X</button></td></tr>`;
-            });
-        });
-
-        onSnapshot(collection(db, "applications"), snap => {
-            const body = document.querySelector("#jobTable tbody");
+            const select = document.getElementById('pClientSelect');
+            let count = 0, unpaid = 0;
             body.innerHTML = '';
             snap.forEach(doc => {
-                const a = doc.data();
-                body.innerHTML += `<tr><td><b>${a.name}</b></td><td>${a.role}</td><td>${new Date(a.appliedDate).toLocaleDateString()}</td><td><a href="${a.resume}" target="_blank">Link</a></td><td><button class="action-btn del" onclick="delD('applications','${a.email}')">X</button></td></tr>`;
+                const p = doc.data();
+                count++; if(p.payment !== 'Paid') unpaid++;
+                const badge = p.payment === 'Paid' ? 'bg-paid' : 'bg-unpaid';
+                body.innerHTML += `<tr>
+                    <td><b>${p.projectName}</b></td>
+                    <td>${p.deadline}</td>
+                    <td><span class="badge" style="background:${p.hse === 'High Risk' ? '#e74c3c' : '#27ae60'}; color:white">HSE</span></td>
+                    <td>${p.progress}% <div class="prog-track"><div class="prog-fill" style="width:${p.progress}%"></div></div></td>
+                    <td><span class="badge ${badge}">${p.payment}</span></td>
+                    <td><button class="btn edit" style="padding:4px" onclick="editP('${p.projectName}')">Edit</button></td>
+                </tr>`;
             });
+            document.getElementById('stat-proj').innerText = count;
+            document.getElementById('stat-unpaid').innerText = unpaid;
         });
 
-        onSnapshot(collection(db, "inquiries"), snap => {
-            const body = document.querySelector("#msgTable tbody");
+        // 11. INVENTORY CALCULATOR
+        onSnapshot(collection(db, "inventory"), snap => {
+            const body = document.querySelector("#invTable tbody");
+            let totalVal = 0;
             body.innerHTML = '';
             snap.forEach(doc => {
                 const i = doc.data();
-                body.innerHTML += `<tr><td><b>${i.name}</b><br>${i.email}</td><td>${i.subject}</td><td>${i.message}</td><td><button class="action-btn del" onclick="delD('inquiries','${doc.id}')">X</button></td></tr>`;
+                const value = i.qty * i.cost;
+                totalVal += value;
+                body.innerHTML += `<tr><td>${i.item}</td><td>${i.qty}</td><td>$${value}</td><td>Available</td><td><button onclick="delD('inventory','${i.item}')">X</button></td></tr>`;
             });
+            document.getElementById('stat-inv').innerText = '$' + totalVal.toLocaleString();
         });
 
-        onSnapshot(collection(db, "manpower"), snap => {
-            const body = document.querySelector("#manTable tbody");
-            body.innerHTML = '';
-            snap.forEach(doc => {
-                const m = doc.data();
-                body.innerHTML += `<tr><td>${m.project}</td><td>${m.count}</td><td>${m.leader}</td><td><button class="action-btn del" onclick="delD('manpower','${m.project}')">X</button></td></tr>`;
-            });
-        });
-
-        // SAVE LOGIC
+        // 12. CRUD ACTIONS
         document.getElementById('saveProjBtn').onclick = async () => {
-            const n = document.getElementById('pName').value;
-            if(!n) return;
-            await setDoc(doc(db, "projects", n), { projectName: n, clientName: document.getElementById('pClientSelect').value, progress: document.getElementById('pProg').value || 0, payment: document.getElementById('pPay').value, deadline: document.getElementById('pDeadline').value });
-            alert("Updated");
+            const name = document.getElementById('pName').value;
+            if(!name) return alert("Missing Project ID");
+            await setDoc(doc(db, "projects", name), {
+                projectName: name, progress: document.getElementById('pProg').value || 0,
+                payment: document.getElementById('pPay').value, deadline: document.getElementById('pDeadline').value,
+                hse: document.getElementById('pHse').value, budget: document.getElementById('pBudget').value
+            });
         };
 
-        document.getElementById('saveManBtn').onclick = async () => {
-            const p = document.getElementById('mProj').value;
-            await setDoc(doc(db, "manpower", p), { project: p, count: document.getElementById('mCount').value, leader: document.getElementById('mLeader').value });
+        document.getElementById('saveInvBtn').onclick = async () => {
+            const item = document.getElementById('invItem').value;
+            await setDoc(doc(db, "inventory", item), { item: item, qty: document.getElementById('invQty').value, cost: document.getElementById('invCost').value });
         };
 
-        document.getElementById('saveClientBtn').onclick = async () => {
-            const co = document.getElementById('cCompany').value;
-            await setDoc(doc(db, "clients", co), { company: co, contactPerson: document.getElementById('cName').value, phone: document.getElementById('cPhone').value });
+        // 13. EXPORT FUNCTIONS (CSV)
+        window.exportTable = (tableId) => {
+            let csv = [];
+            let rows = document.querySelectorAll(`#${tableId} tr`);
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+                for (let j = 0; j < cols.length; j++) row.push(cols[j].innerText.replace(/,/g, ""));
+                csv.push(row.join(","));
+            }
+            let downloadLink = document.createElement("a");
+            let blob = new Blob(["\ufeff", csv.join("\n")], { type: "text/csv" });
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = "sungroup_data.csv";
+            downloadLink.click();
         };
 
-        window.delD = async (c, id) => { if(confirm('Delete?')) await deleteDoc(doc(db, c, id)); };
-        window.editP = (n, pr, py, d) => { document.getElementById('pName').value = n; document.getElementById('pProg').value = pr; document.getElementById('pPay').value = py; document.getElementById('pDeadline').value = d; };
+        // 14. GLOBAL UTILS
+        window.delD = async (c, id) => { if(confirm('Erase Record?')) await deleteDoc(doc(db, c, id)); };
     </script>
 </body>
 </html>
