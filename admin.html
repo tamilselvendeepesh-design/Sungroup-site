@@ -7,32 +7,37 @@
     <link rel="icon" type="image/png" href="favicon.png">
     
     <style>
-        /* Base Styles */
         body { background: #e9ecef; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
         .hidden { display: none !important; }
         
-        /* Login Screen */
+        /* Login */
         #login-box { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100%; }
         .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 320px; }
         .login-logo { width: 180px; margin-bottom: 20px; }
         
         /* Layout */
         #dashboard { display: none; min-height: 100vh; }
-        .sidebar { width: 260px; background: #1e73be; color: white; padding: 20px; flex-shrink: 0; display: flex; flex-direction: column; }
+        .sidebar { width: 260px; background: #1e73be; color: white; padding: 20px; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
         .sidebar-logo { width: 140px; margin-bottom: 30px; align-self: center; }
         .main-content { flex-grow: 1; padding: 30px; background: #f4f7f9; }
         
-        /* Elements */
+        /* Cards & UI */
         .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 5px 0; background: none; border: none; color: white; cursor: pointer; border-radius: 4px; font-size: 1rem; }
         .nav-btn:hover { background: rgba(255,255,255,0.1); }
         .nav-btn.active { background: #165a96; font-weight: bold; }
         
-        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        .btn-primary { background: #1e73be; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
-        .btn-success { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .btn-primary { background: #1e73be; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-success { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
         
-        .client-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #dee2e6; }
+        td { padding: 12px; border-bottom: 1px solid #dee2e6; font-size: 0.9rem; }
+        .btn-edit { background: #f39c12; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .btn-delete { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     </style>
 </head>
@@ -40,29 +45,26 @@
 
     <div id="login-box">
         <div class="login-card">
-            <img src="logo.png" alt="Sungroup Logo" class="login-logo">
-            <h3 style="color:#1e73be; margin-top:0;">Admin Access</h3>
+            <img src="logo.png" alt="Logo" class="login-logo">
             <input type="email" id="email" placeholder="Admin Email">
             <input type="password" id="pass" placeholder="Password">
-            <button id="loginBtn" class="btn-primary">Sign In</button>
+            <button id="loginBtn" class="btn-primary" style="width:100%">Sign In</button>
         </div>
     </div>
 
     <div id="dashboard">
         <div class="sidebar">
-            <img src="logo.png" alt="Sungroup Logo" class="sidebar-logo">
-            <h3 style="border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; text-align: center;">Control Panel</h3>
-            <button class="nav-btn active" onclick="showTab('projects')">📂 Project Manager</button>
-            <button class="nav-btn" onclick="showTab('clients')">👥 Client Database</button>
-            <button class="nav-btn" onclick="showTab('finance')">💰 Finance Tools</button>
+            <img src="logo.png" alt="Logo" class="sidebar-logo">
+            <button class="nav-btn active" onclick="showTab('projects')">📂 Projects</button>
+            <button class="nav-btn" onclick="showTab('clients')">👥 Clients</button>
+            <button class="nav-btn" onclick="showTab('finance')">💰 Finance</button>
             <button id="logoutBtn" class="nav-btn" style="margin-top: auto; color:#ffcdd2;">Logout</button>
         </div>
 
         <div class="main-content">
-            
             <div id="tab-projects" class="tab-content">
                 <div class="card">
-                    <h3>Post / Update Project</h3>
+                    <h3 id="projFormTitle">Add New Project</h3>
                     <div class="grid-2">
                         <input type="text" id="pName" placeholder="Project Name">
                         <select id="pStatus">
@@ -71,53 +73,57 @@
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
-                    <label style="font-size:0.8rem; color:#666;">Assign to Client:</label>
-                    <select id="pClientSelect"><option value="">-- Select Client --</option></select>
-                    <textarea id="pDesc" rows="4" placeholder="Brief project description..."></textarea>
-                    <button id="saveProjBtn" class="btn-success">Update Live Website</button>
+                    <select id="pClientSelect"><option value="">-- Assign Client --</option></select>
+                    <textarea id="pDesc" rows="3" placeholder="Description..."></textarea>
+                    <button id="saveProjBtn" class="btn-success">Save Project</button>
+                </div>
+                <div class="card">
+                    <h3>Live Project List</h3>
+                    <table>
+                        <thead><tr><th>Name</th><th>Client</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="projTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
             <div id="tab-clients" class="tab-content hidden">
                 <div class="card">
-                    <h3>Add New Client</h3>
+                    <h3>Manage Clients</h3>
                     <div class="grid-2">
                         <input type="text" id="cCompany" placeholder="Company Name">
                         <input type="text" id="cName" placeholder="Contact Person">
-                    </div>
-                    <div class="grid-2">
                         <input type="email" id="cEmail" placeholder="Email">
                         <input type="tel" id="cPhone" placeholder="Phone">
                     </div>
-                    <button id="saveClientBtn" class="btn-primary">Save Client Contact</button>
+                    <button id="saveClientBtn" class="btn-primary" style="width:100%">Save Client</button>
                 </div>
                 <div class="card">
-                    <h3>Client Directory</h3>
-                    <div id="client-list-display"></div>
+                    <h3>Client Database</h3>
+                    <table>
+                        <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Actions</th></tr></thead>
+                        <tbody id="clientTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
             <div id="tab-finance" class="tab-content hidden">
                 <div class="card">
-                    <h3>Quick GST Calculator</h3>
-                    <input type="number" id="matCost" placeholder="Material Cost ($)">
-                    <input type="number" id="labCost" placeholder="Labor Cost ($)">
-                    <button onclick="calculate()" class="btn-primary" style="background:#f39c12;">Run Calculation</button>
+                    <h3>GST Calculator</h3>
+                    <input type="number" id="matCost" placeholder="Material ($)">
+                    <input type="number" id="labCost" placeholder="Labor ($)">
+                    <button onclick="calculate()" class="btn-primary" style="width:100%; background:#f39c12;">Calculate</button>
                     <div id="fin-res" class="hidden" style="margin-top:20px; padding:15px; background:#f8f9fa; border-left:5px solid #f39c12;">
-                        <p>Subtotal: <strong id="resSub"></strong></p>
-                        <p>GST (9%): <strong id="resGst"></strong></p>
-                        <p style="font-size:1.2rem; color:#d35400;">Grand Total: <strong id="resTotal"></strong></p>
+                        <p>Total: <strong id="resTotal"></strong> (Inc. 9% GST)</p>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
@@ -132,88 +138,86 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        const loginBox = document.getElementById('login-box');
-        const dashboard = document.getElementById('dashboard');
-
-        function updateView(user) {
-            if (user) {
-                loginBox.style.display = 'none';
-                dashboard.style.display = 'flex';
-            } else {
-                loginBox.style.display = 'flex';
-                dashboard.style.display = 'none';
-            }
-        }
-
-        onAuthStateChanged(auth, (user) => updateView(user));
+        // Auth View Toggle
+        onAuthStateChanged(auth, (user) => {
+            document.getElementById('login-box').style.display = user ? 'none' : 'flex';
+            document.getElementById('dashboard').style.display = user ? 'flex' : 'none';
+        });
 
         document.getElementById('loginBtn').onclick = () => {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('pass').value;
-            signInWithEmailAndPassword(auth, email, pass)
-                .then((userCredential) => updateView(userCredential.user))
-                .catch((e) => alert("Error: " + e.message));
+            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert(e.message));
         };
-
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-        window.showTab = (tabId) => {
+        window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-'+id).classList.remove('hidden');
             event.currentTarget.classList.add('active');
         };
 
-        onSnapshot(collection(db, "clients"), (snapshot) => {
-            const dropdown = document.getElementById('pClientSelect');
-            const listDisplay = document.getElementById('client-list-display');
-            dropdown.innerHTML = '<option value="">-- Select Client --</option>';
-            listDisplay.innerHTML = '';
-            snapshot.forEach(doc => {
-                const c = doc.data();
-                dropdown.innerHTML += `<option value="${c.company}">${c.company}</option>`;
-                listDisplay.innerHTML += `
-                    <div class="client-item">
-                        <div><strong>${c.company}</strong><br><small>${c.contactPerson}</small></div>
-                        <a href="tel:${c.phone}" style="text-decoration:none;">📞</a>
-                    </div>`;
+        // --- REAL-TIME DATA SYNC ---
+        onSnapshot(collection(db, "clients"), (snap) => {
+            const drop = document.getElementById('pClientSelect');
+            const tbody = document.getElementById('clientTableBody');
+            drop.innerHTML = '<option value="">-- Assign Client --</option>';
+            tbody.innerHTML = '';
+            snap.forEach(sdoc => {
+                const c = sdoc.data();
+                drop.innerHTML += `<option value="${c.company}">${c.company}</option>`;
+                tbody.innerHTML += `<tr><td>${c.company}</td><td>${c.contactPerson}</td><td>${c.phone}</td>
+                <td><button class="btn-edit" onclick="editClient('${c.company}','${c.contactPerson}','${c.email}','${c.phone}')">Edit</button>
+                <button class="btn-delete" onclick="deleteData('clients','${c.company}')">Del</button></td></tr>`;
             });
         });
 
+        onSnapshot(collection(db, "projects"), (snap) => {
+            const tbody = document.getElementById('projTableBody');
+            tbody.innerHTML = '';
+            snap.forEach(sdoc => {
+                const p = sdoc.data();
+                tbody.innerHTML += `<tr><td>${p.projectName}</td><td>${p.clientName}</td><td>${p.status}</td>
+                <td><button class="btn-edit" onclick="editProj('${p.projectName}','${p.status}','${p.clientName}','${encodeURIComponent(p.description)}')">Edit</button>
+                <button class="btn-delete" onclick="deleteData('projects','${p.projectName}')">Del</button></td></tr>`;
+            });
+        });
+
+        // --- ACTIONS ---
+        window.deleteData = async (coll, id) => { if(confirm("Delete this?")) await deleteDoc(doc(db, coll, id)); };
+
+        window.editClient = (co, name, em, ph) => {
+            document.getElementById('cCompany').value = co; document.getElementById('cName').value = name;
+            document.getElementById('cEmail').value = em; document.getElementById('cPhone').value = ph;
+            showTab('clients');
+        };
+
+        window.editProj = (name, stat, cli, desc) => {
+            document.getElementById('pName').value = name; document.getElementById('pStatus').value = stat;
+            document.getElementById('pClientSelect').value = cli; document.getElementById('pDesc').value = decodeURIComponent(desc);
+            showTab('projects');
+        };
+
         document.getElementById('saveProjBtn').onclick = async () => {
             const name = document.getElementById('pName').value;
-            if(!name) return alert("Enter project name");
-            try {
-                await setDoc(doc(db, "projects", name), {
-                    projectName: name,
-                    clientName: document.getElementById('pClientSelect').value || "General",
-                    status: document.getElementById('pStatus').value,
-                    description: document.getElementById('pDesc').value,
-                    date: new Date()
-                });
-                alert("Project Live!");
-            } catch(e) { alert(e.message); }
+            await setDoc(doc(db, "projects", name), {
+                projectName: name, clientName: document.getElementById('pClientSelect').value || "General",
+                status: document.getElementById('pStatus').value, description: document.getElementById('pDesc').value, date: new Date()
+            });
+            alert("Saved!");
         };
 
         document.getElementById('saveClientBtn').onclick = async () => {
             const co = document.getElementById('cCompany').value;
-            if(!co) return alert("Enter company name");
-            try {
-                await setDoc(doc(db, "clients", co), {
-                    company: co,
-                    contactPerson: document.getElementById('cName').value,
-                    email: document.getElementById('cEmail').value,
-                    phone: document.getElementById('cPhone').value
-                });
-                alert("Client Saved!");
-            } catch(e) { alert(e.message); }
+            await setDoc(doc(db, "clients", co), {
+                company: co, contactPerson: document.getElementById('cName').value,
+                email: document.getElementById('cEmail').value, phone: document.getElementById('cPhone').value
+            });
+            alert("Saved!");
         };
 
         window.calculate = () => {
-            const sub = Number(document.getElementById('matCost').value) + Number(document.getElementById('labCost').value);
-            document.getElementById('resSub').innerText = "$" + sub.toLocaleString();
-            document.getElementById('resGst').innerText = "$" + (sub * 0.09).toLocaleString();
-            document.getElementById('resTotal').innerText = "$" + (sub * 1.09).toLocaleString();
+            const total = (Number(document.getElementById('matCost').value) + Number(document.getElementById('labCost').value)) * 1.09;
+            document.getElementById('resTotal').innerText = "$" + total.toLocaleString();
             document.getElementById('fin-res').classList.remove('hidden');
         };
     </script>
