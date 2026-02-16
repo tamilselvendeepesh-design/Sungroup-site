@@ -4,81 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Us | Sungroup Engineering</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #27ae60; --dark: #2c3e50; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; }
-        
-        header { background: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .logo img { height: 50px; }
-        nav a { margin-left: 20px; text-decoration: none; color: var(--dark); font-weight: 600; }
-
-        .contact-section { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1100px; margin: 60px auto; padding: 0 20px; }
-        .info-card { background: var(--dark); color: white; padding: 40px; border-radius: 12px; }
-        .form-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; }
-        .btn-send { background: var(--primary); color: white; border: none; padding: 15px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+        .contact-form { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .submit-btn { background: #1e73be; color: white; border: none; padding: 15px 30px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-
-<header>
-    <div class="logo"><img src="logo.png" alt="Sungroup Logo"></div>
     <nav>
-        <a href="index.html">Home</a>
-        <a href="projects.html">Projects</a>
-        <a href="careers.html">Careers</a>
-        <a href="contact.html" style="color:var(--primary)">Contact</a>
+        <div class="container nav-flex">
+            <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about-company.html">About Us</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="projects.html">Projects</a></li>
+                <li><a href="careers.html">Careers</a></li>
+                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
+            </ul>
+        </div>
     </nav>
-</header>
 
-<div class="contact-section">
-    <div class="info-card">
-        <h2>Get in Touch</h2>
-        <p><b>Address:</b> 5 Soon Lee Street, #03-60 Pioneer Point, Singapore 627607</p>
-        <p><b>Email:</b> contact@sungroupengg.com</p>
-        <p><b>Phone:</b> +65 XXXX XXXX</p>
-    </div>
+    <header class="hero" style="min-height: 200px; padding: 60px 0;">
+        <div class="container hero-content">
+            <h2>Contact Us</h2>
+            <p>Have a project in mind? Reach out to our engineering experts today.</p>
+        </div>
+    </header>
 
-    <div class="form-card">
-        <div id="sent" style="display:none; color:green; margin-bottom:20px;">✅ Message Sent! We will reply shortly.</div>
-        <form id="contactForm">
-            <input type="text" id="cName" placeholder="Your Name" required>
-            <input type="text" id="cSub" placeholder="Subject" required>
-            <textarea id="cMsg" rows="5" placeholder="Your Message..." required></textarea>
-            <button type="submit" class="btn-send">Send Message</button>
-        </form>
-    </div>
-</div>
+    <section class="section-padding">
+        <div class="container">
+            <div class="contact-grid">
+                <div class="partner-card">
+                    <h3 class="partner-title">Our Office</h3>
+                    <p><i class="fas fa-map-marker-alt" style="color:#1e73be"></i> 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+                    <p><i class="fas fa-envelope" style="color:#1e73be"></i> contact@sungroup.com</p>
+                    <p><i class="fas fa-phone" style="color:#1e73be"></i> +65 6XXX XXXX</p>
+                </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+                <div class="contact-form">
+                    <div id="sent" style="display:none; color:green; margin-bottom:15px; font-weight:bold;">✅ Message Sent Successfully!</div>
+                    <form id="contactForm">
+                        <input type="text" id="cName" placeholder="Your Name" required>
+                        <input type="text" id="cSub" placeholder="Subject" required>
+                        <textarea id="cMsg" rows="5" placeholder="Your Message..." required></textarea>
+                        <button type="submit" class="submit-btn">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
-        authDomain: "sungroup-crm.firebaseapp.com",
-        projectId: "sungroup-crm",
-        storageBucket: "sungroup-crm.firebasestorage.app",
-        messagingSenderId: "982155471354",
-        appId: "1:982155471354:web:c4b61192d247c9739edc43"
-    };
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+        </div>
+    </footer>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm", storageBucket: "sungroup-crm.firebasestorage.app", messagingSenderId: "982155471354", appId: "1:982155471354:web:c4b61192d247c9739edc43" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    document.getElementById('contactForm').onsubmit = async (e) => {
-        e.preventDefault();
-        await addDoc(collection(db, "inquiries"), {
-            name: document.getElementById('cName').value,
-            subject: document.getElementById('cSub').value,
-            message: document.getElementById('cMsg').value,
-            date: new Date().toISOString()
-        });
-        document.getElementById('contactForm').reset();
-        document.getElementById('sent').style.display = 'block';
-    };
-</script>
+        document.getElementById('contactForm').onsubmit = async (e) => {
+            e.preventDefault();
+            await addDoc(collection(db, "inquiries"), {
+                name: document.getElementById('cName').value,
+                subject: document.getElementById('cSub').value,
+                message: document.getElementById('cMsg').value,
+                date: new Date().toISOString()
+            });
+            document.getElementById('contactForm').reset();
+            document.getElementById('sent').style.display = 'block';
+        };
+    </script>
 </body>
 </html>
