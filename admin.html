@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sungroup CRM | Admin Panel</title>
+    <title>Admin Portal | Sungroup Engineering</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    
     <style>
         /* Base Styles */
         body { background: #e9ecef; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
@@ -12,10 +14,12 @@
         /* Login Screen */
         #login-box { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100%; }
         .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 320px; }
+        .login-logo { width: 180px; margin-bottom: 20px; }
         
         /* Layout */
         #dashboard { display: none; min-height: 100vh; }
-        .sidebar { width: 260px; background: #1e73be; color: white; padding: 20px; flex-shrink: 0; }
+        .sidebar { width: 260px; background: #1e73be; color: white; padding: 20px; flex-shrink: 0; display: flex; flex-direction: column; }
+        .sidebar-logo { width: 140px; margin-bottom: 30px; align-self: center; }
         .main-content { flex-grow: 1; padding: 30px; background: #f4f7f9; }
         
         /* Elements */
@@ -36,7 +40,8 @@
 
     <div id="login-box">
         <div class="login-card">
-            <h2 style="color:#1e73be; margin-bottom:20px;">Sungroup CRM</h2>
+            <img src="logo.png" alt="Sungroup Logo" class="login-logo">
+            <h3 style="color:#1e73be; margin-top:0;">Admin Access</h3>
             <input type="email" id="email" placeholder="Admin Email">
             <input type="password" id="pass" placeholder="Password">
             <button id="loginBtn" class="btn-primary">Sign In</button>
@@ -45,11 +50,12 @@
 
     <div id="dashboard">
         <div class="sidebar">
-            <h2 style="border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px;">Admin Panel</h2>
+            <img src="logo.png" alt="Sungroup Logo" class="sidebar-logo">
+            <h3 style="border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; text-align: center;">Control Panel</h3>
             <button class="nav-btn active" onclick="showTab('projects')">📂 Project Manager</button>
             <button class="nav-btn" onclick="showTab('clients')">👥 Client Database</button>
             <button class="nav-btn" onclick="showTab('finance')">💰 Finance Tools</button>
-            <button id="logoutBtn" class="nav-btn" style="margin-top:50px; color:#ffcdd2;">Logout</button>
+            <button id="logoutBtn" class="nav-btn" style="margin-top: auto; color:#ffcdd2;">Logout</button>
         </div>
 
         <div class="main-content">
@@ -126,11 +132,9 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // UI Controls
         const loginBox = document.getElementById('login-box');
         const dashboard = document.getElementById('dashboard');
 
-        // FORCE VIEW UPDATE
         function updateView(user) {
             if (user) {
                 loginBox.style.display = 'none';
@@ -147,15 +151,12 @@
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
             signInWithEmailAndPassword(auth, email, pass)
-                .then((userCredential) => {
-                    updateView(userCredential.user);
-                })
+                .then((userCredential) => updateView(userCredential.user))
                 .catch((e) => alert("Error: " + e.message));
         };
 
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-        // TAB LOGIC
         window.showTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -163,28 +164,22 @@
             event.currentTarget.classList.add('active');
         };
 
-        // CLIENT DATA SYNC
         onSnapshot(collection(db, "clients"), (snapshot) => {
             const dropdown = document.getElementById('pClientSelect');
             const listDisplay = document.getElementById('client-list-display');
-            
             dropdown.innerHTML = '<option value="">-- Select Client --</option>';
             listDisplay.innerHTML = '';
-
             snapshot.forEach(doc => {
                 const c = doc.data();
-                // Update Dropdown
                 dropdown.innerHTML += `<option value="${c.company}">${c.company}</option>`;
-                // Update List
                 listDisplay.innerHTML += `
                     <div class="client-item">
-                        <div><strong>${c.company}</strong><br><small>${c.contactPerson} | ${c.email}</small></div>
+                        <div><strong>${c.company}</strong><br><small>${c.contactPerson}</small></div>
                         <a href="tel:${c.phone}" style="text-decoration:none;">📞</a>
                     </div>`;
             });
         });
 
-        // SAVE ACTIONS
         document.getElementById('saveProjBtn').onclick = async () => {
             const name = document.getElementById('pName').value;
             if(!name) return alert("Enter project name");
