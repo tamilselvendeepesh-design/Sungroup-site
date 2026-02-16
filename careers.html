@@ -1,24 +1,91 @@
-<div class="card">
-    <h3>Join the Sungroup Team</h3>
-    <form id="applicationForm">
-        <input type="text" id="appName" placeholder="Full Name" required>
-        <input type="email" id="appEmail" placeholder="Email Address" required>
-        <select id="appRole">
-            <option value="Electrical Engineer">Electrical Engineer</option>
-            <option value="Mechanical Technician">Mechanical Technician</option>
-            <option value="Site Supervisor">Site Supervisor</option>
-            <option value="Admin/HR">Admin/HR</option>
-        </select>
-        <input type="url" id="appResume" placeholder="Resume Link (Google Drive/Dropbox)" required>
-        <textarea id="appMessage" placeholder="Briefly tell us about your experience..." rows="4"></textarea>
-        <button type="submit" class="btn btn-save" style="background:var(--primary); color:white;">Submit Application</button>
-    </form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Careers | Sungroup Engineering</title>
+    <link rel="stylesheet" href="style.css"> <style>
+        :root { --primary: #1e73be; --dark: #2c3e50; --light: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--light); }
+        .career-container { max-width: 800px; margin: 60px auto; padding: 20px; }
+        .apply-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: var(--dark); border-left: 5px solid var(--primary); padding-left: 15px; margin-bottom: 30px; }
+        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--dark); }
+        input, select, textarea { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; 
+            box-sizing: border-box; font-size: 1rem; transition: border 0.3s;
+        }
+        input:focus { border-color: var(--primary); outline: none; }
+        
+        .btn-submit { 
+            background: var(--primary); color: white; border: none; padding: 15px 30px; 
+            border-radius: 6px; cursor: pointer; font-size: 1.1rem; font-weight: bold; width: 100%;
+            transition: background 0.3s;
+        }
+        .btn-submit:hover { background: #155a96; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+
+        .success-msg { color: #27ae60; background: #e8f6ef; padding: 15px; border-radius: 6px; display: none; margin-bottom: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="career-container">
+    <div class="apply-card">
+        <h2>Join Sungroup Engineering</h2>
+        <p>Submit your details below. Our HR team will review your application and reach out if your profile matches our requirements.</p>
+        
+        <div id="successMessage" class="success-msg">
+            ✅ Application submitted successfully! We'll contact you soon.
+        </div>
+
+        <form id="careerForm">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="appName" placeholder="e.g. John Doe" required>
+            </div>
+
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="appEmail" placeholder="e.g. john@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Applying for Position</label>
+                <select id="appRole" required>
+                    <option value="" disabled selected>Select a role...</option>
+                    <option value="Electrical Engineer">Electrical Engineer</option>
+                    <option value="Mechanical Technician">Mechanical Technician</option>
+                    <option value="Project Manager">Project Manager</option>
+                    <option value="Safety Officer (HSE)">Safety Officer (HSE)</option>
+                    <option value="Site Supervisor">Site Supervisor</option>
+                    <option value="General Admin">General Admin / HR</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Resume Link (Google Drive / Dropbox / OneDrive)</label>
+                <input type="url" id="appResume" placeholder="https://..." required>
+                <small style="color: #666;">Please ensure the link is set to "Public" or "Anyone with link can view".</small>
+            </div>
+
+            <div class="form-group">
+                <label>Message / Cover Letter (Optional)</label>
+                <textarea id="appMessage" rows="5" placeholder="Tell us about your technical experience..."></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-submit">Submit Application</button>
+        </form>
+    </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+    // Use your existing config
     const firebaseConfig = {
         apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
         authDomain: "sungroup-crm.firebaseapp.com",
@@ -31,23 +98,45 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    document.getElementById('applicationForm').onsubmit = async (e) => {
+    const form = document.getElementById('careerForm');
+    const btn = document.getElementById('submitBtn');
+    const successMsg = document.getElementById('successMessage');
+
+    form.onsubmit = async (e) => {
         e.preventDefault();
-        const email = document.getElementById('appEmail').value;
         
+        // Disable button to prevent double-submit
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+
+        const email = document.getElementById('appEmail').value;
+        const name = document.getElementById('appName').value;
+
         try {
+            // Save to "applications" collection in Firebase
+            // We use email as the ID, but you could use a random ID too
             await setDoc(doc(db, "applications", email), {
-                name: document.getElementById('appName').value,
+                name: name,
                 email: email,
                 role: document.getElementById('appRole').value,
                 resume: document.getElementById('appResume').value,
                 message: document.getElementById('appMessage').value,
                 appliedDate: new Date().toISOString()
             });
-            alert("Application sent successfully! We will contact you soon.");
-            e.target.reset();
+
+            // Show success
+            form.style.display = "none";
+            successMsg.style.display = "block";
+            window.scrollTo(0,0);
+
         } catch (error) {
-            alert("Error sending application. Please try again.");
+            console.error("Error submitting application:", error);
+            alert("Something went wrong. Please try again or contact support.");
+            btn.disabled = false;
+            btn.innerText = "Submit Application";
         }
     };
 </script>
+
+</body>
+</html>
