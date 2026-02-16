@@ -1,70 +1,115 @@
-<section class="section-padding">
-    <div class="container">
-        <div id="loading-msg" style="text-align: center; color: #888;">Loading active projects...</div>
-        <table id="publicProjTable" style="width: 100%; border-collapse: collapse; margin-top: 20px; display: none;">
-            <thead>
-                <tr style="background: #1e73be; color: white;">
-                    <th style="padding: 15px; text-align: left;">Project Name</th>
-                    <th style="padding: 15px; text-align: left;">Location</th>
-                    <th style="padding: 15px; text-align: left;">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
-    </div>
-</section>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects | Sungroup Engineering</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Specific styling for the data table to match Titan's clean look */
+        .project-list-container { margin: 40px auto; max-width: 1000px; padding: 0 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        th { background: #1e73be; color: white; padding: 15px; text-align: left; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+        td { padding: 15px; border-bottom: 1px solid #eee; color: #444; }
+        .status-badge { background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+        #loading-state { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container nav-flex">
+            <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about-company.html">About Us</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="projects.html">Projects</a></li>
+                <li><a href="careers.html">Careers</a></li>
+                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
+            </ul>
+        </div>
+    </nav>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    <header class="hero" style="min-height: 200px; padding: 60px 0;">
+        <div class="container hero-content">
+            <h2>Our Projects</h2>
+            <p>Showcase of our engineering excellence across Marine & Offshore sectors.</p>
+        </div>
+    </header>
 
-    // Same config as your Titan ERP
-    const firebaseConfig = {
-        apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
-        authDomain: "sungroup-crm.firebaseapp.com",
-        projectId: "sungroup-crm",
-        storageBucket: "sungroup-crm.firebasestorage.app",
-        messagingSenderId: "982155471354",
-        appId: "1:982155471354:web:c4b61192d247c9739edc43"
-    };
+    <section class="section-padding">
+        <div class="project-list-container">
+            <div id="loading-state"><i class="fas fa-spinner fa-spin"></i> Connecting to Project Database...</div>
+            
+            <table id="publicProjTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Project Name</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="proj-data">
+                    </tbody>
+            </table>
+        </div>
+    </section>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Sungroup Engineering Pte Ltd</p>
+        </div>
+    </footer>
 
-    // Syncing data from the "projects" collection
-    const table = document.getElementById('publicProjTable');
-    const tbody = table.querySelector('tbody');
-    const loader = document.getElementById('loading-msg');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    onSnapshot(collection(db, "projects"), (snapshot) => {
-        tbody.innerHTML = ''; // Clear existing rows
-        
-        if (snapshot.empty) {
-            loader.innerText = "No active projects at the moment.";
-            return;
-        }
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
+            authDomain: "sungroup-crm.firebaseapp.com",
+            projectId: "sungroup-crm",
+            storageBucket: "sungroup-crm.firebasestorage.app",
+            messagingSenderId: "982155471354",
+            appId: "1:982155471354:web:c4b61192d247c9739edc43"
+        };
 
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const row = `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 15px; font-weight: bold; color: #333;">${data.name || 'Unnamed Project'}</td>
-                    <td style="padding: 15px; color: #666;">${data.loc || 'Singapore'}</td>
-                    <td style="padding: 15px;">
-                        <span style="background: #e1f5fe; color: #0288d1; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
-                            Active
-                        </span>
-                    </td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const table = document.getElementById('publicProjTable');
+        const tbody = document.getElementById('proj-data');
+        const loader = document.getElementById('loading-state');
+
+        // This listens to the SAME collection your Titan ERP saves to
+        onSnapshot(collection(db, "projects"), (snap) => {
+            tbody.innerHTML = '';
+            
+            if (snap.empty) {
+                loader.innerHTML = "No active projects listed at this time.";
+                return;
+            }
+
+            snap.forEach((doc) => {
+                const p = doc.data();
+                const row = `
+                    <tr>
+                        <td><strong>${p.name || 'N/A'}</strong></td>
+                        <td>${p.loc || 'Singapore'}</td>
+                        <td><span class="status-badge">ACTIVE</span></td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+
+            loader.style.display = 'none';
+            table.style.display = 'table';
+        }, (err) => {
+            console.error(err);
+            loader.innerHTML = "⚠️ Offline: Unable to sync project data.";
         });
-
-        loader.style.display = 'none';
-        table.style.display = 'table';
-    }, (error) => {
-        console.error("Error loading projects: ", error);
-        loader.innerText = "Error connecting to database. Please refresh.";
-    });
-</script>
+    </script>
+</body>
+</html>
