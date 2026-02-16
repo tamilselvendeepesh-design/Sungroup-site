@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projects | Sungroup Engineering</title>
-    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Active Projects | Sungroup Engineering</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Specific styling for the data table to match Titan's clean look */
-        .project-list-container { margin: 40px auto; max-width: 1000px; padding: 0 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        th { background: #1e73be; color: white; padding: 15px; text-align: left; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
-        td { padding: 15px; border-bottom: 1px solid #eee; color: #444; }
-        .status-badge { background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
-        #loading-state { text-align: center; padding: 40px; color: #888; }
+        .project-board { margin: 50px auto; max-width: 1100px; padding: 0 20px; }
+        .titan-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        .titan-table thead { background: #1e73be; color: white; }
+        .titan-table th { padding: 18px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .titan-table td { padding: 18px; border-bottom: 1px solid #f0f0f0; color: #333; font-size: 0.95rem; }
+        .titan-table tr:last-child td { border-bottom: none; }
+        
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-active { background: #e3fcef; color: #107c10; }
+        .val-text { color: #1e73be; font-weight: 600; }
+        .date-text { color: #666; font-size: 0.85rem; }
+
+        #sync-loader { text-align: center; padding: 60px; color: #1e73be; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -23,45 +28,37 @@
             <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
             <ul class="nav-links">
                 <li><a href="index.html">Home</a></li>
-                <li><a href="about-company.html">About Us</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="projects.html">Projects</a></li>
+                <li><a href="projects.html" class="active">Projects</a></li>
                 <li><a href="careers.html">Careers</a></li>
                 <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
             </ul>
         </div>
     </nav>
 
-    <header class="hero" style="min-height: 200px; padding: 60px 0;">
-        <div class="container hero-content">
-            <h2>Our Projects</h2>
-            <p>Showcase of our engineering excellence across Marine & Offshore sectors.</p>
+    <header class="hero" style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('project-hero.jpg'); background-size: cover; padding: 80px 0; color: white; text-align: center;">
+        <div class="container">
+            <h1>Project Portfolio</h1>
+            <p>Real-time updates on our marine and civil engineering deployments.</p>
         </div>
     </header>
 
-    <section class="section-padding">
-        <div class="project-list-container">
-            <div id="loading-state"><i class="fas fa-spinner fa-spin"></i> Connecting to Project Database...</div>
-            
-            <table id="publicProjTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Project Name</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="proj-data">
-                    </tbody>
-            </table>
-        </div>
+    <section class="project-board">
+        <div id="sync-loader"><i class="fas fa-circle-notch fa-spin"></i> Initializing Secure Connection...</div>
+        
+        <table class="titan-table" id="projectTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Project Name</th>
+                    <th>Location</th>
+                    <th>Value</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="project-rows">
+                </tbody>
+        </table>
     </section>
-
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd</p>
-        </div>
-    </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -79,36 +76,39 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const table = document.getElementById('publicProjTable');
-        const tbody = document.getElementById('proj-data');
-        const loader = document.getElementById('loading-state');
+        const rowContainer = document.getElementById('project-rows');
+        const loader = document.getElementById('sync-loader');
+        const table = document.getElementById('projectTable');
 
-        // This listens to the SAME collection your Titan ERP saves to
-        onSnapshot(collection(db, "projects"), (snap) => {
-            tbody.innerHTML = '';
+        // Real-time listener for the 'projects' collection
+        onSnapshot(collection(db, "projects"), (snapshot) => {
+            rowContainer.innerHTML = '';
             
-            if (snap.empty) {
-                loader.innerHTML = "No active projects listed at this time.";
+            if (snapshot.empty) {
+                loader.innerHTML = "<i class='fas fa-info-circle'></i> No active projects currently listed.";
                 return;
             }
 
-            snap.forEach((doc) => {
+            snapshot.forEach((doc) => {
                 const p = doc.data();
                 const row = `
                     <tr>
-                        <td><strong>${p.name || 'N/A'}</strong></td>
-                        <td>${p.loc || 'Singapore'}</td>
-                        <td><span class="status-badge">ACTIVE</span></td>
+                        <td><strong>${p.name || '---'}</strong></td>
+                        <td><i class="fas fa-map-marker-alt" style="color:#e74c3c"></i> ${p.loc || 'Singapore'}</td>
+                        <td class="val-text">${p.value || '---'}</td>
+                        <td class="date-text">${p.due || '---'}</td>
+                        <td><span class="badge badge-active">Active</span></td>
                     </tr>
                 `;
-                tbody.innerHTML += row;
+                rowContainer.innerHTML += row;
             });
 
             loader.style.display = 'none';
             table.style.display = 'table';
-        }, (err) => {
-            console.error(err);
-            loader.innerHTML = "⚠️ Offline: Unable to sync project data.";
+        }, (error) => {
+            console.error("Connection failed:", error);
+            loader.innerHTML = "⚠️ Offline: Connection rejected. Check Firebase Rules.";
+            loader.style.color = "#e74c3c";
         });
     </script>
 </body>
