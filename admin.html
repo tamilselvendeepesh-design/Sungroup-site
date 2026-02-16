@@ -5,77 +5,111 @@
     <title>Sungroup CRM | Admin Panel</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .admin-container { max-width: 1100px; margin: 20px auto; display: flex; gap: 20px; font-family: sans-serif; }
-        .sidebar { width: 250px; background: #1e73be; color: white; padding: 20px; border-radius: 8px; height: fit-content; }
-        .main-content { flex: 1; background: #f4f4f4; padding: 20px; border-radius: 8px; }
-        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        body { background: #e9ecef; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
+        .admin-wrapper { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar { width: 260px; background: #1e73be; color: white; padding: 20px; flex-shrink: 0; }
+        .sidebar h2 { font-size: 1.2rem; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 5px 0; background: none; border: none; color: white; cursor: pointer; border-radius: 4px; font-size: 1rem; }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); }
+        .nav-btn.active { background: #165a96; font-weight: bold; }
+
+        /* Main Content */
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        
+        /* Form Elements */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn-save { background: #27ae60; color: white; border: none; padding: 12px; width: 100%; cursor: pointer; font-weight: bold; }
-        .btn-calc { background: #f39c12; color: white; border: none; padding: 10px; cursor: pointer; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .btn-save { background: #27ae60; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        
+        /* Client List & Search */
+        #searchClients { background: #fff; border: 2px solid #1e73be; font-weight: bold; }
+        .client-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .client-item:last-child { border-bottom: none; }
+        
         .hidden { display: none; }
+        .status-tag { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background: #eee; }
     </style>
 </head>
-<body style="background: #e9ecef;">
+<body>
 
-    <div id="login-box" style="text-align:center; margin-top:100px;">
-        <div class="card" style="width:300px; margin:auto;">
-            <h2>Admin Login</h2>
+    <div id="login-box" style="display:flex; justify-content:center; align-items:center; height:100vh;">
+        <div class="card" style="width:350px; text-align:center;">
+            <img src="logo.png" style="height:50px; margin-bottom:20px;">
+            <h3>Admin Portal</h3>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="pass" placeholder="Password">
-            <button id="loginBtn" class="main-btn">Sign In</button>
+            <button id="loginBtn" class="btn-save" style="background:#1e73be;">Sign In</button>
         </div>
     </div>
 
-    <div id="dashboard" class="admin-container hidden">
+    <div id="dashboard" class="admin-wrapper hidden">
         <div class="sidebar">
-            <h3>Sungroup CRM</h3>
-            <p style="font-size:0.8rem;">Logged in as Admin</p>
-            <hr>
-            <button onclick="showTab('projects')" style="width:100%; text-align:left; padding:10px; margin:5px 0; cursor:pointer;">📂 Projects</button>
-            <button onclick="showTab('finance')" style="width:100%; text-align:left; padding:10px; margin:5px 0; cursor:pointer;">💰 Finance Tools</button>
-            <button id="logoutBtn" style="margin-top:20px; background:rgba(255,255,255,0.2); border:none; color:white; padding:10px; width:100%; cursor:pointer;">Logout</button>
+            <h2>Sungroup CRM</h2>
+            <button class="nav-btn active" onclick="showTab('projects')">📂 Project Manager</button>
+            <button class="nav-btn" onclick="showTab('clients')">👥 Client Database</button>
+            <button class="nav-btn" onclick="showTab('finance')">💰 Finance Tools</button>
+            <div style="margin-top:50px; border-top:1px solid rgba(255,255,255,0.2); padding-top:20px;">
+                <button id="logoutBtn" class="nav-btn" style="color:#ffcdd2;">Logout</button>
+            </div>
         </div>
 
         <div class="main-content">
             
             <div id="tab-projects" class="tab-content">
                 <div class="card">
-                    <h3>New Project / Update Site</h3>
+                    <h3>Post / Update Project</h3>
                     <div class="grid-2">
-                        <input type="text" id="pName" placeholder="Project Name (e.g. Tuas Power Plant)">
+                        <input type="text" id="pName" placeholder="Project Name">
                         <select id="pStatus">
-                            <option value="Tendering">Tendering</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Testing">Testing & Comm</option>
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
-                    <textarea id="pDesc" placeholder="Brief Description / Site Notes"></textarea>
-                    <input type="text" id="pLink" placeholder="Cloud Storage Link (Google Drive/Dropbox)">
-                    <button id="saveBtn" class="btn-save">Update Website & Database</button>
+                    <textarea id="pDesc" placeholder="Description of works..."></textarea>
+                    <button id="saveProjBtn" class="btn-save">Update Live Website</button>
+                </div>
+            </div>
+
+            <div id="tab-clients" class="tab-content hidden">
+                <div class="card">
+                    <h3>Register New Client</h3>
+                    <div class="grid-2">
+                        <input type="text" id="cCompany" placeholder="Company Name">
+                        <input type="text" id="cName" placeholder="Contact Person">
+                    </div>
+                    <div class="grid-2">
+                        <input type="email" id="cEmail" placeholder="Email">
+                        <input type="tel" id="cPhone" placeholder="Phone">
+                    </div>
+                    <button id="saveClientBtn" class="btn-save" style="background:#1e73be;">Add to Database</button>
+                </div>
+
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3>Client Directory</h3>
+                        <input type="text" id="searchClients" placeholder="🔍 Search company or name..." style="width:250px; margin:0;">
+                    </div>
+                    <div id="client-list-display">
+                        </div>
                 </div>
             </div>
 
             <div id="tab-finance" class="tab-content hidden">
                 <div class="card">
-                    <h3>Smart Quotation Calculator</h3>
+                    <h3>GST & Profit Calculator</h3>
                     <div class="grid-2">
-                        <div>
-                            <label>Material Cost ($)</label>
-                            <input type="number" id="matCost" value="0">
-                        </div>
-                        <div>
-                            <label>Labor Cost ($)</label>
-                            <input type="number" id="labCost" value="0">
-                        </div>
+                        <input type="number" id="matCost" placeholder="Material Cost ($)">
+                        <input type="number" id="labCost" placeholder="Labor Cost ($)">
                     </div>
-                    <button onclick="runCalculation()" class="btn-calc">Analyze Quote</button>
-                    
-                    <div id="finance-results" style="margin-top:20px; padding:15px; background:#f9f9f9; border-left: 5px solid #f39c12;">
-                        <p>Subtotal: <span id="res-sub">$0.00</span></p>
-                        <p>GST (9%): <span id="res-gst">$0.00</span></p>
-                        <p><strong>Grand Total: <span id="res-total">$0.00</span></strong></p>
+                    <button onclick="calculate()" class="btn-save" style="background:#f39c12;">Run Calculation</button>
+                    <div id="fin-res" class="hidden" style="margin-top:20px; background:#f8f9fa; padding:15px; border-left:5px solid #f39c12;">
+                        <p>Subtotal: <strong id="resSub"></strong></p>
+                        <p>GST (9%): <strong id="resGst"></strong></p>
+                        <p style="font-size:1.2rem; color:#d35400;">Grand Total: <strong id="resTotal"></strong></p>
                     </div>
                 </div>
             </div>
@@ -86,7 +120,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
@@ -101,56 +135,87 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- Auth Logic ---
+        // --- AUTH ---
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('login-box').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-            } else {
-                document.getElementById('login-box').classList.remove('hidden');
-                document.getElementById('dashboard').classList.add('hidden');
-            }
+            document.getElementById('login-box').classList.toggle('hidden', !!user);
+            document.getElementById('dashboard').classList.toggle('hidden', !user);
         });
 
         document.getElementById('loginBtn').onclick = () => {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('pass').value;
-            signInWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
+            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert(e.message));
         };
-
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-        // --- Database Logic ---
-        document.getElementById('saveBtn').onclick = async () => {
-            const name = document.getElementById('pName').value;
-            if(!name) return alert("Enter project name");
+        // --- TABS ---
+        window.showTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        };
 
+        // --- CLIENT SEARCH & LIST ---
+        let allClients = [];
+        onSnapshot(collection(db, "clients"), (snapshot) => {
+            allClients = snapshot.docs.map(doc => doc.data());
+            renderClients(allClients);
+        });
+
+        function renderClients(data) {
+            const list = document.getElementById('client-list-display');
+            list.innerHTML = data.length ? '' : '<p>No clients found.</p>';
+            data.forEach(c => {
+                list.innerHTML += `
+                    <div class="client-item">
+                        <div>
+                            <strong>${c.company}</strong><br>
+                            <small>${c.contactPerson} | ${c.email}</small>
+                        </div>
+                        <a href="tel:${c.phone}" style="text-decoration:none;">📞 ${c.phone}</a>
+                    </div>`;
+            });
+        }
+
+        document.getElementById('searchClients').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allClients.filter(c => 
+                c.company.toLowerCase().includes(term) || 
+                c.contactPerson.toLowerCase().includes(term)
+            );
+            renderClients(filtered);
+        });
+
+        // --- SAVE ACTIONS ---
+        document.getElementById('saveProjBtn').onclick = async () => {
+            const name = document.getElementById('pName').value;
             await setDoc(doc(db, "projects", name), {
                 projectName: name,
                 status: document.getElementById('pStatus').value,
                 description: document.getElementById('pDesc').value,
-                fileLink: document.getElementById('pLink').value,
                 date: new Date()
             });
-            alert("Updated!");
+            alert("Project Live!");
         };
 
-        // --- UI & Finance Logic ---
-        window.showTab = (tab) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.getElementById('tab-' + tab).classList.remove('hidden');
+        document.getElementById('saveClientBtn').onclick = async () => {
+            const co = document.getElementById('cCompany').value;
+            await setDoc(doc(db, "clients", co), {
+                company: co,
+                contactPerson: document.getElementById('cName').value,
+                email: document.getElementById('cEmail').value,
+                phone: document.getElementById('cPhone').value
+            });
+            alert("Client Saved!");
         };
 
-        window.runCalculation = () => {
-            const mat = parseFloat(document.getElementById('matCost').value);
-            const lab = parseFloat(document.getElementById('labCost').value);
-            const sub = mat + lab;
+        // --- CALC ---
+        window.calculate = () => {
+            const sub = Number(document.getElementById('matCost').value) + Number(document.getElementById('labCost').value);
             const gst = sub * 0.09;
-            const total = sub + gst;
-
-            document.getElementById('res-sub').innerText = "$" + sub.toLocaleString();
-            document.getElementById('res-gst').innerText = "$" + gst.toLocaleString();
-            document.getElementById('res-total').innerText = "$" + total.toLocaleString();
+            document.getElementById('resSub').innerText = "$" + sub.toFixed(2);
+            document.getElementById('resGst').innerText = "$" + gst.toFixed(2);
+            document.getElementById('resTotal').innerText = "$" + (sub + gst).toFixed(2);
+            document.getElementById('fin-res').classList.remove('hidden');
         };
     </script>
 </body>
