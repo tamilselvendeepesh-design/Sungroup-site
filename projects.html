@@ -1,159 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projects | Sungroup Engineering</title>
-    <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        /* Project Layout Styles */
-        .project-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 25px;
-            margin-top: 40px;
-            min-height: 200px;
-        }
-        .project-card {
-            background: #fff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            border-top: 6px solid #1e73be;
-            transition: transform 0.3s ease;
-            position: relative;
-        }
-        .project-card:hover {
-            transform: translateY(-5px);
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        .status-completed { background: #e8f5e9; color: #2e7d32; }
-        .status-progress { background: #fff3e0; color: #ef6c00; }
-        .status-testing { background: #e3f2fd; color: #1565c0; }
+<section class="section-padding">
+    <div class="container">
+        <div id="loading-msg" style="text-align: center; color: #888;">Loading active projects...</div>
+        <table id="publicProjTable" style="width: 100%; border-collapse: collapse; margin-top: 20px; display: none;">
+            <thead>
+                <tr style="background: #1e73be; color: white;">
+                    <th style="padding: 15px; text-align: left;">Project Name</th>
+                    <th style="padding: 15px; text-align: left;">Location</th>
+                    <th style="padding: 15px; text-align: left;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+</section>
 
-        .client-label {
-            color: #1e73be;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-            display: block;
-        }
-        .proj-desc {
-            font-size: 0.95rem;
-            color: #555;
-            line-height: 1.5;
-            margin: 15px 0;
-        }
-        .loading-text {
-            text-align: center;
-            font-size: 1.2rem;
-            color: #999;
-            grid-column: 1 / -1;
-            padding: 50px;
-        }
-    </style>
-</head>
-<body>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    <nav>
-        <div class="container nav-flex">
-            <div class="logo">
-                <a href="index.html"><img src="logo.png" alt="Sungroup Logo" style="height:60px;"></a>
-            </div>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about-company.html">About Us</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="projects.html" class="active">Projects</a></li>
-                <li><a href="careers.html">Careers</a></li>
-                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
-            </ul>
-        </div>
-    </nav>
+    // Same config as your Titan ERP
+    const firebaseConfig = {
+        apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
+        authDomain: "sungroup-crm.firebaseapp.com",
+        projectId: "sungroup-crm",
+        storageBucket: "sungroup-crm.firebasestorage.app",
+        messagingSenderId: "982155471354",
+        appId: "1:982155471354:web:c4b61192d247c9739edc43"
+    };
 
-    <header class="page-header">
-        <div class="container">
-            <h1>Our Project Portfolio</h1>
-            <p>Showcasing our engineering excellence across Singapore's industrial sectors.</p>
-        </div>
-    </header>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    <main class="container section-padding">
-        <div id="project-display-area" class="project-grid">
-            <p class="loading-text">Fetching latest projects from database...</p>
-        </div>
-    </main>
+    // Syncing data from the "projects" collection
+    const table = document.getElementById('publicProjTable');
+    const tbody = table.querySelector('tbody');
+    const loader = document.getElementById('loading-msg');
 
-    <footer>
-        <div class="container" style="text-align: center; padding: 40px 0; border-top: 1px solid #eee;">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd. All Rights Reserved.</p>
-        </div>
-    </footer>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
-            authDomain: "sungroup-crm.firebaseapp.com",
-            projectId: "sungroup-crm",
-            storageBucket: "sungroup-crm.firebasestorage.app",
-            messagingSenderId: "982155471354",
-            appId: "1:982155471354:web:c4b61192d247c9739edc43"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Listen for all projects, sorted by newest first
-        const q = query(collection(db, "projects"), orderBy("date", "desc"));
+    onSnapshot(collection(db, "projects"), (snapshot) => {
+        tbody.innerHTML = ''; // Clear existing rows
         
-        onSnapshot(q, (snapshot) => {
-            const displayArea = document.getElementById('project-display-area');
-            
-            if (snapshot.empty) {
-                displayArea.innerHTML = '<p class="loading-text">No projects found. Add some in the Admin Panel!</p>';
-                return;
-            }
+        if (snapshot.empty) {
+            loader.innerText = "No active projects at the moment.";
+            return;
+        }
 
-            displayArea.innerHTML = ''; // Clear the loading text
-
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                
-                // Determine Status CSS
-                let statusClass = 'status-progress';
-                if (data.status === 'Completed') statusClass = 'status-completed';
-                if (data.status === 'Testing') statusClass = 'status-testing';
-
-                // Construct the Card
-                const card = `
-                    <div class="project-card">
-                        <span class="status-badge ${statusClass}">${data.status}</span>
-                        <span class="client-label">Client: ${data.clientName || 'General'}</span>
-                        <h3 style="margin-top: 5px;">${data.projectName}</h3>
-                        <p class="proj-desc">${data.description || 'Professional engineering services provided by Sungroup.'}</p>
-                        <div style="background: #eee; height: 8px; border-radius: 4px; overflow: hidden;">
-                            <div style="background: #1e73be; width: ${data.status === 'Completed' ? '100%' : '65%'}; height: 100%;"></div>
-                        </div>
-                    </div>
-                `;
-                displayArea.innerHTML += card;
-            });
-        }, (error) => {
-            console.error("Error loading projects: ", error);
-            document.getElementById('project-display-area').innerHTML = '<p>Error connecting to database. Please refresh.</p>';
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const row = `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 15px; font-weight: bold; color: #333;">${data.name || 'Unnamed Project'}</td>
+                    <td style="padding: 15px; color: #666;">${data.loc || 'Singapore'}</td>
+                    <td style="padding: 15px;">
+                        <span style="background: #e1f5fe; color: #0288d1; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
+                            Active
+                        </span>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
         });
-    </script>
-</body>
-</html>
+
+        loader.style.display = 'none';
+        table.style.display = 'table';
+    }, (error) => {
+        console.error("Error loading projects: ", error);
+        loader.innerText = "Error connecting to database. Please refresh.";
+    });
+</script>
