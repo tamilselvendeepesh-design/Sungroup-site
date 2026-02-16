@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin CRM | Sungroup Engineering</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-box { max-width: 800px; margin: 50px auto; padding: 30px; background: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-section" class="admin-box">
+        <h2 style="color: #1e73be;">Sungroup Admin Portal</h2>
+        <p>Please sign in to access the CRM and Project Calculator.</p>
+        <input type="email" id="email" placeholder="Admin Email">
+        <input type="password" id="pass" placeholder="Password">
+        <button id="loginBtn" class="main-btn" style="width:100%; border:none; cursor:pointer;">Login</button>
+    </div>
+
+    <div id="admin-dashboard" class="admin-box hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="color: #1e73be;">Project Dashboard</h2>
+            <button id="logoutBtn" style="background:#ff4d4d; color:white; border:none; padding:5px 15px; border-radius:4px; cursor:pointer;">Logout</button>
+        </div>
+        <hr>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-top:20px;">
+            <div>
+                <h3>Project Calculator</h3>
+                <label>Labor Cost ($)</label>
+                <input type="number" id="labor" placeholder="0.00">
+                <label>Material Cost ($)</label>
+                <input type="number" id="material" placeholder="0.00">
+                <button id="calcBtn" class="secondary-btn">Calculate Total</button>
+                <h4 id="totalResult" style="margin-top:15px; color:#27ae60;"></h4>
+            </div>
+
+            <div>
+                <h3>Add Project Info</h3>
+                <label>Project Name</label>
+                <input type="text" id="projName" placeholder="e.g. LNG Tank Repair">
+                <label>Status</label>
+                <select id="projStatus">
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                </select>
+                <button id="saveBtn" class="main-btn">Save to Server</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
+            authDomain: "sungroup-crm.firebaseapp.com",
+            projectId: "sungroup-crm",
+            storageBucket: "sungroup-crm.firebasestorage.app",
+            messagingSenderId: "982155471354",
+            appId: "1:982155471354:web:c4b61192d247c9739edc43",
+            measurementId: "G-FS8EXLP8C1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // UI Elements
+        const loginSection = document.getElementById('login-section');
+        const dashboard = document.getElementById('admin-dashboard');
+
+        // Check Login Status
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginSection.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+            } else {
+                loginSection.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+            }
+        });
+
+        // Login Action
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            signInWithEmailAndPassword(auth, email, pass).catch(err => alert("Login Failed: " + err.message));
+        });
+
+        // Logout Action
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+        // Calculator Logic
+        document.getElementById('calcBtn').addEventListener('click', () => {
+            const total = Number(document.getElementById('labor').value) + Number(document.getElementById('material').value);
+            document.getElementById('totalResult').innerText = "Estimated Total: $" + total.toLocaleString();
+        });
+
+        // Save Project Logic
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            const name = document.getElementById('projName').value;
+            const status = document.getElementById('projStatus').value;
+            try {
+                await setDoc(doc(db, "projects", name), { projectName: name, status: status, date: new Date() });
+                alert("Project Saved Successfully!");
+            } catch (e) { alert("Error saving: " + e.message); }
+        });
+    </script>
+</body>
+</html>
