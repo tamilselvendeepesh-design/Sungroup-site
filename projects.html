@@ -3,23 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Active Projects | Sungroup Engineering</title>
+    <title>Projects | Sungroup Engineering</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .project-board { margin: 50px auto; max-width: 1100px; padding: 0 20px; }
-        .titan-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-        .titan-table thead { background: #1e73be; color: white; }
-        .titan-table th { padding: 18px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
-        .titan-table td { padding: 18px; border-bottom: 1px solid #f0f0f0; color: #333; font-size: 0.95rem; }
-        .titan-table tr:last-child td { border-bottom: none; }
+        /* Table Styling to match index.html aesthetics */
+        .project-section { padding: 60px 0; background: #fff; }
+        .project-table-container { 
+            overflow-x: auto; 
+            background: #fff; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            margin-top: 30px;
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: #1e73be; color: white; padding: 18px; text-align: left; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
+        td { padding: 18px; border-bottom: 1px solid #eee; vertical-align: top; color: #444; }
         
-        .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .badge-active { background: #e3fcef; color: #107c10; }
-        .val-text { color: #1e73be; font-weight: 600; }
-        .date-text { color: #666; font-size: 0.85rem; }
-
-        #sync-loader { text-align: center; padding: 60px; color: #1e73be; font-weight: 600; }
+        .proj-title { color: #1e73be; font-weight: bold; font-size: 1.1rem; display: block; }
+        .proj-client { font-size: 0.85rem; color: #777; margin-top: 4px; }
+        .proj-desc { font-size: 0.9rem; color: #555; line-height: 1.4; margin-top: 5px; }
+        .status-badge { 
+            display: inline-block; padding: 4px 12px; border-radius: 20px; 
+            font-size: 0.75rem; font-weight: bold; text-transform: uppercase;
+        }
+        .status-active { background: #e3fcef; color: #107c10; }
+        .status-completed { background: #f3f2f1; color: #605e5c; }
+        
+        #loading-state { text-align: center; padding: 40px; color: #1e73be; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -28,37 +40,55 @@
             <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
             <ul class="nav-links">
                 <li><a href="index.html">Home</a></li>
-                <li><a href="projects.html" class="active">Projects</a></li>
+                <li><a href="about-company.html">About Us</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="projects.html">Projects</a></li>
                 <li><a href="careers.html">Careers</a></li>
                 <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
             </ul>
         </div>
     </nav>
 
-    <header class="hero" style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('project-hero.jpg'); background-size: cover; padding: 80px 0; color: white; text-align: center;">
-        <div class="container">
-            <h1>Project Portfolio</h1>
-            <p>Real-time updates on our marine and civil engineering deployments.</p>
-        </div>
-    </header>
+    <main>
+        <header class="hero">
+            <div class="container hero-content">
+                <h2>Our Projects</h2>
+                <p>A proven track record of engineering excellence in Marine, LNG, and Offshore sectors.</p>
+            </div>
+        </header>
 
-    <section class="project-board">
-        <div id="sync-loader"><i class="fas fa-circle-notch fa-spin"></i> Initializing Secure Connection...</div>
-        
-        <table class="titan-table" id="projectTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>Project Name</th>
-                    <th>Location</th>
-                    <th>Value</th>
-                    <th>Deadline</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="project-rows">
-                </tbody>
-        </table>
-    </section>
+        <section class="project-section">
+            <div class="container">
+                <h3 style="color:#1e73be; margin-bottom: 10px;">Ongoing & Completed Works</h3>
+                <p>We take pride in delivering high-quality power and control solutions for our global partners.</p>
+
+                <div id="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i> Syncing with Titan Database...
+                </div>
+
+                <div class="project-table-container" id="table-wrapper" style="display: none;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 35%;">Project & Client</th>
+                                <th style="width: 35%;">Scope & Location</th>
+                                <th style="width: 15%;">Value</th>
+                                <th style="width: 15%;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="project-data-rows">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+        </div>
+    </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -76,39 +106,45 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const rowContainer = document.getElementById('project-rows');
-        const loader = document.getElementById('sync-loader');
-        const table = document.getElementById('projectTable');
+        const rows = document.getElementById('project-data-rows');
+        const loader = document.getElementById('loading-state');
+        const tableWrapper = document.getElementById('table-wrapper');
 
-        // Real-time listener for the 'projects' collection
+        // Listen to the 'projects' collection
         onSnapshot(collection(db, "projects"), (snapshot) => {
-            rowContainer.innerHTML = '';
+            rows.innerHTML = '';
             
             if (snapshot.empty) {
-                loader.innerHTML = "<i class='fas fa-info-circle'></i> No active projects currently listed.";
+                loader.innerHTML = "No active projects found in the database.";
                 return;
             }
 
             snapshot.forEach((doc) => {
                 const p = doc.data();
+                const statusClass = p.status === 'Completed' ? 'status-completed' : 'status-active';
+                
                 const row = `
                     <tr>
-                        <td><strong>${p.name || '---'}</strong></td>
-                        <td><i class="fas fa-map-marker-alt" style="color:#e74c3c"></i> ${p.loc || 'Singapore'}</td>
-                        <td class="val-text">${p.value || '---'}</td>
-                        <td class="date-text">${p.due || '---'}</td>
-                        <td><span class="badge badge-active">Active</span></td>
+                        <td>
+                            <span class="proj-title">${p.name || 'Unnamed Project'}</span>
+                            <div class="proj-client"><i class="fas fa-user-tie"></i> Client: ${p.client || 'N/A'}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight:600;"><i class="fas fa-map-marker-alt" style="color:#e74c3c"></i> ${p.loc || 'Singapore'}</div>
+                            <div class="proj-desc">${p.desc || ''}</div>
+                        </td>
+                        <td style="font-weight:bold; color:#1e73be;">${p.value || '---'}</td>
+                        <td><span class="status-badge ${statusClass}">${p.status || 'Active'}</span></td>
                     </tr>
                 `;
-                rowContainer.innerHTML += row;
+                rows.innerHTML += row;
             });
 
             loader.style.display = 'none';
-            table.style.display = 'table';
+            tableWrapper.style.display = 'block';
         }, (error) => {
-            console.error("Connection failed:", error);
-            loader.innerHTML = "⚠️ Offline: Connection rejected. Check Firebase Rules.";
-            loader.style.color = "#e74c3c";
+            console.error(error);
+            loader.innerHTML = "⚠️ Offline: Unable to connect to project database.";
         });
     </script>
 </body>
