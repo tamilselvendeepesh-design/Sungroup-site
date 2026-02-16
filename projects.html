@@ -2,19 +2,102 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects | Sungroup Engineering</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="style.css">
     <style>
-        .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
-        .project-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-top: 5px solid #1e73be; }
-        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+        /* Project Layout Styles */
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+            min-height: 200px;
+        }
+        .project-card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-top: 6px solid #1e73be;
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
         .status-completed { background: #e8f5e9; color: #2e7d32; }
         .status-progress { background: #fff3e0; color: #ef6c00; }
+        .status-testing { background: #e3f2fd; color: #1565c0; }
+
+        .client-label {
+            color: #1e73be;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .proj-desc {
+            font-size: 0.95rem;
+            color: #555;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        .loading-text {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #999;
+            grid-column: 1 / -1;
+            padding: 50px;
+        }
     </style>
 </head>
 <body>
-    <div class="page-header"><div class="container"><h1>Our Projects</h1></div></div>
-    <div class="container"><div id="project-display-area" class="project-grid">Loading...</div></div>
+
+    <nav>
+        <div class="container nav-flex">
+            <div class="logo">
+                <a href="index.html"><img src="logo.png" alt="Sungroup Logo" style="height:60px;"></a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about-company.html">About Us</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="projects.html" class="active">Projects</a></li>
+                <li><a href="careers.html">Careers</a></li>
+                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <h1>Our Project Portfolio</h1>
+            <p>Showcasing our engineering excellence across Singapore's industrial sectors.</p>
+        </div>
+    </header>
+
+    <main class="container section-padding">
+        <div id="project-display-area" class="project-grid">
+            <p class="loading-text">Fetching latest projects from database...</p>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container" style="text-align: center; padding: 40px 0; border-top: 1px solid #eee;">
+            <p>&copy; 2026 Sungroup Engineering Pte Ltd. All Rights Reserved.</p>
+        </div>
+    </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -31,22 +114,45 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // Listen for all projects, sorted by newest first
         const q = query(collection(db, "projects"), orderBy("date", "desc"));
         
         onSnapshot(q, (snapshot) => {
-            const display = document.getElementById('project-display-area');
-            display.innerHTML = '';
+            const displayArea = document.getElementById('project-display-area');
+            
+            if (snapshot.empty) {
+                displayArea.innerHTML = '<p class="loading-text">No projects found. Add some in the Admin Panel!</p>';
+                return;
+            }
+
+            displayArea.innerHTML = ''; // Clear the loading text
+
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                const sClass = data.status === 'Completed' ? 'status-completed' : 'status-progress';
-                display.innerHTML += `
+                
+                // Determine Status CSS
+                let statusClass = 'status-progress';
+                if (data.status === 'Completed') statusClass = 'status-completed';
+                if (data.status === 'Testing') statusClass = 'status-testing';
+
+                // Construct the Card
+                const card = `
                     <div class="project-card">
-                        <span class="status-badge ${sClass}">${data.status}</span>
-                        <h3>${data.projectName}</h3>
-                        <p style="color:#1e73be; font-size:0.8rem;">Client: ${data.clientName || 'General'}</p>
-                        <p style="font-size:0.9rem; color:#666;">${data.description || ''}</p>
-                    </div>`;
+                        <span class="status-badge ${statusClass}">${data.status}</span>
+                        <span class="client-label">Client: ${data.clientName || 'General'}</span>
+                        <h3 style="margin-top: 5px;">${data.projectName}</h3>
+                        <p class="proj-desc">${data.description || 'Professional engineering services provided by Sungroup.'}</p>
+                        <div style="background: #eee; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: #1e73be; width: ${data.status === 'Completed' ? '100%' : '65%'}; height: 100%;"></div>
+                        </div>
+                    </div>
+                `;
+                displayArea.innerHTML += card;
             });
+        }, (error) => {
+            console.error("Error loading projects: ", error);
+            document.getElementById('project-display-area').innerHTML = '<p>Error connecting to database. Please refresh.</p>';
         });
     </script>
 </body>
