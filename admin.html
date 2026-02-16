@@ -6,38 +6,40 @@
     <title>Sungroup ERP | Admin Suite</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
-        :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --dark: #2c3e50; --bg: #f0f2f5; }
-        body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; color: var(--dark); overflow-x: hidden; }
+        :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --dark: #2c3e50; --bg: #f0f2f5; --sidebar-w: 260px; }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; color: var(--dark); display: flex; }
         
         /* AUTH GUARD */
         #login-box { position: fixed; inset: 0; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 10000; }
         .login-card { background: white; padding: 40px; border-radius: 15px; width: 340px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .hidden { display: none !important; }
 
-        /* LAYOUT */
-        #dashboard { display: none; min-height: 100vh; flex-direction: row; }
-        .sidebar { width: 260px; background: var(--dark); color: white; padding: 20px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; box-sizing: border-box; }
+        /* LAYOUT & SIDEBAR */
+        #dashboard { display: none; width: 100%; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-w); background: var(--dark); color: white; padding: 20px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; box-sizing: border-box; }
         .sidebar-logo { width: 140px; margin-bottom: 30px; align-self: center; filter: brightness(0) invert(1); }
-        .main-content { flex-grow: 1; padding: 30px; background: var(--bg); width: calc(100% - 260px); }
+        .main-content { flex-grow: 1; padding: 30px; background: var(--bg); overflow-y: auto; }
 
-        /* NAV */
-        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; transition: 0.3s; }
+        /* NAVIGATION */
+        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; font-size: 0.95rem; transition: 0.2s; }
         .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .nav-btn.active { background: var(--primary); color: white; font-weight: bold; }
         
-        /* CARDS & TABLES */
+        /* UI ELEMENTS */
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
         .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .btn-save { background: var(--success); color: white; width: 100%; margin-top: 10px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; font-size: 0.9rem; }
-        td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; word-wrap: break-word; }
+        /* TABLES */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; font-size: 0.85rem; }
+        td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; }
         .action-btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin-right: 5px; }
         .edit { background: var(--warning); color: white; }
         .del { background: var(--danger); color: white; }
+        .view-btn { background: var(--primary); color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; }
     </style>
 </head>
 <body>
@@ -58,6 +60,7 @@
             <button class="nav-btn active" onclick="showTab('projects')">🏗️ Site Projects</button>
             <button class="nav-btn" onclick="showTab('manpower')">👷 Manpower Log</button>
             <button class="nav-btn" onclick="showTab('clients')">🤝 Client CRM</button>
+            <button class="nav-btn" onclick="showTab('jobs')">📄 Job Applications</button>
             <button class="nav-btn" onclick="showTab('finance')">📉 Notes & Finance</button>
             <button id="logoutBtn" class="nav-btn" style="margin-top:auto; color:var(--danger);">Sign Out</button>
         </div>
@@ -91,20 +94,20 @@
 
             <div id="tab-manpower" class="tab-content hidden">
                 <div class="card">
-                    <h3>Site Attendance</h3>
+                    <h3>Site Attendance Log</h3>
                     <div class="grid-4">
                         <select id="mProj"><option value="">-- Project --</option></select>
                         <input type="number" id="mCount" placeholder="Staff Count">
                         <input type="text" id="mLeader" placeholder="Supervisor">
-                        <button id="saveManBtn" class="btn btn-save" style="margin:0">Log Attendance</button>
+                        <button id="saveManBtn" class="btn btn-save" style="margin:0">Log Site</button>
                     </div>
                 </div>
-                <div class="card"><table id="manTable"><thead><tr><th>Site</th><th>Staff</th><th>Lead</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+                <div class="card"><table id="manTable"><thead><tr><th>Site</th><th>Staff</th><th>Lead</th><th>Action</th></tr></thead><tbody></tbody></table></div>
             </div>
 
             <div id="tab-clients" class="tab-content hidden">
                 <div class="card">
-                    <h3>Client Management</h3>
+                    <h3>Clients</h3>
                     <div class="grid-4">
                         <input type="text" id="cCompany" placeholder="Company">
                         <input type="text" id="cName" placeholder="PIC">
@@ -112,12 +115,22 @@
                         <button id="saveClientBtn" class="btn btn-save" style="margin:0">Add Client</button>
                     </div>
                 </div>
-                <div class="card"><table id="clientTable"><thead><tr><th>Company</th><th>PIC</th><th>Phone</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+                <div class="card"><table id="clientTable"><thead><tr><th>Company</th><th>PIC</th><th>Phone</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+            </div>
+
+            <div id="tab-jobs" class="tab-content hidden">
+                <div class="card">
+                    <h3>Incoming Candidates</h3>
+                    <table id="jobTable">
+                        <thead><tr><th>Name</th><th>Role</th><th>Applied On</th><th>Resume</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="tab-finance" class="tab-content hidden">
                 <div class="card">
-                    <h3>Admin Notes</h3>
+                    <h3>Internal Administrative Notes</h3>
                     <textarea id="notes" rows="15" oninput="localStorage.setItem('sgNotes', this.value)"></textarea>
                 </div>
             </div>
@@ -160,7 +173,7 @@
             event.target.classList.add('active');
         };
 
-        // --- REAL-TIME SYNC ---
+        // PROJECTS SYNC
         onSnapshot(collection(db, "projects"), snap => {
             const body = document.querySelector("#projTable tbody");
             const mSelect = document.getElementById('mProj');
@@ -170,10 +183,11 @@
                 mSelect.innerHTML += `<option value="${p.projectName}">${p.projectName}</option>`;
                 body.innerHTML += `<tr><td><b>${p.projectName}</b></td><td>${p.deadline || '-'}</td><td>${p.progress}%</td><td>${p.payment}</td>
                 <td><button class="action-btn edit" onclick="editP('${p.projectName}','${p.progress}','${p.payment}','${p.deadline}')">Edit</button>
-                <button class="action-btn del" onclick="delD('projects','${p.projectName}')">Del</button></td></tr>`;
+                <button class="action-btn del" onclick="delD('projects','${p.projectName}')">X</button></td></tr>`;
             });
         });
 
+        // CLIENTS SYNC
         onSnapshot(collection(db, "clients"), snap => {
             const body = document.querySelector("#clientTable tbody");
             const pClient = document.getElementById('pClientSelect');
@@ -182,22 +196,34 @@
                 const c = doc.data();
                 pClient.innerHTML += `<option value="${c.company}">${c.company}</option>`;
                 body.innerHTML += `<tr><td>${c.company}</td><td>${c.contactPerson}</td><td>${c.phone}</td>
-                <td><button class="action-btn edit" onclick="editC('${c.company}','${c.contactPerson}','${c.phone}')">Edit</button>
-                <button class="action-btn del" onclick="delD('clients','${c.company}')">Del</button></td></tr>`;
+                <td><button class="action-btn del" onclick="delD('clients','${c.company}')">X</button></td></tr>`;
             });
         });
 
+        // JOBS SYNC
+        onSnapshot(collection(db, "applications"), snap => {
+            const body = document.querySelector("#jobTable tbody");
+            body.innerHTML = '';
+            snap.forEach(doc => {
+                const a = doc.data();
+                body.innerHTML += `<tr><td><b>${a.name}</b><br>${a.email}</td><td>${a.role}</td><td>${new Date(a.appliedDate).toLocaleDateString()}</td>
+                <td><a href="${a.resume}" target="_blank" class="view-btn">Resume</a></td>
+                <td><button class="action-btn del" onclick="delD('applications','${a.email}')">Dismiss</button></td></tr>`;
+            });
+        });
+
+        // MANPOWER SYNC
         onSnapshot(collection(db, "manpower"), snap => {
             const body = document.querySelector("#manTable tbody");
             body.innerHTML = '';
             snap.forEach(doc => {
                 const m = doc.data();
                 body.innerHTML += `<tr><td>${m.project}</td><td>${m.count}</td><td>${m.leader}</td>
-                <td><button class="action-btn del" onclick="delD('manpower','${m.project}')">Del</button></td></tr>`;
+                <td><button class="action-btn del" onclick="delD('manpower','${m.project}')">X</button></td></tr>`;
             });
         });
 
-        // --- SAVE FUNCTIONS ---
+        // GLOBAL ACTIONS
         document.getElementById('saveProjBtn').onclick = async () => {
             const n = document.getElementById('pName').value;
             if(!n) return;
@@ -206,32 +232,23 @@
                 progress: document.getElementById('pProg').value || 0, payment: document.getElementById('pPay').value,
                 deadline: document.getElementById('pDeadline').value, description: document.getElementById('pDesc').value, date: new Date()
             });
-            alert("Project Updated!");
+            alert("Success");
         };
 
         document.getElementById('saveManBtn').onclick = async () => {
             const p = document.getElementById('mProj').value;
-            if(!p) return;
             await setDoc(doc(db, "manpower", p), { project: p, count: document.getElementById('mCount').value, leader: document.getElementById('mLeader').value });
-            alert("Attendance Logged!");
         };
 
         document.getElementById('saveClientBtn').onclick = async () => {
             const co = document.getElementById('cCompany').value;
-            if(!co) return;
             await setDoc(doc(db, "clients", co), { company: co, contactPerson: document.getElementById('cName').value, phone: document.getElementById('cPhone').value });
-            alert("Client Saved!");
         };
 
-        // --- ACTIONS ---
-        window.delD = async (c, id) => { if(confirm('Delete permanently?')) await deleteDoc(doc(db, c, id)); };
+        window.delD = async (c, id) => { if(confirm('Delete?')) await deleteDoc(doc(db, c, id)); };
         window.editP = (n, prog, pay, dead) => { 
             document.getElementById('pName').value = n; document.getElementById('pProg').value = prog; 
             document.getElementById('pPay').value = pay; document.getElementById('pDeadline').value = dead;
-        };
-        window.editC = (co, pic, ph) => {
-            document.getElementById('cCompany').value = co; document.getElementById('cName').value = pic;
-            document.getElementById('cPhone').value = ph;
         };
     </script>
 </body>
