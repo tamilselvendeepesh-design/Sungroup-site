@@ -5,40 +5,27 @@
     <title>Sungroup CRM | Admin Panel</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { background: #e9ecef; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
+        body { background: #e9ecef; font-family: 'Segoe UI', sans-serif; margin: 0; }
         .admin-wrapper { display: flex; min-height: 100vh; }
-        
-        /* Sidebar */
         .sidebar { width: 260px; background: #1e73be; color: white; padding: 20px; flex-shrink: 0; }
         .sidebar h2 { font-size: 1.2rem; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
         .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 5px 0; background: none; border: none; color: white; cursor: pointer; border-radius: 4px; font-size: 1rem; }
         .nav-btn:hover { background: rgba(255,255,255,0.1); }
         .nav-btn.active { background: #165a96; font-weight: bold; }
-
-        /* Main Content */
-        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .main-content { flex-grow: 1; padding: 30px; }
         .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        
-        /* Form Elements */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         .btn-save { background: #27ae60; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
-        
-        /* Client List & Search */
-        #searchClients { background: #fff; border: 2px solid #1e73be; font-weight: bold; }
-        .client-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .client-item:last-child { border-bottom: none; }
-        
         .hidden { display: none; }
-        .status-tag { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background: #eee; }
+        .client-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
     <div id="login-box" style="display:flex; justify-content:center; align-items:center; height:100vh;">
         <div class="card" style="width:350px; text-align:center;">
-            <img src="logo.png" style="height:50px; margin-bottom:20px;">
-            <h3>Admin Portal</h3>
+            <h3>Sungroup Admin Portal</h3>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="pass" placeholder="Password">
             <button id="loginBtn" class="btn-save" style="background:#1e73be;">Sign In</button>
@@ -51,9 +38,7 @@
             <button class="nav-btn active" onclick="showTab('projects')">📂 Project Manager</button>
             <button class="nav-btn" onclick="showTab('clients')">👥 Client Database</button>
             <button class="nav-btn" onclick="showTab('finance')">💰 Finance Tools</button>
-            <div style="margin-top:50px; border-top:1px solid rgba(255,255,255,0.2); padding-top:20px;">
-                <button id="logoutBtn" class="nav-btn" style="color:#ffcdd2;">Logout</button>
-            </div>
+            <button id="logoutBtn" class="nav-btn" style="margin-top:50px; color:#ffcdd2;">Logout</button>
         </div>
 
         <div class="main-content">
@@ -69,6 +54,8 @@
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
+                    <label>Assign to Client:</label>
+                    <select id="pClientSelect"><option value="">-- Select Client --</option></select>
                     <textarea id="pDesc" placeholder="Description of works..."></textarea>
                     <button id="saveProjBtn" class="btn-save">Update Live Website</button>
                 </div>
@@ -76,7 +63,7 @@
 
             <div id="tab-clients" class="tab-content hidden">
                 <div class="card">
-                    <h3>Register New Client</h3>
+                    <h3>Add New Client</h3>
                     <div class="grid-2">
                         <input type="text" id="cCompany" placeholder="Company Name">
                         <input type="text" id="cName" placeholder="Contact Person">
@@ -85,42 +72,35 @@
                         <input type="email" id="cEmail" placeholder="Email">
                         <input type="tel" id="cPhone" placeholder="Phone">
                     </div>
-                    <button id="saveClientBtn" class="btn-save" style="background:#1e73be;">Add to Database</button>
+                    <button id="saveClientBtn" class="btn-save" style="background:#1e73be;">Save Client</button>
                 </div>
-
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                        <h3>Client Directory</h3>
-                        <input type="text" id="searchClients" placeholder="🔍 Search company or name..." style="width:250px; margin:0;">
-                    </div>
-                    <div id="client-list-display">
-                        </div>
+                    <h3>Client Directory</h3>
+                    <input type="text" id="searchClients" placeholder="🔍 Search clients...">
+                    <div id="client-list-display"></div>
                 </div>
             </div>
 
             <div id="tab-finance" class="tab-content hidden">
                 <div class="card">
-                    <h3>GST & Profit Calculator</h3>
-                    <div class="grid-2">
-                        <input type="number" id="matCost" placeholder="Material Cost ($)">
-                        <input type="number" id="labCost" placeholder="Labor Cost ($)">
-                    </div>
-                    <button onclick="calculate()" class="btn-save" style="background:#f39c12;">Run Calculation</button>
-                    <div id="fin-res" class="hidden" style="margin-top:20px; background:#f8f9fa; padding:15px; border-left:5px solid #f39c12;">
+                    <h3>GST Calculator</h3>
+                    <input type="number" id="matCost" placeholder="Material Cost ($)">
+                    <input type="number" id="labCost" placeholder="Labor Cost ($)">
+                    <button onclick="calculate()" class="btn-save" style="background:#f39c12;">Calculate</button>
+                    <div id="fin-res" class="hidden" style="margin-top:20px;">
                         <p>Subtotal: <strong id="resSub"></strong></p>
                         <p>GST (9%): <strong id="resGst"></strong></p>
-                        <p style="font-size:1.2rem; color:#d35400;">Grand Total: <strong id="resTotal"></strong></p>
+                        <p>Total: <strong id="resTotal"></strong></p>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
@@ -135,7 +115,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- AUTH ---
         onAuthStateChanged(auth, (user) => {
             document.getElementById('login-box').classList.toggle('hidden', !!user);
             document.getElementById('dashboard').classList.toggle('hidden', !user);
@@ -146,50 +125,36 @@
         };
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-        // --- TABS ---
         window.showTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.remove('hidden');
-            event.currentTarget.classList.add('active');
         };
 
-        // --- CLIENT SEARCH & LIST ---
         let allClients = [];
         onSnapshot(collection(db, "clients"), (snapshot) => {
             allClients = snapshot.docs.map(doc => doc.data());
+            const dropdown = document.getElementById('pClientSelect');
+            dropdown.innerHTML = '<option value="">-- Select Client --</option>';
+            allClients.forEach(c => {
+                dropdown.innerHTML += `<option value="${c.company}">${c.company}</option>`;
+            });
             renderClients(allClients);
         });
 
         function renderClients(data) {
             const list = document.getElementById('client-list-display');
-            list.innerHTML = data.length ? '' : '<p>No clients found.</p>';
+            list.innerHTML = '';
             data.forEach(c => {
-                list.innerHTML += `
-                    <div class="client-item">
-                        <div>
-                            <strong>${c.company}</strong><br>
-                            <small>${c.contactPerson} | ${c.email}</small>
-                        </div>
-                        <a href="tel:${c.phone}" style="text-decoration:none;">📞 ${c.phone}</a>
-                    </div>`;
+                list.innerHTML += `<div class="client-item"><div><strong>${c.company}</strong><br><small>${c.contactPerson}</small></div><a href="tel:${c.phone}">📞</a></div>`;
             });
         }
 
-        document.getElementById('searchClients').addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            const filtered = allClients.filter(c => 
-                c.company.toLowerCase().includes(term) || 
-                c.contactPerson.toLowerCase().includes(term)
-            );
-            renderClients(filtered);
-        });
-
-        // --- SAVE ACTIONS ---
         document.getElementById('saveProjBtn').onclick = async () => {
             const name = document.getElementById('pName').value;
+            if(!name) return alert("Enter project name");
             await setDoc(doc(db, "projects", name), {
                 projectName: name,
+                clientName: document.getElementById('pClientSelect').value || "General",
                 status: document.getElementById('pStatus').value,
                 description: document.getElementById('pDesc').value,
                 date: new Date()
@@ -200,21 +165,17 @@
         document.getElementById('saveClientBtn').onclick = async () => {
             const co = document.getElementById('cCompany').value;
             await setDoc(doc(db, "clients", co), {
-                company: co,
-                contactPerson: document.getElementById('cName').value,
-                email: document.getElementById('cEmail').value,
-                phone: document.getElementById('cPhone').value
+                company: co, contactPerson: document.getElementById('cName').value,
+                email: document.getElementById('cEmail').value, phone: document.getElementById('cPhone').value
             });
             alert("Client Saved!");
         };
 
-        // --- CALC ---
         window.calculate = () => {
             const sub = Number(document.getElementById('matCost').value) + Number(document.getElementById('labCost').value);
-            const gst = sub * 0.09;
             document.getElementById('resSub').innerText = "$" + sub.toFixed(2);
-            document.getElementById('resGst').innerText = "$" + gst.toFixed(2);
-            document.getElementById('resTotal').innerText = "$" + (sub + gst).toFixed(2);
+            document.getElementById('resGst').innerText = "$" + (sub * 0.09).toFixed(2);
+            document.getElementById('resTotal').innerText = "$" + (sub * 1.09).toFixed(2);
             document.getElementById('fin-res').classList.remove('hidden');
         };
     </script>
