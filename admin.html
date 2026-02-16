@@ -3,148 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Suite | Sungroup Engineering</title>
+    <title>Sungroup ERP | Enterprise Suite</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
-        :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --dark: #2c3e50; --light: #f4f7f9; }
-        body { background: #e9ecef; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; }
+        :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --accent: #9b59b6; --dark: #2c3e50; --bg: #f0f2f5; }
+        body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; color: var(--dark); }
         .hidden { display: none !important; }
         
         /* Sidebar */
-        .sidebar { width: 260px; background: var(--primary); color: white; padding: 20px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; }
+        .sidebar { width: 260px; background: var(--dark); color: white; padding: 20px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; }
         .sidebar-logo { width: 140px; margin-bottom: 30px; align-self: center; filter: brightness(0) invert(1); }
-        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: white; cursor: pointer; border-radius: 6px; transition: 0.2s; }
-        .nav-btn:hover { background: rgba(255,255,255,0.1); }
-        .nav-btn.active { background: #165a96; font-weight: bold; }
+        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-btn.active { background: var(--primary); color: white; font-weight: bold; }
 
         /* Main Content */
-        .main-content { flex-grow: 1; padding: 30px; max-width: 1200px; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .stats-card { background: var(--primary); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+        .main-content { flex-grow: 1; padding: 30px; max-width: 1300px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
         
-        /* Inputs & Tables */
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-save { background: var(--success); color: white; width: 100%; }
-        .btn-save:hover { opacity: 0.9; }
+        /* Form Elements */
+        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn-save { background: var(--success); color: white; width: 100%; margin-top: 10px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; background: #f8f9fa; padding: 15px; color: var(--dark); border-bottom: 2px solid #eee; }
-        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .badge-high { background: #ffdada; color: #cc0000; }
-        .badge-low { background: #e0f7fa; color: #006064; }
-
-        /* Login */
-        #login-box { position: fixed; inset: 0; background: #e9ecef; display: flex; justify-content: center; align-items: center; z-index: 9999; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        /* Table Controls */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; font-size: 0.85rem; }
+        td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; }
+        
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .hse-warn { background: #fff3f3; color: var(--danger); border: 1px solid var(--danger); }
+        
+        #login-box { position: fixed; inset: 0; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; width: 340px; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="login-box">
         <div class="login-card">
-            <img src="logo.png" style="width:150px; margin-bottom:20px;">
-            <h3>Sungroup Admin</h3>
+            <img src="logo.png" style="width:160px;">
+            <h3>SG Enterprise Login</h3>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="pass" placeholder="Password">
-            <button id="loginBtn" class="btn btn-save" style="background:var(--primary)">Login</button>
+            <button id="loginBtn" class="btn btn-save" style="background:var(--primary)">Access System</button>
         </div>
     </div>
 
     <div id="dashboard" class="hidden">
         <div class="sidebar">
             <img src="logo.png" class="sidebar-logo">
-            <button class="nav-btn active" onclick="showTab('projects')">📂 Projects</button>
-            <button class="nav-btn" onclick="showTab('clients')">👥 Clients</button>
-            <button class="nav-btn" onclick="showTab('finance')">💰 Finance & Reports</button>
-            <button id="logoutBtn" class="nav-btn" style="margin-top:auto; color:#ffcdd2;">Logout</button>
+            <button class="nav-btn active" onclick="showTab('projects')">🏗️ Site Projects</button>
+            <button class="nav-btn" onclick="showTab('manpower')">👷 Manpower Log</button>
+            <button class="nav-btn" onclick="showTab('clients')">🤝 Client CRM</button>
+            <button class="nav-btn" onclick="showTab('finance')">📉 Financials</button>
+            <button id="logoutBtn" class="nav-btn" style="margin-top:auto; color:var(--danger);">Sign Out</button>
         </div>
 
         <div class="main-content">
-            <div class="grid-3">
-                <div class="stats-card">
-                    <h4 style="margin:0">Active Projects</h4>
-                    <h2 id="stat-active" style="margin:10px 0">0</h2>
-                </div>
-                <div class="stats-card" style="background:var(--success)">
-                    <h4 style="margin:0">Completed</h4>
-                    <h2 id="stat-done" style="margin:10px 0">0</h2>
-                </div>
-                <div class="stats-card" style="background:var(--warning)">
-                    <h4 style="margin:0">Total Value</h4>
-                    <h2 id="stat-cash" style="margin:10px 0">$0</h2>
-                </div>
-            </div>
-
-            <div id="tab-projects" class="tab-content" style="margin-top:25px">
+            <div id="tab-projects" class="tab-content">
                 <div class="card">
-                    <h3>Project Information Center</h3>
-                    <div class="grid-3">
-                        <input type="text" id="pName" placeholder="Project Title">
-                        <select id="pStatus">
-                            <option value="In Progress">In Progress</option>
-                            <option value="Testing">Testing & Comm</option>
-                            <option value="Completed">Completed</option>
+                    <h3>Project Dispatcher</h3>
+                    <div class="grid-4">
+                        <input type="text" id="pName" placeholder="Project Name">
+                        <select id="pClientSelect"><option value="">-- Client --</option></select>
+                        <select id="pCat">
+                            <option value="Electrical">Electrical</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Civil">Civil/Scaffold</option>
                         </select>
-                        <select id="pPriority">
-                            <option value="Normal">Priority: Normal</option>
-                            <option value="High">Priority: High</option>
-                            <option value="Low">Priority: Low</option>
+                        <select id="pPay">
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Partial">Partial</option>
+                            <option value="Paid">Fully Paid</option>
                         </select>
                     </div>
-                    <div class="grid-3">
-                        <select id="pClientSelect"><option value="">-- Assign Client --</option></select>
-                        <input type="date" id="pDate">
-                        <input type="number" id="pVal" placeholder="Project Value ($)">
+                    <div class="grid-4">
+                        <input type="date" id="pDeadline" title="Deadline">
+                        <input type="number" id="pProg" placeholder="Progress % (0-100)">
+                        <input type="text" id="pLoc" placeholder="Site Location (Map Link)">
+                        <select id="pHse">
+                            <option value="Safe">HSE: Standard</option>
+                            <option value="High Risk">HSE: High Risk</option>
+                        </select>
                     </div>
-                    <textarea id="pDesc" rows="2" placeholder="Brief details..."></textarea>
-                    <button id="saveProjBtn" class="btn btn-save">Update Project Database</button>
+                    <textarea id="pDesc" rows="2" placeholder="Work scope & technical notes..."></textarea>
+                    <button id="saveProjBtn" class="btn btn-save">Deploy/Update Project</button>
                 </div>
 
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Project Registry</h3>
-                        <input type="text" id="pSearch" placeholder="🔍 Search projects..." style="width:250px; margin:0">
+                    <div style="display:flex; justify-content:space-between;">
+                        <h3>Active Operations</h3>
+                        <button onclick="exportCSV()" class="btn" style="background:#eee; font-size:0.7rem;">📥 Export CSV</button>
                     </div>
                     <table id="projTable">
-                        <thead><tr><th>Project</th><th>Client</th><th>Value</th><th>Status</th><th>Priority</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Project</th><th>Deadline</th><th>Progress</th><th>HSE</th><th>Payment</th><th>Actions</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
 
-            <div id="tab-clients" class="tab-content hidden" style="margin-top:25px">
+            <div id="tab-manpower" class="tab-content hidden">
                 <div class="card">
-                    <h3>Client Management</h3>
-                    <div class="grid-3">
-                        <input type="text" id="cCompany" placeholder="Company Name">
-                        <input type="text" id="cName" placeholder="Contact Person">
+                    <h3>Site Attendance & Manpower</h3>
+                    <div class="grid-4">
+                        <select id="mProj"><option value="">-- Select Project --</option></select>
+                        <input type="number" id="mCount" placeholder="No. of Staff">
+                        <input type="text" id="mLeader" placeholder="Site Supervisor">
+                        <button id="saveManBtn" class="btn btn-save" style="margin:0">Log Attendance</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <table id="manTable">
+                        <thead><tr><th>Site</th><th>Staff Count</th><th>Supervisor</th><th>Last Update</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-clients" class="tab-content hidden">
+                <div class="card">
+                    <h3>Client Database</h3>
+                    <div class="grid-4">
+                        <input type="text" id="cCompany" placeholder="Company">
+                        <input type="text" id="cName" placeholder="PIC">
                         <input type="tel" id="cPhone" placeholder="Phone">
+                        <button id="saveClientBtn" class="btn btn-save" style="margin:0">Add Client</button>
                     </div>
-                    <input type="email" id="cEmail" placeholder="Email Address">
-                    <button id="saveClientBtn" class="btn btn-save" style="background:var(--primary)">Register Client</button>
                 </div>
-                <div class="card">
-                    <table id="clientTable">
-                        <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th><th>Actions</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+                <div class="card"><table id="clientTable"><tbody></tbody></table></div>
             </div>
 
-            <div id="tab-finance" class="tab-content hidden" style="margin-top:25px">
+            <div id="tab-finance" class="tab-content hidden">
                 <div class="card">
-                    <h3>GST Calculator & Quotation Tool</h3>
-                    <div class="grid-3">
-                        <input type="number" id="mat" placeholder="Material Cost ($)">
-                        <input type="number" id="lab" placeholder="Labour Cost ($)">
-                        <button onclick="calcGST()" class="btn btn-save" style="background:var(--warning)">Calculate</button>
-                    </div>
-                    <div id="res" class="hidden" style="margin-top:15px; font-size:1.1rem;">
-                        Subtotal: <span id="rSub"></span> | GST: <span id="rGst"></span> | <b>Total: <span id="rTot"></span></b>
-                    </div>
+                    <h3>Company Scratchpad</h3>
+                    <textarea id="notes" rows="10" placeholder="Type company notes here... auto-saves." oninput="saveNotes()"></textarea>
                 </div>
             </div>
         </div>
@@ -168,10 +162,10 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // AUTH
         onAuthStateChanged(auth, u => {
             document.getElementById('login-box').classList.toggle('hidden', !!u);
             document.getElementById('dashboard').classList.toggle('hidden', !u);
+            if(u && localStorage.getItem('sgNotes')) document.getElementById('notes').value = localStorage.getItem('sgNotes');
         });
 
         document.getElementById('loginBtn').onclick = () => {
@@ -179,7 +173,6 @@
         };
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-        // NAVIGATION
         window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -187,91 +180,68 @@
             event.target.classList.add('active');
         };
 
-        // REAL-TIME SYNC & STATS
+        // DATA SYNC
         onSnapshot(collection(db, "projects"), snap => {
-            const body = document.querySelector("#projTable tbody");
-            body.innerHTML = '';
-            let val = 0, active = 0, done = 0;
+            const tbody = document.querySelector("#projTable tbody");
+            const mSelect = document.getElementById('mProj');
+            tbody.innerHTML = ''; 
+            mSelect.innerHTML = '<option value="">-- Select Project --</option>';
             
             snap.forEach(doc => {
                 const p = doc.data();
-                val += Number(p.value || 0);
-                if(p.status === 'Completed') done++; else active++;
-
-                body.innerHTML += `<tr>
-                    <td><b>${p.projectName}</b></td>
-                    <td>${p.clientName}</td>
-                    <td>$${Number(p.value).toLocaleString()}</td>
-                    <td><span class="badge" style="background:#eee">${p.status}</span></td>
-                    <td><span class="badge badge-${(p.priority || 'Normal').toLowerCase()}">${p.priority || 'Normal'}</span></td>
-                    <td>
-                        <button class="btn" style="padding:4px 8px; background:var(--warning); color:white" onclick="editP('${p.projectName}','${p.status}','${p.priority}','${p.clientName}','${p.value}','${encodeURIComponent(p.description)}')">Edit</button>
-                        <button class="btn" style="padding:4px 8px; background:var(--danger); color:white" onclick="delD('projects','${p.projectName}')">X</button>
-                    </td>
+                mSelect.innerHTML += `<option value="${p.projectName}">${p.projectName}</option>`;
+                tbody.innerHTML += `<tr>
+                    <td><b>${p.projectName}</b><br><small>${p.clientName}</small></td>
+                    <td>${p.deadline || 'N/A'}</td>
+                    <td><div style="width:60px; background:#eee; height:8px;"><div style="width:${p.progress}%; background:var(--success); height:100%;"></div></div> ${p.progress}%</td>
+                    <td><span class="badge ${p.hse === 'High Risk' ? 'hse-warn' : ''}">${p.hse}</span></td>
+                    <td>${p.payment}</td>
+                    <td><button onclick="delD('projects','${p.projectName}')" style="border:none; color:var(--danger); cursor:pointer;">Del</button></td>
                 </tr>`;
             });
-            document.getElementById('stat-active').innerText = active;
-            document.getElementById('stat-done').innerText = done;
-            document.getElementById('stat-cash').innerText = '$' + val.toLocaleString();
         });
 
-        onSnapshot(collection(db, "clients"), snap => {
-            const body = document.querySelector("#clientTable tbody");
-            const drop = document.getElementById('pClientSelect');
-            body.innerHTML = '';
-            drop.innerHTML = '<option value="">-- Assign Client --</option>';
-            
+        onSnapshot(collection(db, "manpower"), snap => {
+            const tbody = document.querySelector("#manTable tbody");
+            tbody.innerHTML = '';
             snap.forEach(doc => {
-                const c = doc.data();
-                drop.innerHTML += `<option value="${c.company}">${c.company}</option>`;
-                body.innerHTML += `<tr>
-                    <td>${c.company}</td>
-                    <td>${c.contactPerson}</td>
-                    <td><a href="tel:${c.phone}">${c.phone}</a></td>
-                    <td>${c.email} <button onclick="navigator.clipboard.writeText('${c.email}'); alert('Email Copied!')" style="border:none; cursor:pointer; background:none">📋</button></td>
-                    <td><button class="btn" style="padding:4px 8px; background:var(--danger); color:white" onclick="delD('clients','${c.company}')">X</button></td>
-                </tr>`;
+                const m = doc.data();
+                tbody.innerHTML += `<tr><td>${m.project}</td><td>${m.count}</td><td>${m.leader}</td><td>${new Date().toLocaleDateString()}</td></tr>`;
             });
         });
 
-        // ACTIONS
-        window.delD = async (c, id) => { if(confirm('Delete?')) await deleteDoc(doc(db, c, id)); };
-
-        window.editP = (n, s, p, c, v, d) => {
-            document.getElementById('pName').value = n; document.getElementById('pStatus').value = s;
-            document.getElementById('pPriority').value = p; document.getElementById('pClientSelect').value = c;
-            document.getElementById('pVal').value = v; document.getElementById('pDesc').value = decodeURIComponent(d);
-            showTab('projects');
-        };
-
+        // SAVE LOGIC
         document.getElementById('saveProjBtn').onclick = async () => {
             const name = document.getElementById('pName').value;
-            if(!name) return alert("Enter Name");
+            if(!name) return;
             await setDoc(doc(db, "projects", name), {
-                projectName: name, status: document.getElementById('pStatus').value,
-                priority: document.getElementById('pPriority').value, clientName: document.getElementById('pClientSelect').value,
-                value: document.getElementById('pVal').value, description: document.getElementById('pDesc').value,
-                date: document.getElementById('pDate').value || new Date()
+                projectName: name, clientName: document.getElementById('pClientSelect').value,
+                progress: document.getElementById('pProg').value || 0, hse: document.getElementById('pHse').value,
+                payment: document.getElementById('pPay').value, deadline: document.getElementById('pDeadline').value,
+                location: document.getElementById('pLoc').value, description: document.getElementById('pDesc').value
             });
-            alert("Updated!");
+            alert("Project Synced!");
         };
 
-        document.getElementById('saveClientBtn').onclick = async () => {
-            const co = document.getElementById('cCompany').value;
-            if(!co) return alert("Enter Company");
-            await setDoc(doc(db, "clients", co), {
-                company: co, contactPerson: document.getElementById('cName').value,
-                phone: document.getElementById('cPhone').value, email: document.getElementById('cEmail').value
-            });
-            alert("Client Saved!");
+        document.getElementById('saveManBtn').onclick = async () => {
+            const p = document.getElementById('mProj').value;
+            if(!p) return;
+            await setDoc(doc(db, "manpower", p), { project: p, count: document.getElementById('mCount').value, leader: document.getElementById('mLeader').value });
+            alert("Attendance Logged!");
         };
 
-        window.calcGST = () => {
-            const sub = Number(document.getElementById('mat').value) + Number(document.getElementById('lab').value);
-            document.getElementById('rSub').innerText = '$' + sub.toLocaleString();
-            document.getElementById('rGst').innerText = '$' + (sub * 0.09).toLocaleString();
-            document.getElementById('rTot').innerText = '$' + (sub * 1.09).toLocaleString();
-            document.getElementById('res').classList.remove('hidden');
+        window.saveNotes = () => localStorage.setItem('sgNotes', document.getElementById('notes').value);
+        window.delD = async (c, id) => { if(confirm('Delete?')) await deleteDoc(doc(db, c, id)); };
+
+        window.exportCSV = () => {
+            let csv = "Project,Client,Deadline,Progress\n";
+            document.querySelectorAll("#projTable tr").forEach(tr => {
+                const cells = tr.querySelectorAll("td");
+                if(cells.length > 0) csv += `${cells[0].innerText.replace(/\n/g, ' ')},${cells[1].innerText},${cells[2].innerText}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'SG-Projects.csv'; a.click();
         };
     </script>
 </body>
