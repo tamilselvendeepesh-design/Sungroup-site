@@ -2,39 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sungroup CRM | Admin Panel</title>
-    <link rel="stylesheet" href="style.css">
     <style>
-        body { background: #e9ecef; font-family: 'Segoe UI', sans-serif; margin: 0; }
-        .admin-wrapper { display: flex; min-height: 100vh; }
+        /* Base Styles */
+        body { background: #e9ecef; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
+        .hidden { display: none !important; }
+        
+        /* Login Screen */
+        #login-box { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100%; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 320px; }
+        
+        /* Layout */
+        #dashboard { display: none; min-height: 100vh; }
         .sidebar { width: 260px; background: #1e73be; color: white; padding: 20px; flex-shrink: 0; }
-        .sidebar h2 { font-size: 1.2rem; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+        .main-content { flex-grow: 1; padding: 30px; background: #f4f7f9; }
+        
+        /* Elements */
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 5px 0; background: none; border: none; color: white; cursor: pointer; border-radius: 4px; font-size: 1rem; }
         .nav-btn:hover { background: rgba(255,255,255,0.1); }
         .nav-btn.active { background: #165a96; font-weight: bold; }
-        .main-content { flex-grow: 1; padding: 30px; }
-        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        
+        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        .btn-primary { background: #1e73be; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+        .btn-success { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+        
+        .client-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .btn-save { background: #27ae60; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
-        .hidden { display: none; }
-        .client-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
-    <div id="login-box" style="display:flex; justify-content:center; align-items:center; height:100vh;">
-        <div class="card" style="width:350px; text-align:center;">
-            <h3>Sungroup Admin Portal</h3>
-            <input type="email" id="email" placeholder="Email">
+    <div id="login-box">
+        <div class="login-card">
+            <h2 style="color:#1e73be; margin-bottom:20px;">Sungroup CRM</h2>
+            <input type="email" id="email" placeholder="Admin Email">
             <input type="password" id="pass" placeholder="Password">
-            <button id="loginBtn" class="btn-save" style="background:#1e73be;">Sign In</button>
+            <button id="loginBtn" class="btn-primary">Sign In</button>
         </div>
     </div>
 
-    <div id="dashboard" class="admin-wrapper hidden">
+    <div id="dashboard">
         <div class="sidebar">
-            <h2>Sungroup CRM</h2>
+            <h2 style="border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px;">Admin Panel</h2>
             <button class="nav-btn active" onclick="showTab('projects')">📂 Project Manager</button>
             <button class="nav-btn" onclick="showTab('clients')">👥 Client Database</button>
             <button class="nav-btn" onclick="showTab('finance')">💰 Finance Tools</button>
@@ -54,10 +65,10 @@
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
-                    <label>Assign to Client:</label>
+                    <label style="font-size:0.8rem; color:#666;">Assign to Client:</label>
                     <select id="pClientSelect"><option value="">-- Select Client --</option></select>
-                    <textarea id="pDesc" placeholder="Description of works..."></textarea>
-                    <button id="saveProjBtn" class="btn-save">Update Live Website</button>
+                    <textarea id="pDesc" rows="4" placeholder="Brief project description..."></textarea>
+                    <button id="saveProjBtn" class="btn-success">Update Live Website</button>
                 </div>
             </div>
 
@@ -72,28 +83,28 @@
                         <input type="email" id="cEmail" placeholder="Email">
                         <input type="tel" id="cPhone" placeholder="Phone">
                     </div>
-                    <button id="saveClientBtn" class="btn-save" style="background:#1e73be;">Save Client</button>
+                    <button id="saveClientBtn" class="btn-primary">Save Client Contact</button>
                 </div>
                 <div class="card">
                     <h3>Client Directory</h3>
-                    <input type="text" id="searchClients" placeholder="🔍 Search clients...">
                     <div id="client-list-display"></div>
                 </div>
             </div>
 
             <div id="tab-finance" class="tab-content hidden">
                 <div class="card">
-                    <h3>GST Calculator</h3>
+                    <h3>Quick GST Calculator</h3>
                     <input type="number" id="matCost" placeholder="Material Cost ($)">
                     <input type="number" id="labCost" placeholder="Labor Cost ($)">
-                    <button onclick="calculate()" class="btn-save" style="background:#f39c12;">Calculate</button>
-                    <div id="fin-res" class="hidden" style="margin-top:20px;">
+                    <button onclick="calculate()" class="btn-primary" style="background:#f39c12;">Run Calculation</button>
+                    <div id="fin-res" class="hidden" style="margin-top:20px; padding:15px; background:#f8f9fa; border-left:5px solid #f39c12;">
                         <p>Subtotal: <strong id="resSub"></strong></p>
                         <p>GST (9%): <strong id="resGst"></strong></p>
-                        <p>Total: <strong id="resTotal"></strong></p>
+                        <p style="font-size:1.2rem; color:#d35400;">Grand Total: <strong id="resTotal"></strong></p>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -115,67 +126,99 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        onAuthStateChanged(auth, (user) => {
-            document.getElementById('login-box').classList.toggle('hidden', !!user);
-            document.getElementById('dashboard').classList.toggle('hidden', !user);
-        });
+        // UI Controls
+        const loginBox = document.getElementById('login-box');
+        const dashboard = document.getElementById('dashboard');
 
-        document.getElementById('loginBtn').onclick = () => {
-            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert(e.message));
-        };
-        document.getElementById('logoutBtn').onclick = () => signOut(auth);
-
-        window.showTab = (tabId) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
-        };
-
-        let allClients = [];
-        onSnapshot(collection(db, "clients"), (snapshot) => {
-            allClients = snapshot.docs.map(doc => doc.data());
-            const dropdown = document.getElementById('pClientSelect');
-            dropdown.innerHTML = '<option value="">-- Select Client --</option>';
-            allClients.forEach(c => {
-                dropdown.innerHTML += `<option value="${c.company}">${c.company}</option>`;
-            });
-            renderClients(allClients);
-        });
-
-        function renderClients(data) {
-            const list = document.getElementById('client-list-display');
-            list.innerHTML = '';
-            data.forEach(c => {
-                list.innerHTML += `<div class="client-item"><div><strong>${c.company}</strong><br><small>${c.contactPerson}</small></div><a href="tel:${c.phone}">📞</a></div>`;
-            });
+        // FORCE VIEW UPDATE
+        function updateView(user) {
+            if (user) {
+                loginBox.style.display = 'none';
+                dashboard.style.display = 'flex';
+            } else {
+                loginBox.style.display = 'flex';
+                dashboard.style.display = 'none';
+            }
         }
 
+        onAuthStateChanged(auth, (user) => updateView(user));
+
+        document.getElementById('loginBtn').onclick = () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            signInWithEmailAndPassword(auth, email, pass)
+                .then((userCredential) => {
+                    updateView(userCredential.user);
+                })
+                .catch((e) => alert("Error: " + e.message));
+        };
+
+        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+        // TAB LOGIC
+        window.showTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        };
+
+        // CLIENT DATA SYNC
+        onSnapshot(collection(db, "clients"), (snapshot) => {
+            const dropdown = document.getElementById('pClientSelect');
+            const listDisplay = document.getElementById('client-list-display');
+            
+            dropdown.innerHTML = '<option value="">-- Select Client --</option>';
+            listDisplay.innerHTML = '';
+
+            snapshot.forEach(doc => {
+                const c = doc.data();
+                // Update Dropdown
+                dropdown.innerHTML += `<option value="${c.company}">${c.company}</option>`;
+                // Update List
+                listDisplay.innerHTML += `
+                    <div class="client-item">
+                        <div><strong>${c.company}</strong><br><small>${c.contactPerson} | ${c.email}</small></div>
+                        <a href="tel:${c.phone}" style="text-decoration:none;">📞</a>
+                    </div>`;
+            });
+        });
+
+        // SAVE ACTIONS
         document.getElementById('saveProjBtn').onclick = async () => {
             const name = document.getElementById('pName').value;
             if(!name) return alert("Enter project name");
-            await setDoc(doc(db, "projects", name), {
-                projectName: name,
-                clientName: document.getElementById('pClientSelect').value || "General",
-                status: document.getElementById('pStatus').value,
-                description: document.getElementById('pDesc').value,
-                date: new Date()
-            });
-            alert("Project Live!");
+            try {
+                await setDoc(doc(db, "projects", name), {
+                    projectName: name,
+                    clientName: document.getElementById('pClientSelect').value || "General",
+                    status: document.getElementById('pStatus').value,
+                    description: document.getElementById('pDesc').value,
+                    date: new Date()
+                });
+                alert("Project Live!");
+            } catch(e) { alert(e.message); }
         };
 
         document.getElementById('saveClientBtn').onclick = async () => {
             const co = document.getElementById('cCompany').value;
-            await setDoc(doc(db, "clients", co), {
-                company: co, contactPerson: document.getElementById('cName').value,
-                email: document.getElementById('cEmail').value, phone: document.getElementById('cPhone').value
-            });
-            alert("Client Saved!");
+            if(!co) return alert("Enter company name");
+            try {
+                await setDoc(doc(db, "clients", co), {
+                    company: co,
+                    contactPerson: document.getElementById('cName').value,
+                    email: document.getElementById('cEmail').value,
+                    phone: document.getElementById('cPhone').value
+                });
+                alert("Client Saved!");
+            } catch(e) { alert(e.message); }
         };
 
         window.calculate = () => {
             const sub = Number(document.getElementById('matCost').value) + Number(document.getElementById('labCost').value);
-            document.getElementById('resSub').innerText = "$" + sub.toFixed(2);
-            document.getElementById('resGst').innerText = "$" + (sub * 0.09).toFixed(2);
-            document.getElementById('resTotal').innerText = "$" + (sub * 1.09).toFixed(2);
+            document.getElementById('resSub').innerText = "$" + sub.toLocaleString();
+            document.getElementById('resGst').innerText = "$" + (sub * 0.09).toLocaleString();
+            document.getElementById('resTotal').innerText = "$" + (sub * 1.09).toLocaleString();
             document.getElementById('fin-res').classList.remove('hidden');
         };
     </script>
