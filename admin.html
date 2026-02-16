@@ -3,79 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUNGROUP | Titan ERP</title>
+    <title>Sungroup ERP | Admin Suite</title>
     <style>
-        :root { 
-            --primary: #1e73be; --accent: #00d2ff; --success: #27ae60; --danger: #e74c3c; 
-            --warning: #f39c12; --dark: #1a1c23; --surface: #24262d; --text: #d5d6d7; --bg: #0e0f12;
-            --sidebar-w: 260px;
-        }
-        * { box-sizing: border-box; }
-        body { background: var(--bg); font-family: 'Inter', sans-serif; margin: 0; color: var(--text); display: flex; overflow: hidden; }
+        :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --dark: #2c3e50; --bg: #f0f2f5; --sidebar-w: 250px; }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; color: var(--dark); }
+        
+        /* Sidebar & Navigation */
+        .sidebar { width: var(--sidebar-w); background: var(--dark); color: white; height: 100vh; position: sticky; top: 0; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
+        .logo-box { text-align: center; margin-bottom: 30px; }
+        .logo-box img { max-width: 100%; height: 50px; object-fit: contain; }
+        
+        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 5px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; font-size: 1rem; }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-btn.active { background: var(--primary); color: white; font-weight: bold; }
 
-        /* SIDEBAR */
-        .sidebar { width: var(--sidebar-w); background: var(--surface); height: 100vh; padding: 20px; border-right: 1px solid #333; flex-shrink: 0; }
-        .nav-item { width: 100%; padding: 12px; margin: 5px 0; background: transparent; border: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); }
-        .nav-item.active { background: var(--primary); color: white; }
-
-        /* VIEWPORT */
-        .viewport { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 30px; }
-        .card { background: var(--surface); border-radius: 12px; padding: 20px; border: 1px solid #333; margin-bottom: 20px; }
+        /* Main Content */
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 25px; }
         .hidden { display: none !important; }
 
-        /* INPUTS & BUTTONS */
-        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        input, select, textarea { background: #16171d; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; }
-        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
-        .btn-main { background: var(--primary); color: white; width: 100%; }
-        .btn-del { background: var(--danger); color: white; padding: 5px 10px; font-size: 0.7rem; }
-
-        /* TABLES */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; padding: 12px; color: #888; border-bottom: 1px solid #333; font-size: 0.8rem; }
-        td { padding: 12px; border-bottom: 1px solid #2a2a2a; font-size: 0.85rem; }
+        /* Forms & Tables */
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
+        .btn-save { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
         
-        #auth-gate { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        .btn-del { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+        /* Auth Gate */
+        #login-box { position: fixed; inset: 0; background: var(--dark); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; width: 350px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="auth-gate">
-        <div style="background: var(--surface); padding: 40px; border-radius: 20px; width: 350px; text-align: center;">
-            <h2>TITAN LOGIN</h2>
+    <div id="login-box">
+        <div class="login-card">
+            <img src="logo.png" alt="Sungroup Logo" style="width:150px; margin-bottom:20px;">
+            <h3>Admin Login</h3>
             <input type="email" id="email" placeholder="Email" style="margin-bottom:10px;">
-            <input type="password" id="pass" placeholder="System Key">
-            <button id="loginBtn" class="btn btn-main" style="margin-top:20px;">Unlock ERP</button>
+            <input type="password" id="pass" placeholder="Password">
+            <button id="loginBtn" class="btn-save" style="background:var(--primary); margin-top:15px;">Login</button>
         </div>
     </div>
 
     <div class="sidebar">
-        <h3 style="color:var(--primary); text-align:center;">SUNGROUP</h3>
-        <button class="nav-item active" onclick="showTab('projects')">🏗️ Projects</button>
-        <button class="nav-item" onclick="showTab('manpower')">👷 Manpower</button>
-        <button class="nav-item" onclick="showTab('inventory')">📦 Inventory</button>
-        <button class="nav-item" onclick="showTab('crm')">🤝 Client Workhub</button>
-        <button class="nav-item" onclick="showTab('jobs')">📩 Applications</button>
-        <button class="nav-item" onclick="showTab('msgs')">💬 Inquiries</button>
-        <button id="logoutBtn" class="nav-item" style="margin-top:20px; color:var(--danger)">🔴 Logout</button>
+        <div class="logo-box">
+            <img src="logo.png" alt="Sungroup Logo">
+        </div>
+        <button class="nav-btn active" onclick="showTab('projects')">🏗️ Site Projects</button>
+        <button class="nav-btn" onclick="showTab('manpower')">👷 Manpower Log</button>
+        <button class="nav-btn" onclick="showTab('inventory')">📦 Site Inventory</button>
+        <button class="nav-btn" onclick="showTab('clients')">🤝 Client Workhub</button>
+        <button class="nav-btn" onclick="showTab('jobs')">📄 Applications</button>
+        <button class="nav-btn" onclick="showTab('msgs')">💬 Inquiries</button>
+        <button id="logoutBtn" class="nav-btn" style="margin-top:auto; color:var(--danger)">🔴 Sign Out</button>
     </div>
 
-    <main class="viewport">
+    <main class="main-content">
         <div id="tab-projects" class="tab-content">
             <div class="card">
-                <h3>Project Entry</h3>
+                <h3>Create/Update Project</h3>
                 <div class="grid-inputs">
                     <input type="text" id="pName" placeholder="Project Name">
                     <input type="text" id="pLoc" placeholder="Location">
                     <input type="number" id="pVal" placeholder="Value ($)">
                     <input type="date" id="pDue">
-                    <button id="saveProj" class="btn btn-main">Save Site</button>
                 </div>
+                <button id="saveProj" class="btn-save">Save Project Data</button>
             </div>
             <div class="card">
                 <table id="projTable">
-                    <thead><tr><th>Project</th><th>Location</th><th>Value</th><th>Due</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Project</th><th>Location</th><th>Value</th><th>Due Date</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-clients" class="tab-content hidden">
+            <div class="card">
+                <h3>Add New Client</h3>
+                <div class="grid-inputs">
+                    <input type="text" id="cCompany" placeholder="Company Name">
+                    <input type="text" id="cPIC" placeholder="Contact Person">
+                    <input type="tel" id="cPhone" placeholder="Phone/Email">
+                </div>
+                <button id="saveClient" class="btn-save">Add to Workhub</button>
+            </div>
+            <div class="card">
+                <table id="clientTable">
+                    <thead><tr><th>Company</th><th>Contact Person</th><th>Details</th><th>Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -83,56 +102,28 @@
 
         <div id="tab-manpower" class="tab-content hidden">
             <div class="card">
-                <h3>Log Workforce</h3>
+                <h3>Log Site Manpower</h3>
                 <div class="grid-inputs">
-                    <input type="text" id="mName" placeholder="Worker Name/Role">
+                    <input type="text" id="mName" placeholder="Worker/Team Name">
                     <input type="text" id="mSite" placeholder="Assigned Site">
-                    <input type="text" id="mShift" placeholder="Shift (e.g. Day)">
-                    <button id="saveMan" class="btn btn-main">Assign Staff</button>
+                    <input type="text" id="mShift" placeholder="Shift">
                 </div>
+                <button id="saveMan" class="btn-save">Log Manpower</button>
             </div>
-            <div class="card">
-                <table id="manTable">
-                    <thead><tr><th>Worker</th><th>Site</th><th>Shift</th><th>Action</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+            <div class="card"><table id="manTable"><thead><tr><th>Name</th><th>Site</th><th>Shift</th><th>Action</th></tr></thead><tbody></tbody></table></div>
         </div>
 
         <div id="tab-inventory" class="tab-content hidden">
             <div class="card">
-                <h3>Supply Management</h3>
+                <h3>Site Inventory</h3>
                 <div class="grid-inputs">
                     <input type="text" id="iItem" placeholder="Item Name">
                     <input type="number" id="iQty" placeholder="Quantity">
-                    <input type="text" id="iUnit" placeholder="Unit (e.g. Kg, Pcs)">
-                    <button id="saveInv" class="btn btn-main">Update Stock</button>
+                    <input type="text" id="iUnit" placeholder="Unit (Pcs/Kg)">
                 </div>
+                <button id="saveInv" class="btn-save">Save Inventory</button>
             </div>
-            <div class="card">
-                <table id="invTable">
-                    <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Action</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="tab-crm" class="tab-content hidden">
-            <div class="card">
-                <h3>Client & Lead Entry</h3>
-                <div class="grid-inputs">
-                    <input type="text" id="cCompany" placeholder="Company Name">
-                    <input type="text" id="cContact" placeholder="Contact Person">
-                    <input type="tel" id="cPhone" placeholder="Phone/Email">
-                    <button id="saveClient" class="btn btn-main">Add to Workhub</button>
-                </div>
-            </div>
-            <div class="card">
-                <table id="clientTable">
-                    <thead><tr><th>Company</th><th>PIC</th><th>Contact</th><th>Action</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+            <div class="card"><table id="invTable"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Action</th></tr></thead><tbody></tbody></table></div>
         </div>
 
         <div id="tab-jobs" class="tab-content hidden">
@@ -162,28 +153,33 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // AUTH
-        onAuthStateChanged(auth, u => { document.getElementById('auth-gate').style.display = u ? 'none' : 'flex'; });
-        document.getElementById('loginBtn').onclick = () => { signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert(e.message)); };
+        // LOGIN LOGIC
+        onAuthStateChanged(auth, u => { document.getElementById('login-box').style.display = u ? 'none' : 'flex'; });
+        document.getElementById('loginBtn').onclick = () => {
+            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert(e.message));
+        };
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-        // TABS
+        // TAB NAVIGATION
         window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
             document.getElementById('tab-'+id).classList.remove('hidden');
             event.currentTarget.classList.add('active');
         };
 
         // REAL-TIME SYNC ENGINE
-        const sync = (coll, tableId, fields) => {
-            onSnapshot(collection(db, coll), snap => {
+        const sync = (collName, tableId, keys) => {
+            onSnapshot(collection(db, collName), snap => {
                 const body = document.querySelector(`#${tableId} tbody`);
                 body.innerHTML = '';
                 snap.forEach(d => {
-                    const data = d.data();
-                    let rows = fields.map(f => `<td>${data[f] || ''}</td>`).join('');
-                    body.innerHTML += `<tr>${rows}<td><button class="btn btn-del" onclick="delD('${coll}','${d.id}')">X</button></td></tr>`;
+                    const val = d.data();
+                    let row = keys.map(k => {
+                        if(k === 'resume') return `<td><a href="${val[k]}" target="_blank">View File</a></td>`;
+                        return `<td>${val[k] || ''}</td>`;
+                    }).join('');
+                    body.innerHTML += `<tr>${row}<td><button class="btn-del" onclick="delD('${collName}','${d.id}')">Delete</button></td></tr>`;
                 });
             });
         };
@@ -191,14 +187,23 @@
         sync("projects", "projTable", ["name", "loc", "value", "due"]);
         sync("manpower", "manTable", ["name", "site", "shift"]);
         sync("inventory", "invTable", ["item", "qty", "unit"]);
-        sync("clients", "clientTable", ["company", "contact", "phone"]);
+        sync("clients", "clientTable", ["company", "pic", "phone"]);
         sync("applications", "jobTable", ["name", "role", "resume"]);
         sync("inquiries", "msgTable", ["name", "subject", "message"]);
 
-        // SAVE ACTIONS
+        // SAVE BUTTONS
         document.getElementById('saveProj').onclick = async () => {
             const id = document.getElementById('pName').value;
+            if(!id) return;
             await setDoc(doc(db, "projects", id), { name: id, loc: document.getElementById('pLoc').value, value: document.getElementById('pVal').value, due: document.getElementById('pDue').value });
+            alert("Project Saved");
+        };
+
+        document.getElementById('saveClient').onclick = async () => {
+            const id = document.getElementById('cCompany').value;
+            if(!id) return;
+            await setDoc(doc(db, "clients", id), { company: id, pic: document.getElementById('cPIC').value, phone: document.getElementById('cPhone').value });
+            alert("Client Added");
         };
 
         document.getElementById('saveMan').onclick = async () => {
@@ -211,12 +216,8 @@
             await setDoc(doc(db, "inventory", id), { item: id, qty: document.getElementById('iQty').value, unit: document.getElementById('iUnit').value });
         };
 
-        document.getElementById('saveClient').onclick = async () => {
-            const id = document.getElementById('cCompany').value;
-            await setDoc(doc(db, "clients", id), { company: id, contact: document.getElementById('cContact').value, phone: document.getElementById('cPhone').value });
-        };
+        window.delD = async (c, id) => { if(confirm('Are you sure?')) await deleteDoc(doc(db, c, id)); };
 
-        window.delD = async (c, id) => { if(confirm('Delete?')) await deleteDoc(doc(db, c, id)); };
     </script>
 </body>
 </html>
