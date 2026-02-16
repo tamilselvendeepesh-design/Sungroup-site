@@ -3,61 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sungroup ERP | Enterprise Suite</title>
+    <title>Sungroup ERP | Admin Suite</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
-        :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --accent: #9b59b6; --dark: #2c3e50; --bg: #f0f2f5; }
-        body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; color: var(--dark); }
-        .hidden { display: none !important; }
+        :root { --primary: #1e73be; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --dark: #2c3e50; --bg: #f0f2f5; }
+        body { background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; color: var(--dark); overflow-x: hidden; }
         
-        /* Sidebar */
+        /* AUTH GUARD */
+        #login-box { position: fixed; inset: 0; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; width: 340px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .hidden { display: none !important; }
+
+        /* LAYOUT */
+        #dashboard { display: none; min-height: 100vh; } /* Changed from hidden class to display none */
         .sidebar { width: 260px; background: var(--dark); color: white; padding: 20px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; }
         .sidebar-logo { width: 140px; margin-bottom: 30px; align-self: center; filter: brightness(0) invert(1); }
-        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .main-content { flex-grow: 1; padding: 30px; background: var(--bg); }
+
+        /* BUTTONS & NAV */
+        .nav-btn { width: 100%; text-align: left; padding: 12px; margin: 4px 0; background: none; border: none; color: #bdc3c7; cursor: pointer; border-radius: 6px; }
         .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .nav-btn.active { background: var(--primary); color: white; font-weight: bold; }
-
-        /* Main Content */
-        .main-content { flex-grow: 1; padding: 30px; max-width: 1300px; }
+        
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
         
-        /* Form Elements */
-        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .btn-save { background: var(--success); color: white; width: 100%; margin-top: 10px; }
-        
-        /* Table Controls */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; font-size: 0.85rem; }
-        td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; }
-        
-        .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .hse-warn { background: #fff3f3; color: var(--danger); border: 1px solid var(--danger); }
-        
-        #login-box { position: fixed; inset: 0; background: var(--dark); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; width: 340px; text-align: center; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; }
+        td { padding: 12px; border-bottom: 1px solid #f0f0f0; }
     </style>
 </head>
 <body>
 
     <div id="login-box">
         <div class="login-card">
-            <img src="logo.png" style="width:160px;">
-            <h3>SG Enterprise Login</h3>
+            <img src="logo.png" style="width:160px; margin-bottom:10px;">
+            <h3>Admin Portal</h3>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="pass" placeholder="Password">
-            <button id="loginBtn" class="btn btn-save" style="background:var(--primary)">Access System</button>
+            <button id="loginBtn" class="btn btn-save" style="background:var(--primary)">Login</button>
         </div>
     </div>
 
-    <div id="dashboard" class="hidden">
+    <div id="dashboard">
         <div class="sidebar">
             <img src="logo.png" class="sidebar-logo">
             <button class="nav-btn active" onclick="showTab('projects')">🏗️ Site Projects</button>
             <button class="nav-btn" onclick="showTab('manpower')">👷 Manpower Log</button>
             <button class="nav-btn" onclick="showTab('clients')">🤝 Client CRM</button>
-            <button class="nav-btn" onclick="showTab('finance')">📉 Financials</button>
+            <button class="nav-btn" onclick="showTab('finance')">📉 Notes & Finance</button>
             <button id="logoutBtn" class="nav-btn" style="margin-top:auto; color:var(--danger);">Sign Out</button>
         </div>
 
@@ -68,37 +66,21 @@
                     <div class="grid-4">
                         <input type="text" id="pName" placeholder="Project Name">
                         <select id="pClientSelect"><option value="">-- Client --</option></select>
-                        <select id="pCat">
-                            <option value="Electrical">Electrical</option>
-                            <option value="Mechanical">Mechanical</option>
-                            <option value="Civil">Civil/Scaffold</option>
-                        </select>
-                        <select id="pPay">
-                            <option value="Unpaid">Unpaid</option>
-                            <option value="Partial">Partial</option>
-                            <option value="Paid">Fully Paid</option>
-                        </select>
+                        <select id="pCat"><option>Electrical</option><option>Mechanical</option><option>Civil</option></select>
+                        <select id="pPay"><option>Unpaid</option><option>Partial</option><option>Paid</option></select>
                     </div>
                     <div class="grid-4">
-                        <input type="date" id="pDeadline" title="Deadline">
-                        <input type="number" id="pProg" placeholder="Progress % (0-100)">
-                        <input type="text" id="pLoc" placeholder="Site Location (Map Link)">
-                        <select id="pHse">
-                            <option value="Safe">HSE: Standard</option>
-                            <option value="High Risk">HSE: High Risk</option>
-                        </select>
+                        <input type="date" id="pDeadline">
+                        <input type="number" id="pProg" placeholder="Progress %">
+                        <input type="text" id="pLoc" placeholder="Location Link">
+                        <select id="pHse"><option>Standard</option><option>High Risk</option></select>
                     </div>
-                    <textarea id="pDesc" rows="2" placeholder="Work scope & technical notes..."></textarea>
-                    <button id="saveProjBtn" class="btn btn-save">Deploy/Update Project</button>
+                    <textarea id="pDesc" placeholder="Technical Scope..."></textarea>
+                    <button id="saveProjBtn" class="btn btn-save">Deploy Project</button>
                 </div>
-
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between;">
-                        <h3>Active Operations</h3>
-                        <button onclick="exportCSV()" class="btn" style="background:#eee; font-size:0.7rem;">📥 Export CSV</button>
-                    </div>
                     <table id="projTable">
-                        <thead><tr><th>Project</th><th>Deadline</th><th>Progress</th><th>HSE</th><th>Payment</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Project</th><th>Deadline</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -106,30 +88,25 @@
 
             <div id="tab-manpower" class="tab-content hidden">
                 <div class="card">
-                    <h3>Site Attendance & Manpower</h3>
+                    <h3>Site Attendance</h3>
                     <div class="grid-4">
-                        <select id="mProj"><option value="">-- Select Project --</option></select>
-                        <input type="number" id="mCount" placeholder="No. of Staff">
-                        <input type="text" id="mLeader" placeholder="Site Supervisor">
-                        <button id="saveManBtn" class="btn btn-save" style="margin:0">Log Attendance</button>
+                        <select id="mProj"><option value="">-- Project --</option></select>
+                        <input type="number" id="mCount" placeholder="Staff Count">
+                        <input type="text" id="mLeader" placeholder="Supervisor">
+                        <button id="saveManBtn" class="btn btn-save" style="margin:0">Log</button>
                     </div>
                 </div>
-                <div class="card">
-                    <table id="manTable">
-                        <thead><tr><th>Site</th><th>Staff Count</th><th>Supervisor</th><th>Last Update</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+                <div class="card"><table id="manTable"><thead><tr><th>Site</th><th>Staff</th><th>Lead</th></tr></thead><tbody></tbody></table></div>
             </div>
 
             <div id="tab-clients" class="tab-content hidden">
                 <div class="card">
-                    <h3>Client Database</h3>
+                    <h3>Clients</h3>
                     <div class="grid-4">
                         <input type="text" id="cCompany" placeholder="Company">
                         <input type="text" id="cName" placeholder="PIC">
                         <input type="tel" id="cPhone" placeholder="Phone">
-                        <button id="saveClientBtn" class="btn btn-save" style="margin:0">Add Client</button>
+                        <button id="saveClientBtn" class="btn btn-save" style="margin:0">Add</button>
                     </div>
                 </div>
                 <div class="card"><table id="clientTable"><tbody></tbody></table></div>
@@ -137,8 +114,8 @@
 
             <div id="tab-finance" class="tab-content hidden">
                 <div class="card">
-                    <h3>Company Scratchpad</h3>
-                    <textarea id="notes" rows="10" placeholder="Type company notes here... auto-saves." oninput="saveNotes()"></textarea>
+                    <h3>Admin Notes (Auto-saves to browser)</h3>
+                    <textarea id="notes" rows="15" oninput="localStorage.setItem('sgNotes', this.value)"></textarea>
                 </div>
             </div>
         </div>
@@ -162,15 +139,26 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        const loginBox = document.getElementById('login-box');
+        const dashboard = document.getElementById('dashboard');
+
+        // FORCE VIEW CHECK
         onAuthStateChanged(auth, u => {
-            document.getElementById('login-box').classList.toggle('hidden', !!u);
-            document.getElementById('dashboard').classList.toggle('hidden', !u);
-            if(u && localStorage.getItem('sgNotes')) document.getElementById('notes').value = localStorage.getItem('sgNotes');
+            if(u) {
+                loginBox.style.display = 'none';
+                dashboard.style.display = 'flex';
+                if(localStorage.getItem('sgNotes')) document.getElementById('notes').value = localStorage.getItem('sgNotes');
+            } else {
+                loginBox.style.display = 'flex';
+                dashboard.style.display = 'none';
+            }
         });
 
         document.getElementById('loginBtn').onclick = () => {
-            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert(e.message));
+            signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value)
+            .catch(e => alert("Login Failed: " + e.message));
         };
+        
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
         window.showTab = (id) => {
@@ -182,67 +170,64 @@
 
         // DATA SYNC
         onSnapshot(collection(db, "projects"), snap => {
-            const tbody = document.querySelector("#projTable tbody");
+            const body = document.querySelector("#projTable tbody");
             const mSelect = document.getElementById('mProj');
-            tbody.innerHTML = ''; 
-            mSelect.innerHTML = '<option value="">-- Select Project --</option>';
+            const cSelect = document.getElementById('pClientSelect');
+            body.innerHTML = ''; 
+            mSelect.innerHTML = '<option value="">-- Project --</option>';
             
             snap.forEach(doc => {
                 const p = doc.data();
                 mSelect.innerHTML += `<option value="${p.projectName}">${p.projectName}</option>`;
-                tbody.innerHTML += `<tr>
-                    <td><b>${p.projectName}</b><br><small>${p.clientName}</small></td>
-                    <td>${p.deadline || 'N/A'}</td>
-                    <td><div style="width:60px; background:#eee; height:8px;"><div style="width:${p.progress}%; background:var(--success); height:100%;"></div></div> ${p.progress}%</td>
-                    <td><span class="badge ${p.hse === 'High Risk' ? 'hse-warn' : ''}">${p.hse}</span></td>
-                    <td>${p.payment}</td>
-                    <td><button onclick="delD('projects','${p.projectName}')" style="border:none; color:var(--danger); cursor:pointer;">Del</button></td>
-                </tr>`;
+                body.innerHTML += `<tr><td><b>${p.projectName}</b></td><td>${p.deadline || '-'}</td><td>${p.progress}%</td><td>${p.payment}</td><td><button onclick="delD('projects','${p.projectName}')">Del</button></td></tr>`;
+            });
+        });
+
+        onSnapshot(collection(db, "clients"), snap => {
+            const body = document.querySelector("#clientTable tbody");
+            const pClient = document.getElementById('pClientSelect');
+            body.innerHTML = '<thead><tr><th>Company</th><th>PIC</th><th>Phone</th></tr></thead>';
+            pClient.innerHTML = '<option value="">-- Client --</option>';
+            snap.forEach(doc => {
+                const c = doc.data();
+                pClient.innerHTML += `<option value="${c.company}">${c.company}</option>`;
+                body.innerHTML += `<tr><td>${c.company}</td><td>${c.contactPerson}</td><td>${c.phone}</td></tr>`;
             });
         });
 
         onSnapshot(collection(db, "manpower"), snap => {
-            const tbody = document.querySelector("#manTable tbody");
-            tbody.innerHTML = '';
+            const body = document.querySelector("#manTable tbody");
+            body.innerHTML = '';
             snap.forEach(doc => {
                 const m = doc.data();
-                tbody.innerHTML += `<tr><td>${m.project}</td><td>${m.count}</td><td>${m.leader}</td><td>${new Date().toLocaleDateString()}</td></tr>`;
+                body.innerHTML += `<tr><td>${m.project}</td><td>${m.count}</td><td>${m.leader}</td></tr>`;
             });
         });
 
-        // SAVE LOGIC
         document.getElementById('saveProjBtn').onclick = async () => {
-            const name = document.getElementById('pName').value;
-            if(!name) return;
-            await setDoc(doc(db, "projects", name), {
-                projectName: name, clientName: document.getElementById('pClientSelect').value,
-                progress: document.getElementById('pProg').value || 0, hse: document.getElementById('pHse').value,
-                payment: document.getElementById('pPay').value, deadline: document.getElementById('pDeadline').value,
-                location: document.getElementById('pLoc').value, description: document.getElementById('pDesc').value
+            const n = document.getElementById('pName').value;
+            if(!n) return;
+            await setDoc(doc(db, "projects", n), {
+                projectName: n, clientName: document.getElementById('pClientSelect').value,
+                progress: document.getElementById('pProg').value || 0, payment: document.getElementById('pPay').value,
+                deadline: document.getElementById('pDeadline').value, description: document.getElementById('pDesc').value, date: new Date()
             });
-            alert("Project Synced!");
+            alert("Project Saved!");
         };
 
         document.getElementById('saveManBtn').onclick = async () => {
             const p = document.getElementById('mProj').value;
-            if(!p) return;
             await setDoc(doc(db, "manpower", p), { project: p, count: document.getElementById('mCount').value, leader: document.getElementById('mLeader').value });
-            alert("Attendance Logged!");
+            alert("Logged!");
         };
 
-        window.saveNotes = () => localStorage.setItem('sgNotes', document.getElementById('notes').value);
+        document.getElementById('saveClientBtn').onclick = async () => {
+            const co = document.getElementById('cCompany').value;
+            await setDoc(doc(db, "clients", co), { company: co, contactPerson: document.getElementById('cName').value, phone: document.getElementById('cPhone').value });
+            alert("Client Added!");
+        };
+
         window.delD = async (c, id) => { if(confirm('Delete?')) await deleteDoc(doc(db, c, id)); };
-
-        window.exportCSV = () => {
-            let csv = "Project,Client,Deadline,Progress\n";
-            document.querySelectorAll("#projTable tr").forEach(tr => {
-                const cells = tr.querySelectorAll("td");
-                if(cells.length > 0) csv += `${cells[0].innerText.replace(/\n/g, ' ')},${cells[1].innerText},${cells[2].innerText}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'SG-Projects.csv'; a.click();
-        };
     </script>
 </body>
 </html>
