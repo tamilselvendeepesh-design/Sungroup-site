@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Matches your Index.html styling */
         .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
         .contact-form-card { background: white; padding: 35px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
@@ -30,7 +29,7 @@
         .submit-btn:hover { background: #155a96; }
         .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
 
-        #sent-status { display: none; background: #d4edda; color: #155724; padding: 15px; border-radius: 4px; margin-bottom: 20px; text-align: center; font-weight: bold; }
+        #sent-status { display: none; background: #d4edda; color: #155724; padding: 15px; border-radius: 4px; margin-bottom: 20px; text-align: center; font-weight: bold; border: 1px solid #c3e6cb; }
 
         @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr; } }
     </style>
@@ -50,8 +49,8 @@
         </div>
     </nav>
 
-    <header class="hero" style="min-height: 200px; padding: 60px 0;">
-        <div class="container hero-content">
+    <header class="hero" style="min-height: 200px; padding: 60px 0; background: #1e73be; color: white;">
+        <div class="container hero-content" style="text-align: center;">
             <h2>Contact Us</h2>
             <p>Reliable engineering solutions for Marine, LNG, and Offshore markets.</p>
         </div>
@@ -64,12 +63,12 @@
                     <h3 class="partner-title">Get In Touch</h3>
                     <p style="margin-bottom: 20px;">Contact us today to discuss your project requirements or to learn more about our specialized engineering services.</p>
                     <p><i class="fas fa-map-marker-alt" style="color:#1e73be; width: 25px;"></i> 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
-                    <p><i class="fas fa-envelope" style="color:#1e73be; width: 25px;"></i> contact@sungroup.com</p>
+                    <p><i class="fas fa-envelope" style="color:#1e73be; width: 25px;"></i> contact@sungroup.com.sg</p>
                     <p><i class="fas fa-phone" style="color:#1e73be; width: 25px;"></i> +65 6XXX XXXX</p>
                 </div>
 
                 <div class="contact-form-card">
-                    <div id="sent-status">✅ Thank you! Your inquiry has been sent.</div>
+                    <div id="sent-status">✅ Thank you! Your inquiry has been sent. Our team will respond shortly.</div>
                     <form id="contactForm">
                         <div class="form-group">
                             <label>Full Name</label>
@@ -103,8 +102,8 @@
     </section>
 
     <footer>
-        <div class="container">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+        <div class="container" style="text-align: center; padding: 40px 0; color: #777; border-top: 1px solid #eee;">
+            <p>&copy; 2026 Sungroup Engineering Pte Ltd | Singapore 627607</p>
         </div>
     </footer>
 
@@ -112,7 +111,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        // Your specific Firebase configuration
         const firebaseConfig = { 
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", 
             authDomain: "sungroup-crm.firebaseapp.com", 
@@ -132,24 +130,24 @@
             btn.disabled = true;
 
             try {
-                // Save inquiry to Firestore
-                await addDoc(collection(db, "inquiries"), {
+                // Sent to "leads" to match Security Rules and Admin Panel
+                await addDoc(collection(db, "leads"), {
+                    type: "General Inquiry",
                     name: document.getElementById('cName').value,
                     email: document.getElementById('cEmail').value,
-                    phone: document.getElementById('cPhone').value,
                     company: document.getElementById('cCompany').value,
                     subject: document.getElementById('cSub').value,
-                    message: document.getElementById('cMsg').value,
-                    date: new Date().toISOString()
+                    message: "Phone: " + document.getElementById('cPhone').value + " | Message: " + document.getElementById('cMsg').value,
+                    date: new Date().toLocaleDateString(),
+                    timestamp: new Date().toISOString()
                 });
 
-                document.getElementById('contactForm').reset();
+                document.getElementById('contactForm').style.display = 'none';
                 document.getElementById('sent-status').style.display = 'block';
-                btn.innerText = "Send Message";
-                btn.disabled = false;
+                window.scrollTo(0,0);
             } catch (error) {
                 console.error("Submission error: ", error);
-                alert("Sorry, there was an error. Please try again.");
+                alert("Connection error. Please check your internet or try again later.");
                 btn.innerText = "Send Message";
                 btn.disabled = false;
             }
