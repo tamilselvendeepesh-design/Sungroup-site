@@ -2,28 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Titan ERP | Secure Gateway</title>
+    <title>TITAN ERP | Secure Access</title>
     <style>
         body { background: #0a0c14; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .gate-card { background: #161a27; padding: 40px; border-radius: 12px; border: 1px solid #2d3142; width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #0a0c14; border: 1px solid #2d3142; color: white; border-radius: 6px; }
-        button { width: 100%; padding: 12px; background: #1e73be; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #status { font-size: 0.8rem; color: #888; margin-top: 15px; }
+        .gate-card { background: #161a27; padding: 40px; border-radius: 12px; border: 1px solid #2d3142; width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #0a0c14; border: 1px solid #2d3142; color: white; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #1e73be; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #00d2ff; }
+        #status { font-size: 0.8rem; color: #888; margin-top: 15px; min-height: 1.2em; }
     </style>
 </head>
 <body>
     <div class="gate-card">
-        <h2 style="color:#00d2ff">TITAN ERP</h2>
+        <h2 style="color:#00d2ff; margin-bottom: 5px;">TITAN ERP</h2>
+        <p style="font-size: 0.7rem; color: #666; margin-bottom: 25px;">SUNGROUP ENGINEERING SECURITY</p>
         <input type="email" id="email" placeholder="Admin Email">
-        <input type="password" id="pass" placeholder="Password">
+        <input type="password" id="pass" placeholder="System Key">
         <button id="loginBtn">Verify Identity</button>
-        <div id="status">Secure Session Required</div>
+        <div id="status">Ready for Initialization</div>
         <div id="recaptcha-container"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, getMultiFactorResolver, PhoneAuthProvider, PhoneMultiFactorGenerator, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { 
+            getAuth, signInWithEmailAndPassword, getMultiFactorResolver, 
+            PhoneAuthProvider, PhoneMultiFactorGenerator, RecaptchaVerifier, multiFactor 
+        } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
@@ -33,26 +38,56 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
+        
+        // Setup Invisible reCAPTCHA
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'loginBtn', { 'size': 'invisible' });
 
         document.getElementById('loginBtn').onclick = async () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
+            const status = document.getElementById('status');
+
             try {
-                await signInWithEmailAndPassword(auth, email, pass);
-                window.location.href = "dashboard.html";
+                status.innerText = "Authenticating...";
+                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
+
+                // --- CHECK ENROLLMENT ---
+                if (user.multiFactor.enrolledFactors.length === 0) {
+                    status.innerText = "Enrollment Required...";
+                    const session = await multiFactor(user).getSession();
+                    const phoneProvider = new PhoneAuthProvider(auth);
+                    const vId = await phoneProvider.verifyPhoneNumber({ phoneNumber: '+6591854358', session: session }, window.recaptchaVerifier);
+                    
+                    const code = prompt("FIRST TIME SETUP: Enter SMS code sent to +65 9185 4358:");
+                    if (code) {
+                        const cred = PhoneAuthProvider.credential(vId, code);
+                        await multiFactor(user).enroll(PhoneMultiFactorGenerator.assertion(cred), "Admin Phone");
+                        status.innerText = "Enrollment Complete!";
+                        window.location.href = "dashboard.html";
+                    }
+                } else {
+                    window.location.href = "dashboard.html";
+                }
+
             } catch (error) {
                 if (error.code === 'auth/multi-factor-auth-required') {
+                    // --- STANDARD MFA FLOW ---
+                    status.innerText = "SMS Dispatched...";
                     const resolver = getMultiFactorResolver(auth, error);
                     const phoneProvider = new PhoneAuthProvider(auth);
                     const vId = await phoneProvider.verifyPhoneNumber({ multiFactorHint: resolver.hints[0], session: resolver.session }, window.recaptchaVerifier);
-                    const smsCode = prompt("SMS sent to +65 9185 4358. Enter code:");
+                    
+                    const smsCode = prompt("Enter 6-digit verification code:");
                     if (smsCode) {
                         const cred = PhoneAuthProvider.credential(vId, smsCode);
                         await resolver.resolveSignIn(PhoneMultiFactorGenerator.assertion(cred));
                         window.location.href = "dashboard.html";
                     }
-                } else { alert("Login failed: " + error.message); }
+                } else {
+                    status.innerText = "Error: " + error.message;
+                    console.error(error);
+                }
             }
         };
     </script>
