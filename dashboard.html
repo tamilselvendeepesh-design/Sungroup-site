@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Titan ERP - Dashboard</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f8f9fa; }
+        nav { background: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; }
+        .container { padding: 30px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background: #f1f1f1; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <strong>TITAN ERP | Sungroup Dashboard</strong>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+</nav>
+
+<div class="container">
+    <div class="card">
+        <h3>Active Projects</h3>
+        <table id="projectsTable">
+            <thead>
+                <tr><th>Project Name</th><th>Status</th><th>Supervisor</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Loading projects...</td><td></td><td></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h3>Manpower Overview</h3>
+        <table id="manpowerTable">
+            <thead>
+                <tr><th>Name</th><th>Position</th><th>Site</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Loading manpower...</td><td></td><td></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
+        authDomain: "sungroup-crm.firebaseapp.com",
+        projectId: "sungroup-crm"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // SECURITY CHECK: Kick out users who aren't logged in with MFA
+    onAuthStateChanged(auth, (user) => {
+        if (!user || user.multiFactor.enrolledFactors.length === 0) {
+            window.location.href = "admin.html";
+        } else {
+            loadData(); // Only load data if they passed the gate
+        }
+    });
+
+    async function loadData() {
+        // Load Projects
+        const projSnap = await getDocs(collection(db, "projects"));
+        const projTable = document.getElementById('projectsTable').querySelector('tbody');
+        projTable.innerHTML = "";
+        projSnap.forEach(doc => {
+            const d = doc.data();
+            projTable.innerHTML += `<tr><td>${d.name || 'N/A'}</td><td>${d.status || 'Active'}</td><td>${d.supervisor || 'Unassigned'}</td></tr>`;
+        });
+
+        // Load Manpower
+        const manSnap = await getDocs(collection(db, "manpower"));
+        const manTable = document.getElementById('manpowerTable').querySelector('tbody');
+        manTable.innerHTML = "";
+        manSnap.forEach(doc => {
+            const d = doc.data();
+            manTable.innerHTML += `<tr><td>${d.name}</td><td>${d.position}</td><td>${d.site}</td></tr>`;
+        });
+    }
+
+    document.getElementById('logoutBtn').onclick = () => signOut(auth);
+</script>
+
+</body>
+</html>
