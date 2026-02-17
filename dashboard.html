@@ -1,97 +1,203 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Titan ERP - Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN ERP | Sungroup Engineering</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 0; background: #f8f9fa; }
-        nav { background: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; }
-        .container { padding: 30px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
-        th { background: #f1f1f1; }
-        .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        :root { 
+            --primary: #00d2ff; --primary-dark: #1e73be; --accent: #f39c12;
+            --danger: #e74c3c; --success: #2ecc71;
+            --dark: #0a0c14; --surface: #161a27; --border: #2d3142; --text: #d5d6d7;
+            --sidebar-w: 260px;
+        }
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--dark); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); padding: 20px 15px; display: flex; flex-direction: column; }
+        .brand-container { width: 100%; padding: 10px; text-align: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); }
+        .brand-container img { max-width: 100%; height: auto; max-height: 55px; object-fit: contain; }
+
+        .nav-item { width: 100%; padding: 12px 15px; margin: 4px 0; background: none; border: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: 0.3s; font-size: 0.85rem; }
+        .nav-item:hover, .nav-item.active { background: var(--primary-dark); color: white; }
+        
+        /* Viewport */
+        .viewport { flex: 1; overflow-y: auto; padding: 30px; background: radial-gradient(circle at top right, #1a1f35, #0a0c14); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; border-top: 3px solid var(--primary); }
+        .stat-card h2 { margin: 0; font-size: 1.4rem; color: white; }
+        .stat-card p { margin: 5px 0 0; font-size: 0.65rem; color: #888; text-transform: uppercase; }
+
+        /* Components */
+        .card { background: var(--surface); padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); }
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        label { display: block; font-size: 0.7rem; color: var(--primary); margin-bottom: 6px; font-weight: bold; text-transform: uppercase; }
+        input, select, textarea { width: 100%; padding: 12px; background: #0a0c14; border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 0.9rem; }
+        
+        .btn-main { background: var(--primary-dark); color: white; border: none; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn-main:hover { background: var(--primary); transform: translateY(-2px); }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; color: #666; padding: 12px; border-bottom: 2px solid var(--border); text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; vertical-align: middle; }
+        
+        .btn-del { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .status-pill { padding: 3px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: bold; }
+        .status-onsite { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid #2ecc71; }
+        .status-leave { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid #e74c3c; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<nav>
-    <strong>TITAN ERP | Sungroup Dashboard</strong>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
-</nav>
+    <nav class="sidebar">
+        <div class="brand-container"><img src="logo.png"></div>
+        <button class="nav-item active" onclick="showTab('dash')"><i class="fas fa-chart-line"></i> Dashboard</button>
+        <button class="nav-item" onclick="showTab('projects')"><i class="fas fa-ship"></i> Project Control</button>
+        <button class="nav-item" onclick="showTab('manpower')"><i class="fas fa-users-cog"></i> Manpower Hub</button>
+        <button class="nav-item" onclick="showTab('site-logs')"><i class="fas fa-file-contract"></i> Service Reports</button>
+        <button class="nav-item" onclick="showTab('procure')"><i class="fas fa-shopping-cart"></i> Procurement</button>
+        <button class="nav-item" onclick="showTab('clients')"><i class="fas fa-handshake"></i> Client Hub</button>
+        <button class="nav-item" onclick="showTab('leads')"><i class="fas fa-inbox"></i> Leads/Apps</button>
+        <button id="logoutBtn" class="nav-item" style="margin-top:auto; color:var(--danger);"><i class="fas fa-power-off"></i> Logout</button>
+    </nav>
 
-<div class="container">
-    <div class="card">
-        <h3>Active Projects</h3>
-        <table id="projectsTable">
-            <thead>
-                <tr><th>Project Name</th><th>Status</th><th>Supervisor</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>Loading projects...</td><td></td><td></td></tr>
-            </tbody>
-        </table>
+    <main class="viewport">
+        
+        <div id="tab-dash" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card"><h2><span id="stat-proj">0</span></h2><p>Live Projects</p></div>
+                <div class="stat-card" style="border-color:var(--success)"><h2><span id="stat-onsite">0</span></h2><p>On-Site Personnel</p></div>
+                <div class="stat-card" style="border-color:var(--accent)"><h2>$<span id="stat-rev">0</span></h2><p>Contract Value</p></div>
+                <div class="stat-card" style="border-color:var(--danger)"><h2><span id="stat-po">0</span></h2><p>Open POs</p></div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-satellite" style="color:var(--primary)"></i> Active Deployment Map</h3>
+                <div id="deployment-tags" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <div id="tab-projects" class="tab-content hidden">
+            <div class="card">
+                <h3><i class="fas fa-plus-circle"></i> Project Deployment</h3>
+                <div class="grid-inputs">
+                    <div><label>Project Name</label><input type="text" id="pName"></div>
+                    <div><label>Client</label><input type="text" id="pClient"></div>
+                    <div><label>Location</label><input type="text" id="pLoc"></div>
+                    <div><label>Contract Value ($)</label><input type="number" id="pVal"></div>
+                    <div><label>Due Date</label><input type="date" id="pDue"></div>
+                    <div><label>Status</label><select id="pStatus"><option>Active</option><option>Completed</option><option>Planning</option></select></div>
+                </div>
+                <button onclick="saveProject()" class="btn-main">Sync Project Data</button>
+            </div>
+            <div class="card"><table id="projTable"><thead><tr><th>Project</th><th>Client</th><th>Value</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+        </div>
+
+        <div id="tab-manpower" class="tab-content hidden">
+            <div class="card">
+                <h3>Workforce Management</h3>
+                <div class="grid-inputs">
+                    <div><label>Staff Name</label><input type="text" id="mName"></div>
+                    <div><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
+                    <div><label>Status</label><select id="mStatus"><option value="On-Site">On-Site</option><option value="Standby">Standby</option><option value="Medical Leave">MC</option><option value="Annual Leave">Leave</option></select></div>
+                </div>
+                <button onclick="saveManpower()" class="btn-main" style="background:var(--accent)">Update Staff Status</button>
+            </div>
+            <div class="card"><table id="manTable"><thead><tr><th>Name</th><th>Status</th><th>Deployment</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+        </div>
+
+        </main>
+
+    <div id="pdf-template" style="display:none; padding: 40px; color: #000; background: #fff;">
+        <h1 style="text-align:center; color:#1e73be;">SUNGROUP ENGINEERING</h1>
+        <h2 style="text-align:center;">SERVICE REPORT</h2>
+        <hr>
+        <p><b>Date:</b> <span id="pdf-date"></span></p>
+        <p><b>Project:</b> <span id="pdf-proj"></span></p>
+        <p id="pdf-work-desc"></p>
     </div>
 
-    <div class="card">
-        <h3>Manpower Overview</h3>
-        <table id="manpowerTable">
-            <thead>
-                <tr><th>Name</th><th>Position</th><th>Site</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>Loading manpower...</td><td></td><td></td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
+            authDomain: "sungroup-crm.firebaseapp.com",
+            projectId: "sungroup-crm",
+            storageBucket: "sungroup-crm.firebasestorage.app",
+            messagingSenderId: "982155471354",
+            appId: "1:982155471354:web:c4b61192d247c9739edc43"
+        };
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
-        authDomain: "sungroup-crm.firebaseapp.com",
-        projectId: "sungroup-crm"
-    };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // SECURITY CHECK: Kick out users who aren't logged in with MFA
-    onAuthStateChanged(auth, (user) => {
-        if (!user || user.multiFactor.enrolledFactors.length === 0) {
-            window.location.href = "admin.html";
-        } else {
-            loadData(); // Only load data if they passed the gate
-        }
-    });
-
-    async function loadData() {
-        // Load Projects
-        const projSnap = await getDocs(collection(db, "projects"));
-        const projTable = document.getElementById('projectsTable').querySelector('tbody');
-        projTable.innerHTML = "";
-        projSnap.forEach(doc => {
-            const d = doc.data();
-            projTable.innerHTML += `<tr><td>${d.name || 'N/A'}</td><td>${d.status || 'Active'}</td><td>${d.supervisor || 'Unassigned'}</td></tr>`;
+        // --- SECURITY GATE: Only allow entry if SMS verified ---
+        onAuthStateChanged(auth, user => {
+            if (!user || !user.multiFactor || user.multiFactor.enrolledFactors.length === 0) {
+                // If not logged in OR SMS not set up, go back to login
+                window.location.href = 'admin.html';
+            }
         });
 
-        // Load Manpower
-        const manSnap = await getDocs(collection(db, "manpower"));
-        const manTable = document.getElementById('manpowerTable').querySelector('tbody');
-        manTable.innerHTML = "";
-        manSnap.forEach(doc => {
-            const d = doc.data();
-            manTable.innerHTML += `<tr><td>${d.name}</td><td>${d.position}</td><td>${d.site}</td></tr>`;
+        document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => window.location.href = 'admin.html');
+
+        // --- ERP Logic ---
+        window.showTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-'+id).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        };
+
+        window.saveProject = async () => {
+            const n = document.getElementById('pName').value; if(!n) return;
+            await setDoc(doc(db, "projects", n), { name: n, client: document.getElementById('pClient').value, loc: document.getElementById('pLoc').value, value: parseFloat(document.getElementById('pVal').value)||0, due: document.getElementById('pDue').value, status: document.getElementById('pStatus').value });
+            ["pName", "pClient", "pLoc", "pVal", "pDue"].forEach(i => document.getElementById(i).value = '');
+        };
+
+        window.saveManpower = async () => {
+            const n = document.getElementById('mName').value; if(!n) return;
+            await setDoc(doc(db, "manpower", n), { name: n, status: document.getElementById('mStatus').value, assignedTo: document.getElementById('mAssign').value });
+            document.getElementById('mName').value = '';
+        };
+
+        // Real-time Listeners
+        onSnapshot(collection(db, "projects"), snap => {
+            const tbody = document.querySelector('#projTable tbody');
+            const selects = document.querySelectorAll('.proj-select-list');
+            const tags = document.getElementById('deployment-tags');
+            tbody.innerHTML = ''; tags.innerHTML = ''; selects.forEach(s => s.innerHTML = '');
+            let totalRev = 0;
+            snap.forEach(d => {
+                const p = d.data(); totalRev += p.value;
+                selects.forEach(s => s.innerHTML += `<option value="${p.name}">${p.name}</option>`);
+                tags.innerHTML += `<div style="background:#222; padding:8px; border-radius:6px; font-size:0.7rem;">${p.name}</div>`;
+                tbody.innerHTML += `<tr><td><b>${p.name}</b></td><td>${p.client}</td><td>$${p.value}</td><td>${p.status}</td><td><button class="btn-del" onclick="window.kill('projects','${d.id}')">X</button></td></tr>`;
+            });
+            document.getElementById('stat-proj').innerText = snap.size;
+            document.getElementById('stat-rev').innerText = totalRev.toLocaleString();
         });
-    }
 
-    document.getElementById('logoutBtn').onclick = () => signOut(auth);
-</script>
+        onSnapshot(collection(db, "manpower"), snap => {
+            const tbody = document.querySelector('#manTable tbody'); tbody.innerHTML = '';
+            let onSite = 0;
+            snap.forEach(d => {
+                const m = d.data(); if(m.status === 'On-Site') onSite++;
+                tbody.innerHTML += `<tr><td>${m.name}</td><td><span class="status-pill ${m.status==='On-Site'?'status-onsite':'status-leave'}">${m.status}</span></td><td>${m.assignedTo}</td><td><button class="btn-del" onclick="window.kill('manpower','${d.id}')">X</button></td></tr>`;
+            });
+            document.getElementById('stat-onsite').innerText = onSite;
+        });
 
+        window.kill = async (coll, id) => { if(confirm("Delete Record?")) await deleteDoc(doc(db, coll, id)); };
+
+    </script>
 </body>
 </html>
