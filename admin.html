@@ -2,77 +2,194 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TITAN ERP | Secure Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN ERP | Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background: #0a0c14; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .gate-card { background: #161a27; padding: 40px; border-radius: 12px; border: 1px solid #2d3142; width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #0a0c14; border: 1px solid #2d3142; color: white; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 14px; background: #1e73be; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #status { font-size: 0.75rem; color: #ffcc00; margin-top: 15px; min-height: 1.5em; }
+        :root { 
+            --primary: #00d2ff; --dark: #0a0c14; --surface: #161a27; 
+            --border: #2d3142; --text: #d5d6d7; --sidebar-w: 250px; 
+        }
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--dark); color: var(--text); margin: 0; overflow: hidden; }
+
+        /* --- LOGIN SECTION --- */
+        #auth-gate { 
+            position: fixed; inset: 0; background: var(--dark); 
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .login-card { 
+            background: var(--surface); padding: 40px; border-radius: 12px; 
+            border: 1px solid var(--border); width: 350px; text-align: center; 
+        }
+        input { 
+            width: 100%; padding: 12px; margin: 10px 0; background: #0a0c14; 
+            border: 1px solid var(--border); color: white; border-radius: 6px; 
+        }
+        .btn-blue { 
+            width: 100%; padding: 14px; background: #1e73be; color: white; 
+            border: none; border-radius: 6px; cursor: pointer; font-weight: bold; 
+        }
+
+        /* --- DASHBOARD SECTION --- */
+        #dashboard-view { display: flex; height: 100vh; width: 100vw; }
+        .sidebar { 
+            width: var(--sidebar-w); background: var(--surface); 
+            border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; 
+        }
+        .nav-item { 
+            padding: 12px; color: var(--text); cursor: pointer; border-radius: 8px; 
+            margin-bottom: 5px; display: flex; align-items: center; gap: 10px; 
+            background: none; border: none; width: 100%; text-align: left; 
+        }
+        .nav-item:hover, .nav-item.active { background: #1e73be; color: white; }
+        
+        .viewport { flex: 1; padding: 40px; overflow-y: auto; }
+        .card { background: var(--surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; color: var(--primary); font-size: 0.8rem; padding: 10px; border-bottom: 2px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid #222; }
+
+        .hidden { display: none !important; }
+        #status-msg { font-size: 0.75rem; color: #ffcc00; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="gate-card">
-        <h2 style="color:#00d2ff">TITAN ERP</h2>
-        <input type="email" id="email" placeholder="Admin Email">
-        <input type="password" id="pass" placeholder="System Key">
-        <button id="loginBtn">Authorize Session</button>
-        <div id="status">Ready</div>
-        <div id="recaptcha-container"></div>
+
+    <div id="auth-gate">
+        <div class="login-card">
+            <h2 style="color:var(--primary); margin-bottom: 5px;">TITAN ERP</h2>
+            <p style="font-size: 0.7rem; color: #666; margin-bottom: 25px;">SECURE ACCESS GATEWAY</p>
+            <input type="email" id="email" placeholder="Admin Email">
+            <input type="password" id="pass" placeholder="Password">
+            <button class="btn-blue" id="loginBtn">Authorize Session</button>
+            <div id="status-msg">System Standing By</div>
+        </div>
+    </div>
+
+    <div id="dashboard-view" class="hidden">
+        <nav class="sidebar">
+            <h2 style="color:var(--primary)">TITAN ERP</h2>
+            <button class="nav-item active" onclick="showTab('projects')"><i class="fas fa-ship"></i> Projects</button>
+            <button class="nav-item" onclick="showTab('manpower')"><i class="fas fa-users"></i> Manpower</button>
+            <button id="logoutBtn" class="nav-item" style="margin-top:auto; color:#ff4d4d;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </nav>
+
+        <main class="viewport">
+            <div id="tab-projects" class="tab-content">
+                <div class="card">
+                    <h3>Add Project</h3>
+                    <input type="text" id="pName" placeholder="Project Name">
+                    <input type="text" id="pClient" placeholder="Client">
+                    <button class="btn-blue" style="width:auto; padding: 10px 20px;" onclick="saveData('projects')">Add to Cloud</button>
+                </div>
+                <div class="card">
+                    <table id="projTable">
+                        <thead><tr><th>Project</th><th>Client</th><th>Action</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-manpower" class="tab-content hidden">
+                <div class="card">
+                    <h3>Register Staff</h3>
+                    <input type="text" id="mName" placeholder="Staff Name">
+                    <input type="text" id="mSite" placeholder="Site Location">
+                    <button class="btn-blue" style="width:auto; padding: 10px 20px;" onclick="saveData('manpower')">Register</button>
+                </div>
+                <div class="card">
+                    <table id="manTable">
+                        <thead><tr><th>Name</th><th>Location</th><th>Action</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, getMultiFactorResolver, PhoneAuthProvider, PhoneMultiFactorGenerator, RecaptchaVerifier, multiFactor } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
+        const firebaseConfig = { 
+            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", 
+            authDomain: "sungroup-crm.firebaseapp.com", 
+            projectId: "sungroup-crm" 
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
+        const db = getFirestore(app);
 
-        document.getElementById('loginBtn').onclick = async () => {
-            const status = document.getElementById('status');
-            try {
-                status.innerText = "Checking Credentials...";
-                const userCred = await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value);
-                const user = userCred.user;
-
-                // Flow for first-time enrollment
-                if (user.multiFactor.enrolledFactors.length === 0) {
-                    status.innerText = "Setting up MFA...";
-                    const session = await multiFactor(user).getSession();
-                    const phoneProvider = new PhoneAuthProvider(auth);
-                    const vId = await phoneProvider.verifyPhoneNumber({ phoneNumber: '+6591854358', session: session }, window.recaptchaVerifier);
-                    const code = prompt("INITIAL SETUP: Enter the 6-digit code for +65 9185 4358:");
-                    if (code) {
-                        const cred = PhoneAuthProvider.credential(vId, code);
-                        await multiFactor(user).enroll(PhoneMultiFactorGenerator.assertion(cred), "Admin Phone");
-                        
-                        // REFRESH SECURITY TOKEN BEFORE REDIRECT
-                        await user.getIdToken(true); 
-                        window.location.href = "dashboard.html";
-                    }
-                } else {
-                    window.location.href = "dashboard.html";
-                }
-            } catch (error) {
-                if (error.code === 'auth/multi-factor-auth-required') {
-                    const resolver = getMultiFactorResolver(auth, error);
-                    const vId = await (new PhoneAuthProvider(auth)).verifyPhoneNumber({ multiFactorHint: resolver.hints[0], session: resolver.session }, window.recaptchaVerifier);
-                    const smsCode = prompt("MFA CHALLENGE: Enter 6-digit code:");
-                    if (smsCode) {
-                        const cred = PhoneAuthProvider.credential(vId, smsCode);
-                        const userCred = await resolver.resolveSignIn(PhoneMultiFactorGenerator.assertion(cred));
-                        
-                        // REFRESH SECURITY TOKEN
-                        await userCred.user.getIdToken(true);
-                        window.location.href = "dashboard.html";
-                    }
-                } else {
-                    status.innerText = error.message;
-                }
+        // --- AUTH OBSERVER (Toggles the View) ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-gate').classList.add('hidden');
+                document.getElementById('dashboard-view').classList.remove('hidden');
+                initDataSync();
+            } else {
+                document.getElementById('auth-gate').classList.remove('hidden');
+                document.getElementById('dashboard-view').classList.add('hidden');
             }
+        });
+
+        // --- LOGIN ACTION ---
+        document.getElementById('loginBtn').onclick = async () => {
+            const status = document.getElementById('status-msg');
+            try {
+                status.innerText = "Verifying...";
+                await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value);
+            } catch (error) {
+                status.innerText = "Error: " + error.message;
+            }
+        };
+
+        // --- LOGOUT ACTION ---
+        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+        // --- DATA SYNC ---
+        function initDataSync() {
+            onSnapshot(collection(db, "projects"), s => {
+                const b = document.querySelector('#projTable tbody'); b.innerHTML = '';
+                s.forEach(d => { 
+                    b.innerHTML += `<tr><td>${d.data().name}</td><td>${d.data().client}</td>
+                    <td><button onclick="window.del('projects','${d.id}')" style="color:red; background:none; border:none; cursor:pointer;">Delete</button></td></tr>`; 
+                });
+            });
+
+            onSnapshot(collection(db, "manpower"), s => {
+                const b = document.querySelector('#manTable tbody'); b.innerHTML = '';
+                s.forEach(d => { 
+                    b.innerHTML += `<tr><td>${d.data().name}</td><td>${d.data().site}</td>
+                    <td><button onclick="window.del('manpower','${d.id}')" style="color:red; background:none; border:none; cursor:pointer;">Remove</button></td></tr>`; 
+                });
+            });
+        }
+
+        window.saveData = async (type) => {
+            if (type === 'projects') {
+                const n = document.getElementById('pName').value;
+                if(!n) return;
+                await setDoc(doc(db, "projects", n), { name: n, client: document.getElementById('pClient').value });
+                document.getElementById('pName').value = ''; document.getElementById('pClient').value = '';
+            } else {
+                const n = document.getElementById('mName').value;
+                if(!n) return;
+                await setDoc(doc(db, "manpower", n), { name: n, site: document.getElementById('mSite').value });
+                document.getElementById('mName').value = ''; document.getElementById('mSite').value = '';
+            }
+        };
+
+        window.del = async (c, id) => { if(confirm("Confirm Delete?")) await deleteDoc(doc(db, c, id)); };
+
+        window.showTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-'+id).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
         };
     </script>
 </body>
