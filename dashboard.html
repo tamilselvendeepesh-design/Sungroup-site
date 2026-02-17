@@ -2,112 +2,61 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TITAN ERP | Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { 
-            --primary: #00d2ff; --dark: #0a0c14; --surface: #161a27; --border: #2d3142; --text: #d5d6d7;
-            --sidebar-w: 260px;
-        }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--dark); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-
-        /* Security Gatekeeper Overlay */
-        #gatekeeper { position: fixed; inset: 0; background: var(--dark); z-index: 100000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spin { width: 45px; height: 45px; border: 4px solid rgba(0, 210, 255, 0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: rot 1s linear infinite; }
-        @keyframes rot { to { transform: rotate(360deg); } }
-
-        /* Navigation */
-        .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; }
-        .nav-item { padding: 12px 15px; color: var(--text); text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; background: none; border: none; width: 100%; text-align: left; }
-        .nav-item:hover, .nav-item.active { background: #1e73be; color: white; }
-        
-        /* Main Viewport */
-        .viewport { flex: 1; padding: 40px; overflow-y: auto; background: radial-gradient(circle at 0% 0%, #161a27 0%, #0a0c14 100%); }
-        .card { background: var(--surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 25px; }
-        .btn-logout { margin-top: auto; color: #ff4d4d; border: 1px solid #ff4d4d; text-align: center; padding: 10px; border-radius: 6px; cursor: pointer; }
+        body { background: #0a0c14; color: white; font-family: sans-serif; }
+        #gatekeeper { position: fixed; inset: 0; background: #0a0c14; z-index: 999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .spin { width: 40px; height: 40px; border: 4px solid #1e73be; border-top-color: transparent; border-radius: 50%; animation: s 1s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
     <div id="gatekeeper">
         <div class="spin"></div>
-        <p style="color: var(--primary); margin-top: 20px; font-weight: bold; letter-spacing: 2px;">AUTHENTICATING SESSION...</p>
-        <p id="debug-status" style="font-size: 0.7rem; color: #444; margin-top: 10px;"></p>
+        <p id="msg">INITIALIZING SECURE SESSION...</p>
     </div>
 
-    <nav class="sidebar">
-        <h2 style="color: var(--primary); margin-bottom: 30px;">TITAN ERP</h2>
-        <button class="nav-item active"><i class="fas fa-chart-line"></i> Dashboard</button>
-        <button class="nav-item"><i class="fas fa-ship"></i> Project Control</button>
-        <button id="logoutBtn" class="btn-logout">LOGOUT</button>
-    </nav>
-
-    <main class="viewport">
-        <div class="card">
-            <h1>Command Center</h1>
-            <p>System Status: <span style="color:var(--primary)">SECURED</span></p>
-            <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
-            <p>Welcome, Authorized Administrator. All system protocols are active.</p>
-        </div>
-    </main>
+    <div id="content" style="display:none; padding: 40px;">
+        <h1 style="color:#00d2ff">DASHBOARD LOADED</h1>
+        <p>Security Status: <b style="color:#2ecc71">VERIFIED</b></p>
+        <button onclick="signOutNow()" style="padding:10px; cursor:pointer;">Logout</button>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
-            authDomain: "sungroup-crm.firebaseapp.com",
-            projectId: "sungroup-crm"
-        };
-
+        const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // Security Gate Function
-        async function checkAccess(user) {
-            const debug = document.getElementById('debug-status');
+        onAuthStateChanged(auth, async (user) => {
+            const msg = document.getElementById('msg');
             
-            if (!user) {
-                debug.innerText = "No user found. Redirecting...";
-                window.location.href = 'admin.html';
-                return;
-            }
-
-            try {
-                // FORCE RELOAD: This tells Firebase to check the latest MFA status from the server
-                debug.innerText = "Syncing security factors...";
-                await user.reload(); 
+            if (user) {
+                // Check MFA factors
+                let factors = user.multiFactor?.enrolledFactors || [];
                 
-                // Get the updated user object after reload
-                const updatedUser = auth.currentUser;
-                const factors = updatedUser.multiFactor?.enrolledFactors || [];
+                // If factors are empty, try ONE hard reload from server
+                if (factors.length === 0) {
+                    msg.innerText = "SYNCING SECURITY PROFILE...";
+                    await user.reload();
+                    factors = auth.currentUser.multiFactor?.enrolledFactors || [];
+                }
 
                 if (factors.length > 0) {
-                    // Success! Hide loader and show ERP
                     document.getElementById('gatekeeper').style.display = 'none';
-                    console.log("Access Granted. MFA Verified.");
+                    document.getElementById('content').style.display = 'block';
                 } else {
-                    debug.innerText = "MFA not detected. Returning to login...";
-                    setTimeout(() => { window.location.href = 'admin.html'; }, 1500);
+                    msg.innerText = "ACCESS DENIED: MFA REQUIRED. REDIRECTING...";
+                    setTimeout(() => { window.location.href = "admin.html"; }, 2000);
                 }
-            } catch (err) {
-                console.error("Auth error:", err);
-                window.location.href = 'admin.html';
+            } else {
+                window.location.href = "admin.html";
             }
-        }
-
-        // Trigger check when auth state changes
-        onAuthStateChanged(auth, (user) => {
-            checkAccess(user);
         });
 
-        // Logout logic
-        document.getElementById('logoutBtn').onclick = () => {
-            signOut(auth).then(() => { window.location.href = 'admin.html'; });
-        };
+        window.signOutNow = () => signOut(auth).then(() => window.location.href = "admin.html");
     </script>
 </body>
 </html>
