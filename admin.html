@@ -2,22 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TITAN ERP | Secure Gateway</title>
+    <title>TITAN ERP | Admin Gateway</title>
     <style>
         body { background: #0a0c14; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .gate-card { background: #161a27; padding: 40px; border-radius: 12px; border: 1px solid #2d3142; width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         input { width: 100%; padding: 12px; margin: 10px 0; background: #0a0c14; border: 1px solid #2d3142; color: white; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #1e73be; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #status { font-size: 0.8rem; color: #888; margin-top: 15px; min-height: 1.5em; }
+        button { width: 100%; padding: 14px; background: #1e73be; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #00d2ff; }
+        #status { font-size: 0.75rem; color: #888; margin-top: 15px; min-height: 1.5em; }
     </style>
 </head>
 <body>
     <div class="gate-card">
-        <h2 style="color:#00d2ff">TITAN ERP</h2>
+        <h2 style="color:#00d2ff; margin-bottom: 5px;">TITAN ERP</h2>
+        <p style="font-size: 0.7rem; color: #666; margin-bottom: 25px;">SECURE SYSTEM INITIALIZATION</p>
         <input type="email" id="email" placeholder="Admin Email">
         <input type="password" id="pass" placeholder="System Key">
-        <button id="loginBtn">Initialize System</button>
-        <div id="status">Waiting for Credentials...</div>
+        <button id="loginBtn">Initialize Session</button>
+        <div id="status">Ready</div>
         <div id="recaptcha-container"></div>
     </div>
 
@@ -33,30 +35,34 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        
+        // Render invisible reCAPTCHA on the login button
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'loginBtn', { 'size': 'invisible' });
 
         document.getElementById('loginBtn').onclick = async () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
-            const status = document.getElementById('status');
+            const statusDiv = document.getElementById('status');
 
             try {
-                status.innerText = "Verifying...";
+                statusDiv.innerText = "Verifying Credentials...";
                 const userCred = await signInWithEmailAndPassword(auth, email, pass);
                 const user = userCred.user;
 
-                // CHECK FOR ENROLLMENT
-                const factors = user.multiFactor?.enrolledFactors || [];
-                if (factors.length === 0) {
-                    status.innerText = "Enrolling +65 9185 4358...";
+                // Check if MFA is already set up
+                const enrolledFactors = user.multiFactor?.enrolledFactors || [];
+                
+                if (enrolledFactors.length === 0) {
+                    statusDiv.innerText = "Setup: Sending SMS to +65 9185 4358...";
                     const session = await multiFactor(user).getSession();
                     const phoneProvider = new PhoneAuthProvider(auth);
                     const vId = await phoneProvider.verifyPhoneNumber({ phoneNumber: '+6591854358', session: session }, window.recaptchaVerifier);
                     
-                    const code = prompt("First-Time Setup: Enter SMS code sent to your phone:");
+                    const code = prompt("INITIAL SETUP: Enter the 6-digit code sent to +65 9185 4358:");
                     if (code) {
                         const cred = PhoneAuthProvider.credential(vId, code);
-                        await multiFactor(user).enroll(PhoneMultiFactorGenerator.assertion(cred), "Admin Phone");
+                        await multiFactor(user).enroll(PhoneMultiFactorGenerator.assertion(cred), "Primary Admin Phone");
+                        statusDiv.innerText = "Setup Complete.";
                         window.location.href = "dashboard.html";
                     }
                 } else {
@@ -64,17 +70,19 @@
                 }
             } catch (error) {
                 if (error.code === 'auth/multi-factor-auth-required') {
+                    statusDiv.innerText = "MFA Required. Sending SMS...";
                     const resolver = getMultiFactorResolver(auth, error);
                     const phoneProvider = new PhoneAuthProvider(auth);
                     const vId = await phoneProvider.verifyPhoneNumber({ multiFactorHint: resolver.hints[0], session: resolver.session }, window.recaptchaVerifier);
-                    const smsCode = prompt("Enter SMS Code:");
+                    
+                    const smsCode = prompt("Enter verification code:");
                     if (smsCode) {
                         const cred = PhoneAuthProvider.credential(vId, smsCode);
                         await resolver.resolveSignIn(PhoneMultiFactorGenerator.assertion(cred));
                         window.location.href = "dashboard.html";
                     }
                 } else {
-                    status.innerText = "Error: " + error.message;
+                    statusDiv.innerText = "Error: " + error.message;
                 }
             }
         };
