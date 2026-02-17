@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TITAN ERP | Sungroup Engineering</title>
+    <title>TITAN ERP | Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
-            --primary: #00d2ff; --primary-dark: #1e73be; --accent: #f39c12;
-            --danger: #e74c3c; --success: #2ecc71;
-            --dark: #0a0c14; --surface: #161a27; --border: #2d3142; --text: #d5d6d7;
+            --primary: #00d2ff; --dark: #0a0c14; --surface: #161a27; --border: #2d3142; --text: #d5d6d7;
             --sidebar-w: 260px;
         }
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -23,106 +21,41 @@
         /* Navigation */
         .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; }
         .nav-item { padding: 12px 15px; color: var(--text); text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; background: none; border: none; width: 100%; text-align: left; }
-        .nav-item:hover, .nav-item.active { background: var(--primary-dark); color: white; }
+        .nav-item:hover, .nav-item.active { background: #1e73be; color: white; }
         
         /* Main Viewport */
         .viewport { flex: 1; padding: 40px; overflow-y: auto; background: radial-gradient(circle at 0% 0%, #161a27 0%, #0a0c14 100%); }
         .card { background: var(--surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 25px; }
-        
-        /* Stats & Forms */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; border-top: 3px solid var(--primary); }
-        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        label { display: block; font-size: 0.7rem; color: var(--primary); margin-bottom: 6px; font-weight: bold; text-transform: uppercase; }
-        input, select { width: 100%; padding: 12px; background: #0a0c14; border: 1px solid var(--border); color: white; border-radius: 6px; }
-        
-        .btn-main { background: var(--primary-dark); color: white; border: none; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        .btn-main:hover { background: var(--primary); }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; font-size: 0.7rem; color: #666; padding: 12px; border-bottom: 2px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.85rem; }
-        
-        .hidden { display: none !important; }
-        .btn-del { color: var(--danger); background: none; border: 1px solid var(--danger); padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .btn-logout { margin-top: auto; color: #ff4d4d; border: 1px solid #ff4d4d; text-align: center; padding: 10px; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="gatekeeper">
         <div class="spin"></div>
-        <p style="color: var(--primary); margin-top: 20px; font-weight: bold; letter-spacing: 2px;">SECURE AUTHENTICATION</p>
+        <p style="color: var(--primary); margin-top: 20px; font-weight: bold; letter-spacing: 2px;">AUTHENTICATING SESSION...</p>
+        <p id="debug-status" style="font-size: 0.7rem; color: #444; margin-top: 10px;"></p>
     </div>
 
     <nav class="sidebar">
-        <h2 style="color: var(--primary); margin-bottom: 30px; letter-spacing: 1px;">TITAN ERP</h2>
-        <button class="nav-item active" onclick="showTab('dash')"><i class="fas fa-chart-line"></i> Dashboard</button>
-        <button class="nav-item" onclick="showTab('projects')"><i class="fas fa-ship"></i> Project Control</button>
-        <button class="nav-item" onclick="showTab('manpower')"><i class="fas fa-users-cog"></i> Manpower Hub</button>
-        
-        <button id="logoutBtn" class="nav-item" style="margin-top: auto; color: var(--danger);">
-            <i class="fas fa-power-off"></i> TERMINATE SESSION
-        </button>
+        <h2 style="color: var(--primary); margin-bottom: 30px;">TITAN ERP</h2>
+        <button class="nav-item active"><i class="fas fa-chart-line"></i> Dashboard</button>
+        <button class="nav-item"><i class="fas fa-ship"></i> Project Control</button>
+        <button id="logoutBtn" class="btn-logout">LOGOUT</button>
     </nav>
 
     <main class="viewport">
-        <div id="tab-dash" class="tab-content">
-            <div class="stats-grid">
-                <div class="stat-card"><h2><span id="stat-proj">0</span></h2><p>Live Projects</p></div>
-                <div class="stat-card" style="border-color:var(--success)"><h2><span id="stat-onsite">0</span></h2><p>Active Staff</p></div>
-            </div>
-            <div class="card">
-                <h3>System Status</h3>
-                <p style="color: var(--success); font-size: 0.9rem;"><i class="fas fa-shield-alt"></i> MFA Secured Session (Verified +65 9185 4358)</p>
-            </div>
-        </div>
-
-        <div id="tab-projects" class="tab-content hidden">
-            <div class="card">
-                <h3>Project Deployment</h3>
-                <div class="grid-inputs">
-                    <div><label>Project ID / Name</label><input type="text" id="pName" placeholder="e.g. Vessel-99"></div>
-                    <div><label>Client</label><input type="text" id="pClient" placeholder="e.g. Sembcorp"></div>
-                    <div><label>Status</label>
-                        <select id="pStatus">
-                            <option>Active</option>
-                            <option>Standby</option>
-                            <option>Completed</option>
-                        </select>
-                    </div>
-                </div>
-                <button onclick="saveProject()" class="btn-main">Sync to Cloud</button>
-            </div>
-            <div class="card">
-                <table id="projTable">
-                    <thead><tr><th>Project</th><th>Client</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="tab-manpower" class="tab-content hidden">
-            <div class="card">
-                <h3>Workforce Management</h3>
-                <div class="grid-inputs">
-                    <div><label>Personnel Name</label><input type="text" id="mName"></div>
-                    <div><label>Site Assignment</label><input type="text" id="mSite"></div>
-                </div>
-                <button onclick="saveManpower()" class="btn-main">Update Roster</button>
-            </div>
-            <div class="card">
-                <table id="manTable">
-                    <thead><tr><th>Name</th><th>Assignment</th><th>Action</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+        <div class="card">
+            <h1>Command Center</h1>
+            <p>System Status: <span style="color:var(--primary)">SECURED</span></p>
+            <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
+            <p>Welcome, Authorized Administrator. All system protocols are active.</p>
         </div>
     </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
@@ -132,87 +65,49 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
 
-        // --- SECURITY LOGIC: Preventing the loop ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // Force a profile reload to ensure MFA status is detected
+        // Security Gate Function
+        async function checkAccess(user) {
+            const debug = document.getElementById('debug-status');
+            
+            if (!user) {
+                debug.innerText = "No user found. Redirecting...";
+                window.location.href = 'admin.html';
+                return;
+            }
+
+            try {
+                // FORCE RELOAD: This tells Firebase to check the latest MFA status from the server
+                debug.innerText = "Syncing security factors...";
                 await user.reload(); 
-                const factors = user.multiFactor?.enrolledFactors || [];
                 
-                if (user.emailVerified && factors.length > 0) {
+                // Get the updated user object after reload
+                const updatedUser = auth.currentUser;
+                const factors = updatedUser.multiFactor?.enrolledFactors || [];
+
+                if (factors.length > 0) {
+                    // Success! Hide loader and show ERP
                     document.getElementById('gatekeeper').style.display = 'none';
-                    initRealtimeSync();
+                    console.log("Access Granted. MFA Verified.");
                 } else {
-                    window.location.href = 'admin.html';
+                    debug.innerText = "MFA not detected. Returning to login...";
+                    setTimeout(() => { window.location.href = 'admin.html'; }, 1500);
                 }
-            } else {
+            } catch (err) {
+                console.error("Auth error:", err);
                 window.location.href = 'admin.html';
             }
-        });
-
-        // --- CLOUD SYNC LOGIC ---
-        function initRealtimeSync() {
-            // Sync Projects
-            onSnapshot(collection(db, "projects"), snap => {
-                const tbody = document.querySelector('#projTable tbody');
-                tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const p = d.data();
-                    tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.client}</td><td>${p.status}</td>
-                        <td><button class="btn-del" onclick="window.kill('projects','${d.id}')">Delete</button></td></tr>`;
-                });
-                document.getElementById('stat-proj').innerText = snap.size;
-            });
-
-            // Sync Manpower
-            onSnapshot(collection(db, "manpower"), snap => {
-                const tbody = document.querySelector('#manTable tbody');
-                tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const m = d.data();
-                    tbody.innerHTML += `<tr><td>${m.name}</td><td>${m.site}</td>
-                        <td><button class="btn-del" onclick="window.kill('manpower','${d.id}')">Remove</button></td></tr>`;
-                });
-                document.getElementById('stat-onsite').innerText = snap.size;
-            });
         }
 
-        // --- UI ACTIONS ---
-        window.showTab = (id) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.remove('hidden');
-            event.currentTarget.classList.add('active');
-        };
+        // Trigger check when auth state changes
+        onAuthStateChanged(auth, (user) => {
+            checkAccess(user);
+        });
 
-        window.saveProject = async () => {
-            const n = document.getElementById('pName').value;
-            if(!n) return alert("Enter Project Name");
-            await setDoc(doc(db, "projects", n), { 
-                name: n, 
-                client: document.getElementById('pClient').value, 
-                status: document.getElementById('pStatus').value 
-            });
-            document.getElementById('pName').value = '';
+        // Logout logic
+        document.getElementById('logoutBtn').onclick = () => {
+            signOut(auth).then(() => { window.location.href = 'admin.html'; });
         };
-
-        window.saveManpower = async () => {
-            const n = document.getElementById('mName').value;
-            if(!n) return alert("Enter Staff Name");
-            await setDoc(doc(db, "manpower", n), { 
-                name: n, 
-                site: document.getElementById('mSite').value 
-            });
-            document.getElementById('mName').value = '';
-        };
-
-        window.kill = async (coll, id) => { 
-            if(confirm("Permanently delete this record?")) await deleteDoc(doc(db, coll, id)); 
-        };
-
-        document.getElementById('logoutBtn').onclick = () => signOut(auth);
     </script>
 </body>
 </html>
