@@ -2,322 +2,59 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TITAN ERP | Sungroup Engineering</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <title>Titan ERP | Secure Gateway</title>
     <style>
-        :root { 
-            --primary: #00d2ff; --primary-dark: #1e73be; --accent: #f39c12;
-            --danger: #e74c3c; --success: #2ecc71;
-            --dark: #0a0c14; --surface: #161a27; --border: #2d3142; --text: #d5d6d7;
-            --sidebar-w: 260px;
-        }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--dark); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-
-        /* Sidebar & Logo Fix */
-        .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); padding: 20px 15px; display: flex; flex-direction: column; }
-        .brand-container { width: 100%; padding: 10px; text-align: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); }
-        .brand-container img { max-width: 100%; height: auto; max-height: 55px; object-fit: contain; }
-
-        .nav-item { width: 100%; padding: 12px 15px; margin: 4px 0; background: none; border: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: 0.3s; font-size: 0.85rem; }
-        .nav-item:hover, .nav-item.active { background: var(--primary-dark); color: white; }
-        
-        /* Viewport */
-        .viewport { flex: 1; overflow-y: auto; padding: 30px; background: radial-gradient(circle at top right, #1a1f35, #0a0c14); }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; border-top: 3px solid var(--primary); }
-        .stat-card h2 { margin: 0; font-size: 1.4rem; color: white; }
-        .stat-card p { margin: 5px 0 0; font-size: 0.65rem; color: #888; text-transform: uppercase; }
-
-        /* Components */
-        .card { background: var(--surface); padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); }
-        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        label { display: block; font-size: 0.7rem; color: var(--primary); margin-bottom: 6px; font-weight: bold; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; background: #0a0c14; border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 0.9rem; }
-        
-        .btn-main { background: var(--primary-dark); color: white; border: none; padding: 14px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
-        .btn-main:hover { background: var(--primary); transform: translateY(-2px); }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; font-size: 0.7rem; color: #666; padding: 12px; border-bottom: 2px solid var(--border); text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; vertical-align: middle; }
-        
-        .btn-edit { background: #2d3142; color: var(--primary); border: 1px solid var(--primary); padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 0.7rem; }
-        .btn-del { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
-
-        .status-pill { padding: 3px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: bold; }
-        .status-onsite { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid #2ecc71; }
-        .status-leave { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid #e74c3c; }
-
-        #auth-gate { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .hidden { display: none !important; }
+        body { background: #0a0c14; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .gate-card { background: #161a27; padding: 40px; border-radius: 12px; border: 1px solid #2d3142; width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #0a0c14; border: 1px solid #2d3142; color: white; border-radius: 6px; }
+        button { width: 100%; padding: 12px; background: #1e73be; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        #status { font-size: 0.8rem; color: #888; margin-top: 15px; }
     </style>
 </head>
 <body>
-
-    <div id="auth-gate">
-        <div class="card" style="width: 380px; text-align: center;">
-            <img src="logo.png" style="max-width: 180px; margin-bottom: 20px; object-fit: contain;">
-            <h2 style="color:var(--primary)">Titan ERP Login</h2>
-            <input type="email" id="email" placeholder="Admin Email">
-            <input type="password" id="pass" placeholder="System Key" style="margin-top:10px;">
-            <button id="loginBtn" class="btn-main" style="margin-top:20px;">Initialize System</button>
-        </div>
-    </div>
-
-    <nav class="sidebar">
-        <div class="brand-container"><img src="logo.png"></div>
-        <button class="nav-item active" onclick="showTab('dash')"><i class="fas fa-chart-line"></i> Dashboard</button>
-        <button class="nav-item" onclick="showTab('projects')"><i class="fas fa-ship"></i> Project Control</button>
-        <button class="nav-item" onclick="showTab('manpower')"><i class="fas fa-users-cog"></i> Manpower Hub</button>
-        <button class="nav-item" onclick="showTab('site-logs')"><i class="fas fa-file-contract"></i> Service Reports</button>
-        <button class="nav-item" onclick="showTab('procure')"><i class="fas fa-shopping-cart"></i> Procurement</button>
-        <button class="nav-item" onclick="showTab('clients')"><i class="fas fa-handshake"></i> Client Hub</button>
-        <button class="nav-item" onclick="showTab('leads')"><i class="fas fa-inbox"></i> Leads/Apps</button>
-        <button id="logoutBtn" class="nav-item" style="margin-top:auto; color:var(--danger);"><i class="fas fa-power-off"></i> Logout</button>
-    </nav>
-
-    <main class="viewport">
-        
-        <div id="tab-dash" class="tab-content">
-            <div class="stats-grid">
-                <div class="stat-card"><h2><span id="stat-proj">0</span></h2><p>Live Projects</p></div>
-                <div class="stat-card" style="border-color:var(--success)"><h2><span id="stat-onsite">0</span></h2><p>On-Site Personnel</p></div>
-                <div class="stat-card" style="border-color:var(--accent)"><h2>$<span id="stat-rev">0</span></h2><p>Contract Value</p></div>
-                <div class="stat-card" style="border-color:var(--danger)"><h2><span id="stat-po">0</span></h2><p>Open POs</p></div>
-            </div>
-            <div class="card">
-                <h3><i class="fas fa-satellite" style="color:var(--primary)"></i> Active Deployment Map</h3>
-                <div id="deployment-tags" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 15px;"></div>
-            </div>
-        </div>
-
-        <div id="tab-projects" class="tab-content hidden">
-            <div class="card">
-                <h3><i class="fas fa-plus-circle"></i> Project Deployment</h3>
-                <div class="grid-inputs">
-                    <div><label>Project Name</label><input type="text" id="pName"></div>
-                    <div><label>Client</label><input type="text" id="pClient"></div>
-                    <div><label>Location</label><input type="text" id="pLoc"></div>
-                    <div><label>Contract Value ($)</label><input type="number" id="pVal"></div>
-                    <div><label>Due Date</label><input type="date" id="pDue"></div>
-                    <div><label>Status</label><select id="pStatus"><option>Active</option><option>Completed</option><option>Planning</option></select></div>
-                </div>
-                <button onclick="saveProject()" class="btn-main">Sync Project Data</button>
-            </div>
-            <div class="card"><table id="projTable"><thead><tr><th>Project</th><th>Client</th><th>Value</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
-        </div>
-
-        <div id="tab-manpower" class="tab-content hidden">
-            <div class="card">
-                <h3>Workforce Management</h3>
-                <div class="grid-inputs">
-                    <div><label>Staff Name</label><input type="text" id="mName"></div>
-                    <div><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
-                    <div><label>Status</label><select id="mStatus"><option value="On-Site">On-Site</option><option value="Standby">Standby</option><option value="Medical Leave">MC</option><option value="Annual Leave">Leave</option></select></div>
-                </div>
-                <button onclick="saveManpower()" class="btn-main" style="background:var(--accent)">Update Staff Status</button>
-            </div>
-            <div class="card"><table id="manTable"><thead><tr><th>Name</th><th>Status</th><th>Deployment</th><th>Action</th></tr></thead><tbody></tbody></table></div>
-        </div>
-
-        <div id="tab-site-logs" class="tab-content hidden">
-            <div class="card">
-                <h3><i class="fas fa-file-pdf"></i> Service Report Generator</h3>
-                <div class="grid-inputs">
-                    <div><label>Project</label><select id="logProj" class="proj-select-list"></select></div>
-                    <div><label>Client PIC</label><input type="text" id="logClientName"></div>
-                    <div><label>Supervisor</label><input type="text" id="logSup"></div>
-                </div>
-                <label>Scope of Work Performed</label>
-                <textarea id="logDesc" rows="4"></textarea>
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button onclick="saveSiteLog()" class="btn-main">Save Log</button>
-                    <button onclick="generatePDF()" class="btn-main" style="background:var(--accent)">Download PDF Report</button>
-                </div>
-            </div>
-            <div class="card"><table id="logTable"><thead><tr><th>Date</th><th>Project</th><th>Supervisor</th><th>Action</th></tr></thead><tbody></tbody></table></div>
-        </div>
-
-        <div id="tab-procure" class="tab-content hidden">
-            <div class="card">
-                <h3>Purchase Order Tracker</h3>
-                <div class="grid-inputs">
-                    <div><label>Vendor</label><input type="text" id="poVendor"></div>
-                    <div><label>Item/Service</label><input type="text" id="poItem"></div>
-                    <div><label>Cost ($)</label><input type="number" id="poCost"></div>
-                    <div><label>Status</label><select id="poStatus"><option>Requested</option><option>Ordered</option><option>Delivered</option></select></div>
-                </div>
-                <button onclick="savePO()" class="btn-main" style="background:var(--success)">Issue PO Record</button>
-            </div>
-            <div class="card"><table id="poTable"><thead><tr><th>Vendor</th><th>Item</th><th>Cost</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
-        </div>
-
-        <div id="tab-clients" class="tab-content hidden">
-            <div class="card">
-                <h3>Client Registry</h3>
-                <div class="grid-inputs">
-                    <div><label>Company Name</label><input type="text" id="cComp"></div>
-                    <div><label>PIC Name</label><input type="text" id="cPIC"></div>
-                    <div><label>Contact Info</label><input type="text" id="cContact"></div>
-                </div>
-                <button onclick="saveClient()" class="btn-main">Save Client</button>
-            </div>
-            <div class="card"><table id="clientTable"><thead><tr><th>Company</th><th>PIC</th><th>Contact</th><th>Action</th></tr></thead><tbody></tbody></table></div>
-        </div>
-
-        <div id="tab-leads" class="tab-content hidden">
-            <div class="card"><h3>Site Inquiries</h3><table id="msgTable"><thead><tr><th>Name</th><th>Subject</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
-        </div>
-
-    </main>
-
-    <div id="pdf-template" style="display:none; padding: 40px; color: #000; background: #fff;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px;">
-            <h1 style="margin:0; color:#1e73be;">SUNGROUP ENGINEERING</h1>
-            <p>Marine & Offshore Technical Services</p>
-        </div>
-        <h2 style="text-align:center;">SERVICE REPORT</h2>
-        <p><b>Date:</b> <span id="pdf-date"></span></p>
-        <p><b>Project:</b> <span id="pdf-proj"></span> | <b>Client:</b> <span id="pdf-client"></span></p>
-        <p><b>Supervisor:</b> <span id="pdf-sup"></span></p>
-        <hr>
-        <h3>Description of Work:</h3>
-        <p id="pdf-work-desc" style="white-space: pre-wrap; line-height:1.6;"></p>
-        <div style="margin-top:100px; display:flex; justify-content:space-between;">
-            <div style="border-top:1px solid #000; width:200px; text-align:center;">Sungroup Rep</div>
-            <div style="border-top:1px solid #000; width:200px; text-align:center;">Client Signature</div>
-        </div>
+    <div class="gate-card">
+        <h2 style="color:#00d2ff">TITAN ERP</h2>
+        <input type="email" id="email" placeholder="Admin Email">
+        <input type="password" id="pass" placeholder="Password">
+        <button id="loginBtn">Verify Identity</button>
+        <div id="status">Secure Session Required</div>
+        <div id="recaptcha-container"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, getMultiFactorResolver, PhoneAuthProvider, PhoneMultiFactorGenerator, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
             authDomain: "sungroup-crm.firebaseapp.com",
-            projectId: "sungroup-crm",
-            storageBucket: "sungroup-crm.firebasestorage.app",
-            messagingSenderId: "982155471354",
-            appId: "1:982155471354:web:c4b61192d247c9739edc43"
+            projectId: "sungroup-crm"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
 
-        // UI Logic
-        onAuthStateChanged(auth, user => { document.getElementById('auth-gate').style.display = user ? 'none' : 'flex'; });
-        document.getElementById('loginBtn').onclick = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value);
-        document.getElementById('logoutBtn').onclick = () => signOut(auth);
-        window.showTab = (id) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.remove('hidden');
-            event.currentTarget.classList.add('active');
+        document.getElementById('loginBtn').onclick = async () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                if (error.code === 'auth/multi-factor-auth-required') {
+                    const resolver = getMultiFactorResolver(auth, error);
+                    const phoneProvider = new PhoneAuthProvider(auth);
+                    const vId = await phoneProvider.verifyPhoneNumber({ multiFactorHint: resolver.hints[0], session: resolver.session }, window.recaptchaVerifier);
+                    const smsCode = prompt("SMS sent to +65 9185 4358. Enter code:");
+                    if (smsCode) {
+                        const cred = PhoneAuthProvider.credential(vId, smsCode);
+                        await resolver.resolveSignIn(PhoneMultiFactorGenerator.assertion(cred));
+                        window.location.href = "dashboard.html";
+                    }
+                } else { alert("Login failed: " + error.message); }
+            }
         };
-
-        // Data Management
-        window.saveProject = async () => {
-            const n = document.getElementById('pName').value; if(!n) return;
-            await setDoc(doc(db, "projects", n), { name: n, client: document.getElementById('pClient').value, loc: document.getElementById('pLoc').value, value: parseFloat(document.getElementById('pVal').value)||0, due: document.getElementById('pDue').value, status: document.getElementById('pStatus').value });
-            ["pName", "pClient", "pLoc", "pVal", "pDue"].forEach(i => document.getElementById(i).value = '');
-        };
-
-        window.saveManpower = async () => {
-            const n = document.getElementById('mName').value; if(!n) return;
-            await setDoc(doc(db, "manpower", n), { name: n, status: document.getElementById('mStatus').value, assignedTo: document.getElementById('mAssign').value });
-            document.getElementById('mName').value = '';
-        };
-
-        window.savePO = async () => {
-            const v = document.getElementById('poVendor').value; if(!v) return;
-            await setDoc(doc(db, "procurement", Date.now().toString()), { vendor: v, item: document.getElementById('poItem').value, cost: document.getElementById('poCost').value, status: document.getElementById('poStatus').value });
-            ["poVendor", "poItem", "poCost"].forEach(i => document.getElementById(i).value = '');
-        };
-
-        window.saveClient = async () => {
-            const c = document.getElementById('cComp').value; if(!c) return;
-            await setDoc(doc(db, "clients", c), { company: c, pic: document.getElementById('cPIC').value, contact: document.getElementById('cContact').value });
-            ["cComp", "cPIC", "cContact"].forEach(i => document.getElementById(i).value = '');
-        };
-
-        window.saveSiteLog = async () => {
-            const id = Date.now().toString();
-            await setDoc(doc(db, "site_logs", id), { date: new Date().toLocaleDateString(), project: document.getElementById('logProj').value, sup: document.getElementById('logSup').value, desc: document.getElementById('logDesc').value });
-            alert("Log Saved");
-        };
-
-        // PDF Generation
-        window.generatePDF = () => {
-            document.getElementById('pdf-date').innerText = new Date().toLocaleDateString();
-            document.getElementById('pdf-proj').innerText = document.getElementById('logProj').value;
-            document.getElementById('pdf-client').innerText = document.getElementById('logClientName').value || "Client";
-            document.getElementById('pdf-sup').innerText = document.getElementById('logSup').value;
-            document.getElementById('pdf-work-desc').innerText = document.getElementById('logDesc').value;
-            const element = document.getElementById('pdf-template');
-            element.style.display = 'block';
-            html2pdf().from(element).save(`Service_Report_${Date.now()}.pdf`).then(() => element.style.display = 'none');
-        };
-
-        // Listeners
-        onSnapshot(collection(db, "projects"), snap => {
-            const tbody = document.querySelector('#projTable tbody');
-            const selects = document.querySelectorAll('.proj-select-list');
-            const tags = document.getElementById('deployment-tags');
-            tbody.innerHTML = ''; tags.innerHTML = '';
-            let totalRev = 0;
-            snap.forEach(d => {
-                const p = d.data(); totalRev += p.value;
-                selects.forEach(s => s.innerHTML += `<option value="${p.name}">${p.name}</option>`);
-                tags.innerHTML += `<div style="background:#222; padding:8px; border-radius:6px; font-size:0.7rem;">${p.name}</div>`;
-                tbody.innerHTML += `<tr><td><b>${p.name}</b></td><td>${p.client}</td><td>$${p.value}</td><td>${p.status}</td><td><button class="btn-del" onclick="window.kill('projects','${d.id}')">X</button></td></tr>`;
-            });
-            document.getElementById('stat-proj').innerText = snap.size;
-            document.getElementById('stat-rev').innerText = totalRev.toLocaleString();
-        });
-
-        onSnapshot(collection(db, "manpower"), snap => {
-            const tbody = document.querySelector('#manTable tbody'); tbody.innerHTML = '';
-            let onSite = 0;
-            snap.forEach(d => {
-                const m = d.data(); if(m.status === 'On-Site') onSite++;
-                tbody.innerHTML += `<tr><td>${m.name}</td><td><span class="status-pill ${m.status==='On-Site'?'status-onsite':'status-leave'}">${m.status}</span></td><td>${m.assignedTo}</td><td><button class="btn-del" onclick="window.kill('manpower','${d.id}')">X</button></td></tr>`;
-            });
-            document.getElementById('stat-onsite').innerText = onSite;
-        });
-
-        onSnapshot(collection(db, "procurement"), snap => {
-            const tbody = document.querySelector('#poTable tbody'); tbody.innerHTML = '';
-            document.getElementById('stat-po').innerText = snap.size;
-            snap.forEach(d => {
-                const p = d.data();
-                tbody.innerHTML += `<tr><td>${p.vendor}</td><td>${p.item}</td><td>$${p.cost}</td><td>${p.status}</td><td><button class="btn-del" onclick="window.kill('procurement','${d.id}')">X</button></td></tr>`;
-            });
-        });
-
-        onSnapshot(collection(db, "clients"), snap => {
-            const tbody = document.querySelector('#clientTable tbody'); tbody.innerHTML = '';
-            snap.forEach(d => {
-                const c = d.data();
-                tbody.innerHTML += `<tr><td><b>${c.company}</b></td><td>${c.pic}</td><td>${c.contact}</td><td><button class="btn-del" onclick="window.kill('clients','${d.id}')">X</button></td></tr>`;
-            });
-        });
-
-        onSnapshot(collection(db, "site_logs"), snap => {
-            const tbody = document.querySelector('#logTable tbody'); tbody.innerHTML = '';
-            snap.forEach(d => {
-                const l = d.data();
-                tbody.innerHTML += `<tr><td>${l.date}</td><td>${l.project}</td><td>${l.sup}</td><td><button class="btn-del" onclick="window.kill('site_logs','${d.id}')">X</button></td></tr>`;
-            });
-        });
-
-        window.kill = async (coll, id) => { if(confirm("Delete?")) await deleteDoc(doc(db, coll, id)); };
-
     </script>
 </body>
 </html>
