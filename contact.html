@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
-        .contact-form-card { background: white; padding: 35px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .contact-form-card { background: white; padding: 35px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); color: #333; }
         
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #1e73be; font-size: 0.9rem; }
         
         input, textarea { 
@@ -49,61 +49,63 @@
         </div>
     </nav>
 
-    <header class="hero" style="min-height: 200px; padding: 60px 0; background: #1e73be; color: white;">
-        <div class="container hero-content" style="text-align: center;">
-            <h2>Contact Us</h2>
-            <p>Reliable engineering solutions for Marine, LNG, and Offshore markets.</p>
-        </div>
-    </header>
+    <main>
+        <header class="hero">
+            <div class="container hero-content">
+                <h2>Contact Us</h2>
+                <p>Reliable engineering solutions for Marine, LNG, and Offshore markets.</p>
+            </div>
+        </header>
 
-    <section class="section-padding">
-        <div class="container">
-            <div class="contact-grid">
-                <div class="partner-card">
-                    <h3 class="partner-title">Get In Touch</h3>
-                    <p style="margin-bottom: 20px;">Contact us today to discuss your project requirements or to learn more about our specialized engineering services.</p>
-                    <p><i class="fas fa-map-marker-alt" style="color:#1e73be; width: 25px;"></i> 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
-                    <p><i class="fas fa-envelope" style="color:#1e73be; width: 25px;"></i> info@sungroupengg.com </p>
-                    <p><i class="fas fa-phone" style="color:#1e73be; width: 25px;"></i> +65 6250 8450</p>
-                </div>
+        <section class="section-padding">
+            <div class="container">
+                <div class="contact-grid">
+                    <div class="partner-card">
+                        <h3 class="partner-title">Get In Touch</h3>
+                        <p style="margin-bottom: 20px;">Contact us today to discuss your project requirements or to learn more about our specialized engineering services.</p>
+                        <p><i class="fas fa-map-marker-alt" style="color:#1e73be; width: 25px;"></i> 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+                        <p><i class="fas fa-envelope" style="color:#1e73be; width: 25px;"></i> info@sungroupengg.com </p>
+                        <p><i class="fas fa-phone" style="color:#1e73be; width: 25px;"></i> +65 6250 8450</p>
+                    </div>
 
-                <div class="contact-form-card">
-                    <div id="sent-status">✅ Thank you! Your inquiry has been sent. Our team will respond shortly.</div>
-                    <form id="contactForm">
-                        <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" id="cName" placeholder="Full Name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" id="cEmail" placeholder="email@company.com" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="text" id="cPhone" placeholder="+65 XXXX XXXX" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Company Name</label>
-                            <input type="text" id="cCompany" placeholder="Your Company Name">
-                        </div>
-                        <div class="form-group">
-                            <label>Subject</label>
-                            <input type="text" id="cSub" placeholder="How can we help?" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Message</label>
-                            <textarea id="cMsg" rows="4" placeholder="Briefly describe your requirements..." required></textarea>
-                        </div>
-                        <button type="submit" class="submit-btn" id="submitBtn">Send Message</button>
-                    </form>
+                    <div class="contact-form-card">
+                        <div id="sent-status">✅ Thank you! Your inquiry has been sent. Our team will respond shortly.</div>
+                        <form id="contactForm">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="cName" placeholder="Full Name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Email Address</label>
+                                <input type="email" id="cEmail" placeholder="email@company.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="text" id="cPhone" placeholder="+65 XXXX XXXX" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Company Name</label>
+                                <input type="text" id="cCompany" placeholder="Your Company Name">
+                            </div>
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <input type="text" id="cSub" placeholder="How can we help?" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Message</label>
+                                <textarea id="cMsg" rows="4" placeholder="Briefly describe your requirements..." required></textarea>
+                            </div>
+                            <button type="submit" class="submit-btn" id="submitBtn">Send Message</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
+    </main>
 
     <footer>
-        <div class="container" style="text-align: center; padding: 40px 0; color: #777; border-top: 1px solid #eee;">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd | Singapore 627607</p>
+        <div class="container">
+            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
         </div>
     </footer>
 
@@ -130,7 +132,6 @@
             btn.disabled = true;
 
             try {
-                // Sent to "leads" to match Security Rules and Admin Panel
                 await addDoc(collection(db, "leads"), {
                     type: "General Inquiry",
                     name: document.getElementById('cName').value,
@@ -155,4 +156,3 @@
     </script>
 </body>
 </html>
-
