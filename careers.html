@@ -8,10 +8,11 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        /* Career Form Specific Styling */
         .careers-container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
-        .form-card { background: white; padding: 35px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .form-card { background: white; padding: 35px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); color: #333; }
         
-        .form-group { margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #1e73be; font-size: 0.9rem; }
         
         input, select { 
@@ -50,62 +51,64 @@
         </div>
     </nav>
 
-    <header class="hero" style="min-height: 200px; padding: 60px 0; background: #1e73be; color: white;">
-        <div class="container hero-content" style="text-align: center;">
-            <h2>Join Our Team</h2>
-            <p>Advance your career in Singapore's Marine and Offshore Engineering sector.</p>
-        </div>
-    </header>
-
-    <section class="section-padding">
-        <div class="careers-container">
-            <div class="job-intro">
-                <h3>Submit Your Application</h3>
-                <p>We are always looking for talented engineers and technicians to join our Singapore operations.</p>
+    <main>
+        <header class="hero">
+            <div class="container hero-content">
+                <h2>Join Our Team</h2>
+                <p>Advance your career in Singapore's Marine and Offshore Engineering sector.</p>
             </div>
+        </header>
 
-            <div class="form-card">
-                <div id="success-status">✅ Your application has been submitted successfully! We will contact you shortly.</div>
-                
-                <form id="careerForm">
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="name" placeholder="Enter your full name" required>
-                    </div>
+        <section class="section-padding">
+            <div class="careers-container">
+                <div class="job-intro">
+                    <h3>Submit Your Application</h3>
+                    <p>We are always looking for talented engineers and technicians to join our Singapore operations.</p>
+                </div>
+
+                <div class="form-card">
+                    <div id="success-status">✅ Your application has been submitted successfully! We will contact you shortly.</div>
                     
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="email" placeholder="email@example.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Position Applied For</label>
-                        <select id="role" required>
-                            <option value="">-- Select a Position --</option>
-                            <option value="Electrical Engineer">Electrical Engineer</option>
-                            <option value="Site Supervisor">Site Supervisor</option>
-                            <option value="Project Coordinator">Project Coordinator</option>
-                            <option value="Technician">Technician</option>
-                            <option value="Admin/HR">Admin / HR</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Resume Link (Google Drive / Dropbox)</label>
-                        <input type="url" id="resume" placeholder="https://drive.google.com/..." required>
-                        <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 5px;">
-                            Please ensure the link sharing is set to "Anyone with the link".
-                        </small>
-                    </div>
-                    
-                    <button type="submit" class="submit-btn" id="submitBtn">Submit Application</button>
-                </form>
+                    <form id="careerForm">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="name" placeholder="Enter your full name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="email" placeholder="email@example.com" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Position Applied For</label>
+                            <select id="role" required>
+                                <option value="">-- Select a Position --</option>
+                                <option value="Electrical Engineer">Electrical Engineer</option>
+                                <option value="Site Supervisor">Site Supervisor</option>
+                                <option value="Project Coordinator">Project Coordinator</option>
+                                <option value="Technician">Technician</option>
+                                <option value="Admin/HR">Admin / HR</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Resume Link (Google Drive / Dropbox)</label>
+                            <input type="url" id="resume" placeholder="https://drive.google.com/..." required>
+                            <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 5px;">
+                                Please ensure the link sharing is set to "Anyone with the link".
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn" id="submitBtn">Submit Application</button>
+                    </form>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
+    </main>
 
     <footer>
-        <div class="container" style="text-align: center; padding: 40px 0; color: #777; border-top: 1px solid #eee;">
+        <div class="container">
             <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
         </div>
     </footer>
@@ -133,7 +136,6 @@
             btn.disabled = true;
 
             try {
-                // We send this to the 'leads' collection so it appears in the Admin panel 'Inquiries' tab
                 await addDoc(collection(db, "leads"), {
                     type: "Job Application",
                     name: document.getElementById('name').value,
@@ -148,7 +150,7 @@
                 window.scrollTo(0,0);
             } catch (error) {
                 console.error("Submission error: ", error);
-                alert("Connection failed. Please check your internet connection and ensure your Firebase Rules allow 'leads' writes.");
+                alert("Connection failed. Please check your internet connection.");
                 btn.innerText = "Submit Application";
                 btn.disabled = false;
             }
