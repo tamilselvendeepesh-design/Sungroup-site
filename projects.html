@@ -20,38 +20,47 @@
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s ease;
+            border-top: 4px solid #1e73be;
         }
         .project-card:hover {
             transform: translateY(-5px);
         }
         .project-info {
-            padding: 20px;
+            padding: 25px;
+            color: #333;
         }
         .project-info h4 {
             color: #1e73be;
-            margin-bottom: 10px;
-            font-size: 1.2rem;
+            margin: 0 0 15px 0;
+            font-size: 1.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .project-info p {
-            font-size: 0.95rem;
+        .project-details {
+            font-size: 0.9rem;
+            line-height: 1.8;
             color: #555;
-            line-height: 1.6;
         }
-        .project-tag {
-            display: inline-block;
-            background: #e1effa;
+        .project-details i {
             color: #1e73be;
+            width: 20px;
+        }
+        .status-badge {
+            display: inline-block;
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: bold;
-            margin-bottom: 10px;
             text-transform: uppercase;
+            margin-bottom: 15px;
         }
+        .status-active { background: #e1f5fe; color: #0288d1; }
+        .status-completed { background: #e8f5e9; color: #2e7d32; }
+
         #loading-projects {
             text-align: center;
-            padding: 50px;
-            color: #666;
+            padding: 80px 0;
+            color: #1e73be;
         }
     </style>
 </head>
@@ -73,17 +82,18 @@
     <main>
         <header class="hero">
             <div class="container hero-content">
-                <h2>Our Projects</h2>
-                <p>Delivering excellence across Marine, Offshore, and Industrial sectors.</p>
+                <h2>Project Portfolio</h2>
+                <p>Delivering high-quality Marine & Offshore engineering solutions since 2006.</p>
             </div>
         </header>
 
         <section class="section-padding">
             <div class="container">
                 <div id="loading-projects">
-                    <i class="fas fa-spinner fa-spin fa-2x"></i>
-                    <p>Loading project portfolio...</p>
+                    <i class="fas fa-ship fa-spin fa-3x"></i>
+                    <p style="margin-top:15px; font-weight:bold;">Accessing Project Database...</p>
                 </div>
+                
                 <div class="projects-grid" id="projectsContainer">
                     </div>
             </div>
@@ -98,15 +108,12 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = { 
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", 
             authDomain: "sungroup-crm.firebaseapp.com", 
-            projectId: "sungroup-crm", 
-            storageBucket: "sungroup-crm.firebasestorage.app", 
-            messagingSenderId: "982155471354", 
-            appId: "1:982155471354:web:c4b61192d247c9739edc43" 
+            projectId: "sungroup-crm" 
         };
 
         const app = initializeApp(firebaseConfig);
@@ -117,35 +124,51 @@
             const loader = document.getElementById('loading-projects');
             
             try {
-                // Fetch from 'projects' collection
-                const q = query(collection(db, "projects"), orderBy("year", "desc"));
-                const querySnapshot = await getDocs(q);
+                // Fetch all documents from the "projects" collection
+                const querySnapshot = await getDocs(collection(db, "projects"));
                 
                 loader.style.display = 'none';
-                
+                container.innerHTML = '';
+
                 if (querySnapshot.empty) {
-                    container.innerHTML = "<p style='text-align:center; grid-column: 1/-1;'>No projects found in the database.</p>";
+                    container.innerHTML = `
+                        <div style="text-align:center; grid-column: 1/-1; padding: 40px;">
+                            <i class="fas fa-folder-open fa-3x" style="color:#ccc; margin-bottom:15px;"></i>
+                            <p>No projects are currently listed in our public portfolio.</p>
+                        </div>`;
                     return;
                 }
 
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
+                    const projectName = doc.id; // Using Document ID as Title per Admin Logic
+                    
+                    // Determine status class
+                    const statusClass = data.status === 'Completed' ? 'status-completed' : 'status-active';
+
                     const card = `
                         <div class="project-card">
                             <div class="project-info">
-                                <span class="project-tag">${data.category || 'Engineering'}</span>
-                                <h4>${data.title}</h4>
-                                <p>${data.description || ''}</p>
+                                <span class="status-badge ${statusClass}">${data.status || 'Live'}</span>
+                                <h4>${projectName}</h4>
+                                <div class="project-details">
+                                    <p><i class="fas fa-user-tie"></i> <strong>Client:</strong> ${data.client || 'Direct'}</p>
+                                    <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> ${data.loc || 'Singapore'}</p>
+                                </div>
                                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                                <small style="color:#999;"><i class="far fa-calendar-alt"></i> ${data.year || '2026'}</small>
+                                <small style="color:#888;">Ref: SG-${projectName.substring(0,3).toUpperCase()}</small>
                             </div>
                         </div>
                     `;
                     container.innerHTML += card;
                 });
             } catch (error) {
-                console.error("Error loading projects: ", error);
-                loader.innerHTML = "<p>Error loading projects. Please try again later.</p>";
+                console.error("Firebase Error:", error);
+                loader.innerHTML = `
+                    <div style="color:red; padding:20px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Unable to load projects. Please refresh the page.</p>
+                    </div>`;
             }
         }
 
