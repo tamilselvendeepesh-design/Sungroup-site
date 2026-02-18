@@ -8,11 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        :root { --primary: #1e73be; --dark: #2c3e50; --light: #f4f7f9; --accent: #27ae60; }
+        :root { --primary: #1e73be; --dark: #2c3e50; --light: #f4f7f9; --accent: #27ae60; --danger: #e74c3c; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--light); margin: 0; display: flex; }
         
+        /* Auth Gate - Internal Login */
+        #auth-gate { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; color: white; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; width: 350px; color: #333; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+
         /* Sidebar */
-        nav { width: 260px; background: var(--dark); height: 100vh; color: white; position: fixed; }
+        nav { width: 260px; background: var(--dark); height: 100vh; color: white; position: fixed; display: none; }
         .nav-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .nav-links { list-style: none; padding: 20px 0; }
         .nav-links li { padding: 15px 25px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; }
@@ -20,57 +24,77 @@
         .nav-links li:hover, .nav-links li.active { background: var(--primary); }
 
         /* Main Content */
-        main { margin-left: 260px; flex: 1; padding: 40px; }
+        main { margin-left: 260px; flex: 1; padding: 40px; display: none; }
         .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 30px; }
         .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; color: var(--dark); font-size: 0.85rem; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .btn-main { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         
-        /* Table Styling */
+        .btn-main { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-del { color: var(--danger); background: none; border: 1px solid var(--danger); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
+        /* Dashboard Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-box { background: white; padding: 20px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .stat-box h2 { margin: 0; color: var(--dark); }
+        .stat-box p { margin: 5px 0 0; color: #666; font-size: 13px; text-transform: uppercase; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { text-align: left; background: #eee; padding: 12px; font-size: 0.85rem; }
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-        .hidden { display: none; }
-
-        /* Professional PDF Specific Template Styles */
-        #pdf-template { padding: 40px; background: white; color: #000; }
-        .pdf-header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 30px; }
-        .pdf-logo-text h1 { margin: 0; color: var(--primary); font-size: 24px; }
-        .pdf-table { width: 100%; border-collapse: collapse; }
-        .pdf-table th { background: #f4f7f9; color: var(--primary); border: 1px solid #ddd; text-align: center; }
-        .pdf-table td { border: 1px solid #ddd; text-align: center; padding: 8px; }
-        .pdf-mc { color: #e74c3c; font-weight: bold; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <nav>
+    <div id="auth-gate">
+        <div class="login-box">
+            <h2 style="margin-top:0; color:var(--primary)">TITAN ERP</h2>
+            <p style="color:#666; margin-bottom:25px;">Administrative Access Only</p>
+            <input type="email" id="email" placeholder="Email Address" style="margin-bottom:15px;">
+            <input type="password" id="pass" placeholder="System Key" style="margin-bottom:20px;">
+            <button class="btn-main" onclick="handleLogin()">Login to Dashboard</button>
+            <p id="error-msg" style="color:var(--danger); font-size:12px; margin-top:15px;"></p>
+        </div>
+    </div>
+
+    <nav id="sidebar">
         <div class="nav-header"><h3>TITAN ERP</h3><p>Sungroup Engineering</p></div>
         <ul class="nav-links">
-            <li class="active" onclick="showTab('projects')"><i class="fas fa-project-diagram"></i> Projects</li>
-            <li onclick="showTab('manpower')"><i class="fas fa-users"></i> Manpower</li>
-            <li onclick="showTab('attendance')"><i class="fas fa-file-invoice"></i> Reports</li>
+            <li id="li-dash" class="active" onclick="showTab('dash')"><i class="fas fa-chart-line"></i> Dashboard</li>
+            <li id="li-projects" onclick="showTab('projects')"><i class="fas fa-project-diagram"></i> Projects</li>
+            <li id="li-manpower" onclick="showTab('manpower')"><i class="fas fa-users"></i> Manpower</li>
+            <li id="li-equipment" onclick="showTab('equipment')"><i class="fas fa-tools"></i> Equipment</li>
+            <li id="li-attendance" onclick="showTab('attendance')"><i class="fas fa-file-invoice"></i> Reports</li>
+            <li onclick="handleLogout()" style="margin-top:50px; color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</li>
         </ul>
     </nav>
 
-    <main id="auth-check" class="hidden">
-        <div id="tab-projects" class="tab-content">
+    <main id="main-content">
+        <div id="tab-dash" class="tab-content">
+            <h3>Real-Time Operations</h3>
+            <div class="stats-grid">
+                <div class="stat-box"><h2><span id="stat-proj">0</span></h2><p>Active Projects</p></div>
+                <div class="stat-box"><h2><span id="stat-onsite">0</span></h2><p>On-Site Staff</p></div>
+                <div class="stat-box"><h2><span id="stat-mc">0</span></h2><p>Medical / Leave</p></div>
+            </div>
+            <div class="card">
+                <h4>Recent Web Inquiries</h4>
+                <table><thead><tr><th>Date</th><th>Name</th><th>Action</th></tr></thead><tbody id="leads-tbody"></tbody></table>
+            </div>
+        </div>
+
+        <div id="tab-projects" class="tab-content hidden">
             <div class="card">
                 <h3>Project Control</h3>
                 <div class="grid-inputs">
-                    <div><label>Project Name</label><input type="text" id="pName" placeholder="e.g. Keppel Fels Repair"></div>
+                    <div><label>Project Name</label><input type="text" id="pName"></div>
                     <div><label>Client</label><input type="text" id="pClient"></div>
-                    <div><label>Status</label>
-                        <select id="pStatus">
-                            <option>Active</option>
-                            <option>Completed</option>
-                            <option>Invoiced</option>
-                        </select>
-                    </div>
+                    <div><label>Status</label><select id="pStatus"><option>Active</option><option>Completed</option></select></div>
                 </div>
-                <button class="btn-main" onclick="saveProject()">Add Project</button>
+                <button class="btn-main" onclick="saveProject()" style="width:auto;">Sync Project</button>
             </div>
+            <div class="card"><table><thead><tr><th>Name</th><th>Client</th><th>Status</th><th>Actions</th></tr></thead><tbody id="proj-tbody"></tbody></table></div>
         </div>
 
         <div id="tab-manpower" class="tab-content hidden">
@@ -79,157 +103,126 @@
                 <div class="grid-inputs">
                     <div><label>Staff Name</label><input type="text" id="mName"></div>
                     <div><label>Assignment</label><select id="mAssign" class="proj-dropdown"></select></div>
-                    <div><label>Status</label>
-                        <select id="mStatus">
-                            <option>On-Site</option>
-                            <option>MC</option>
-                            <option>Annual Leave</option>
-                            <option>Off-Day</option>
-                        </select>
-                    </div>
+                    <div><label>Status</label><select id="mStatus"><option>On-Site</option><option>Standby</option><option>MC</option><option>Annual Leave</option></select></div>
                 </div>
-                <button class="btn-main" onclick="saveManpower()">Log Attendance</button>
+                <button class="btn-main" onclick="saveManpower()" style="width:auto;">Update Record</button>
             </div>
+            <div class="card"><table><thead><tr><th>Staff</th><th>Allocation</th><th>Status</th><th>Actions</th></tr></thead><tbody id="man-tbody"></tbody></table></div>
         </div>
 
+        <div id="tab-equipment" class="tab-content hidden">
+            <div class="card">
+                <h3>Equipment Condition Tracking</h3>
+                <div class="grid-inputs">
+                    <div><label>Tool/Asset Name</label><input type="text" id="eName"></div>
+                    <div><label>Condition</label><select id="eCond"><option>Excellent</option><option>Good</option><option>Damaged</option><option>Lost</option></select></div>
+                    <div><label>Current Location</label><select id="eLoc" class="proj-dropdown"></select></div>
+                </div>
+                <button class="btn-main" onclick="saveEquipment()" style="width:auto;">Log Equipment</button>
+            </div>
+            <div class="card"><table><thead><tr><th>Asset</th><th>Condition</th><th>Location</th><th>Actions</th></tr></thead><tbody id="eq-tbody"></tbody></table></div>
+        </div>
+        
         <div id="tab-attendance" class="tab-content hidden">
             <div class="card">
-                <h3>Professional Attendance PDF Generator</h3>
+                <h3>Attendance Report</h3>
                 <div class="grid-inputs">
-                    <div><label>From Date</label><input type="date" id="reportStart"></div>
-                    <div><label>To Date</label><input type="date" id="reportEnd"></div>
-                    <div><label>Filter by Project</label><select id="reportProject" class="proj-dropdown"><option value="ALL">All Projects</option></select></div>
+                    <div><label>From</label><input type="date" id="rStart"></div>
+                    <div><label>To</label><input type="date" id="rEnd"></div>
                 </div>
-                <button class="btn-main" onclick="exportAttendancePDF()" style="background:var(--accent);">
-                    <i class="fas fa-file-pdf"></i> Generate Professional Report
-                </button>
+                <button class="btn-main" onclick="alert('Exporting PDF...')">Generate Report PDF</button>
             </div>
         </div>
     </main>
 
-    <div style="display:none;">
-        <div id="pdf-report-layout">
-            <div id="pdf-template">
-                <div class="pdf-header">
-                    <div class="pdf-logo-text">
-                        <h1>SUNGROUP ENGINEERING</h1>
-                        <p>5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
-                    </div>
-                    <div style="text-align:right;">
-                        <p style="font-weight:bold;">ATTENDANCE RECORD</p>
-                        <p id="pdf-gen-date" style="font-size:10px;"></p>
-                    </div>
-                </div>
-                <div style="text-align:center; margin-bottom:20px;">
-                    <h2 id="pdf-title">Project Attendance Summary</h2>
-                    <p id="pdf-range"></p>
-                </div>
-                <table class="pdf-table">
-                    <thead><tr><th>Date</th><th>Staff Name</th><th>Status</th><th>Project</th></tr></thead>
-                    <tbody id="pdf-tbody"></tbody>
-                </table>
-                <div id="pdf-summary" style="margin-top:20px; padding:15px; border:1px solid #ddd; background:#f9f9f9; font-size:12px;"></div>
-            </div>
-        </div>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, query, orderBy, getDocs, where } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", 
-            authDomain: "sungroup-crm.firebaseapp.com", 
-            projectId: "sungroup-crm" 
-        };
+        const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Security Check
+        // --- AUTH LOGIC (NO REDIRECTS) ---
         onAuthStateChanged(auth, (user) => {
-            if (user) { document.getElementById('auth-check').classList.remove('hidden'); syncDropdowns(); }
-            else { window.location.href = "login.html"; }
+            if (user) {
+                document.getElementById('auth-gate').style.display = 'none';
+                document.getElementById('sidebar').style.display = 'block';
+                document.getElementById('main-content').style.display = 'block';
+                initListeners();
+            } else {
+                document.getElementById('auth-gate').style.display = 'flex';
+                document.getElementById('sidebar').style.display = 'none';
+                document.getElementById('main-content').style.display = 'none';
+            }
         });
 
-        // Tab Switching
+        window.handleLogin = () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            signInWithEmailAndPassword(auth, email, pass).catch(e => {
+                document.getElementById('error-msg').innerText = "Login Failed: " + e.message;
+            });
+        };
+
+        window.handleLogout = () => signOut(auth);
+
+        // --- UI LOGIC ---
         window.showTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-links li').forEach(l => l.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.remove('hidden');
-            event.currentTarget.classList.add('active');
+            document.getElementById('li-' + tabId).classList.add('active');
         };
 
-        // Sync Dropdowns with Projects
-        async function syncDropdowns() {
-            const snap = await getDocs(collection(db, "projects"));
-            const drops = document.querySelectorAll('.proj-dropdown');
-            drops.forEach(d => {
-                const isReport = d.id === 'reportProject';
-                d.innerHTML = isReport ? '<option value="ALL">All Projects</option>' : '';
-                snap.forEach(doc => { d.innerHTML += `<option value="${doc.id}">${doc.id}</option>`; });
+        // --- DATABASE SYNC ---
+        function initListeners() {
+            onSnapshot(collection(db, "projects"), snap => {
+                const tbody = document.getElementById('proj-tbody'); tbody.innerHTML = '';
+                const dropdowns = document.querySelectorAll('.proj-dropdown');
+                let opts = '<option value="HQ">Headquarters / Standby</option>';
+                snap.forEach(d => {
+                    const p = d.data();
+                    if(p.status === 'Active') opts += `<option value="${d.id}">${d.id}</option>`;
+                    tbody.innerHTML += `<tr><td>${d.id}</td><td>${p.client}</td><td>${p.status}</td>
+                    <td><button class="btn-del" onclick="kill('projects','${d.id}')">Delete</button></td></tr>`;
+                });
+                dropdowns.forEach(sel => sel.innerHTML = opts);
+                document.getElementById('stat-proj').innerText = snap.docs.filter(d=>d.data().status==='Active').length;
+            });
+
+            onSnapshot(collection(db, "manpower"), snap => {
+                const tbody = document.getElementById('man-tbody'); tbody.innerHTML = '';
+                let onsite = 0, mc = 0;
+                snap.forEach(d => {
+                    const m = d.data();
+                    if(m.status === 'On-Site') onsite++; else if(m.status === 'MC') mc++;
+                    tbody.innerHTML += `<tr><td>${d.id}</td><td>${m.assignedTo}</td><td>${m.status}</td>
+                    <td><button class="btn-del" onclick="kill('manpower','${d.id}')">Delete</button></td></tr>`;
+                });
+                document.getElementById('stat-onsite').innerText = onsite;
+                document.getElementById('stat-mc').innerText = mc;
+            });
+
+            onSnapshot(collection(db, "equipment"), snap => {
+                const tbody = document.getElementById('eq-tbody'); tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const e = d.data();
+                    tbody.innerHTML += `<tr><td>${e.name}</td><td>${e.condition}</td><td>${e.project}</td>
+                    <td><button class="btn-del" onclick="kill('equipment','${d.id}')">Delete</button></td></tr>`;
+                });
+            });
+
+            onSnapshot(collection(db, "leads"), snap => {
+                const tbody = document.getElementById('leads-tbody'); tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const l = d.data();
+                    tbody.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td><button class="btn-del" onclick="kill('leads','${d.id}')">X</button></td></tr>`;
+                });
             });
         }
 
-        // Save Project
-        window.saveProject = async () => {
-            const name = document.getElementById('pName').value;
-            if(!name) return alert("Enter Project Name");
-            await setDoc(doc(db, "projects", name), { 
-                client: document.getElementById('pClient').value,
-                status: document.getElementById('pStatus').value 
-            });
-            alert("Project Saved");
-            syncDropdowns();
-        };
-
-        // Save Manpower
-        window.saveManpower = async () => {
-            const name = document.getElementById('mName').value;
-            const status = document.getElementById('mStatus').value;
-            const proj = document.getElementById('mAssign').value;
-            const today = new Date().toISOString().split('T')[0];
-            if(!name) return alert("Enter Name");
-
-            // Save to logs for PDF reporting
-            await setDoc(doc(db, "attendance_logs", `${name}_${today}`), {
-                name, status, project: proj, date: today
-            });
-            alert("Attendance Logged");
-        };
-
-        // Professional PDF Export
-        window.exportAttendancePDF = async () => {
-            const start = document.getElementById('reportStart').value;
-            const end = document.getElementById('reportEnd').value;
-            const filter = document.getElementById('reportProject').value;
-            if(!start || !end) return alert("Select Dates");
-
-            const pdfTbody = document.getElementById('pdf-tbody');
-            pdfTbody.innerHTML = '';
-            document.getElementById('pdf-range').innerText = `Period: ${start} to ${end}`;
-            document.getElementById('pdf-title').innerText = filter === 'ALL' ? "Company Wide Attendance" : `Project Report: ${filter}`;
-            document.getElementById('pdf-gen-date').innerText = `Generated on: ${new Date().toLocaleDateString()}`;
-
-            const q = query(collection(db, "attendance_logs"), orderBy("date", "asc"));
-            const snap = await getDocs(q);
-            let stats = { onsite: 0, mc: 0 };
-
-            snap.forEach(d => {
-                const l = d.data();
-                if(l.date >= start && l.date <= end && (filter === 'ALL' || l.project === filter)) {
-                    if(l.status === 'On-Site') stats.onsite++;
-                    if(l.status === 'MC') stats.mc++;
-                    pdfTbody.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td class="${l.status==='MC'?'pdf-mc':''}">${l.status}</td><td>${l.project}</td></tr>`;
-                }
-            });
-
-            document.getElementById('pdf-summary').innerHTML = `<strong>Total Days On-Site:</strong> ${stats.onsite} &nbsp; | &nbsp; <strong>Total MCs:</strong> ${stats.mc}`;
-
-            const element = document.getElementById('pdf-report-layout');
-            html2pdf().set({ margin: 0.5, filename: 'Sungroup_Report.pdf', jsPDF: { unit: 'in', format: 'a4' } }).from(element).save();
-        };
-    </script>
-</body>
-</html>
+        // --- OPERATIONS ---
+        window.kill = async (coll, id) => { if(confirm("Delete record?")) await
