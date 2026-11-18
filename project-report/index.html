@@ -476,7 +476,7 @@
                 await setDoc(doc(db, 'projects', id), {
                     name, client: $('np-client').value.trim(), location, loc: location,
                     startDate: $('np-start').value, targetDate: $('np-target').value,
-                    status: 'Active', showOnWebsite: false, createdByUid: user.uid
+                    status: 'Active', showOnWebsite: false, inspection: 'Pending', createdByUid: user.uid
                 });
                 await setDoc(doc(db, 'project_private', id), {
                     description: $('np-desc').value.trim(), progress: 0, createdBy: myName, createdAt: serverTimestamp()
