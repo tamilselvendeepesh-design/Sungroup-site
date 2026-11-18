@@ -109,6 +109,15 @@
         .chip { display: inline-block; background: #eaf3fb; color: var(--primary); border-radius: 999px; padding: 2px 9px; font-size: 0.75rem; font-weight: 600; margin: 2px 4px 2px 0; }
         .access-edit td { background: #f8fafc; }
 
+        /* Edit-report pop-up and change logs */
+        .modal { position: fixed; inset: 0; background: rgba(20,30,45,.45); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+        .modal-card { background: #fff; border-radius: 12px; border-top: 4px solid var(--accent); padding: 22px; width: 100%; max-width: 640px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+        .rm-item { display: grid; grid-template-columns: 1fr 110px; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
+        .rm-item input { text-align: right; padding: 7px 9px; }
+        .log-change { font-size: 0.8rem; margin: 2px 0; }
+        .log-change .old { color: var(--danger); text-decoration: line-through; }
+        .log-change .new { color: var(--success); font-weight: 600; }
+
         #pdf-export-container { display: none; background: white; color: black; padding: 40px; }
 
         @media (max-width: 760px) {
@@ -150,6 +159,7 @@
         <button class="nav-item" onclick="showTab('manpower')"><i class="fas fa-users-cog"></i> Manpower Hub</button>
         <button class="nav-item" onclick="showTab('equipment')"><i class="fas fa-tools"></i> Equipment</button>
         <button class="nav-item" onclick="showTab('attendance')"><i class="fas fa-calendar-check"></i> Attendance</button>
+        <button class="nav-item" onclick="showTab('logs')"><i class="fas fa-history"></i> Report Logs</button>
         <button class="nav-item" onclick="showTab('leads')"><i class="fas fa-inbox"></i> Inquiries</button>
         <a class="nav-item" href="/project-report/" target="_blank" style="text-decoration:none;"><i class="fas fa-external-link-alt"></i> Supervisor Page</a>
         <button id="logoutBtn" class="nav-item" style="margin-top:auto; color:var(--danger);"><i class="fas fa-power-off"></i> Logout</button>
@@ -343,18 +353,56 @@
             </div>
         </div>
 
+        <!-- REPORT CHANGE LOGS -->
+        <div id="tab-logs" class="tab-content hidden">
+            <div class="card">
+                <div class="card-head">
+                    <h3>Report Edits &amp; Deletions</h3>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <select id="logAction" onchange="renderLogs()"><option value="">All changes</option><option value="edit">Edits only</option><option value="delete">Deletions only</option></select>
+                        <select id="logProject" onchange="renderLogs()"><option value="">All projects</option></select>
+                    </div>
+                </div>
+                <table><thead><tr><th style="width:140px">When</th><th>Who</th><th>Action</th><th>Report</th><th style="width:38%">What Changed</th><th>Reason</th></tr></thead><tbody id="logBody"></tbody></table>
+            </div>
+        </div>
+
         <div id="tab-leads" class="tab-content hidden">
             <div class="card"><table><thead><tr><th>Date</th><th>Name</th><th>Message</th><th>Actions</th></tr></thead><tbody id="leadTableBody"></tbody></table></div>
         </div>
         </div>
     </main>
 
+    <!-- EDIT REPORT (admin) -->
+    <div id="rep-modal" class="modal hidden">
+        <div class="modal-card">
+            <h3 style="margin-bottom:2px;">Edit Daily Report</h3>
+            <p class="muted" id="rm-sub" style="margin-top:0;"></p>
+            <div class="grid-inputs">
+                <div><label>Status</label><select id="rm-health"><option>On Track</option><option>At Risk</option><option>Delayed</option></select></div>
+                <div><label id="rm-progress-label">Completion %</label><input type="number" id="rm-progress" min="0" max="100"></div>
+                <div><label>Manpower</label><input type="number" id="rm-manpower" min="0"></div>
+                <div><label>Hours</label><input type="number" id="rm-hours" min="0" step="0.5"></div>
+            </div>
+            <div id="rm-items"></div>
+            <label>Work Done</label><textarea id="rm-work" rows="3" maxlength="5000"></textarea>
+            <label style="margin-top:10px;">Issues / Delays / Safety</label><textarea id="rm-issues" rows="2" maxlength="3000"></textarea>
+            <label style="margin-top:10px;">Plan for Next Day</label><textarea id="rm-next" rows="2" maxlength="3000"></textarea>
+            <label style="margin-top:10px;">Reason for Change <span class="muted" style="text-transform:none; font-weight:400;">(optional, saved in Report Logs)</span></label><input id="rm-reason" maxlength="300" placeholder="e.g. Supervisor entered wrong quantity">
+            <p id="rm-error" style="color:var(--danger); font-size:0.8rem; min-height:1em;"></p>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn-edit" onclick="closeReportEdit()">Cancel</button>
+                <button class="btn-main" style="width:auto; padding:10px 24px;" id="rm-save" onclick="saveReportEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <div id="pdf-export-container"><h1 style="color:#1e73be">SUNGROUP</h1><div id="pdf-content"></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, deleteDoc, query, orderBy, getDocs, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, collection, onSnapshot, deleteDoc, query, orderBy, getDocs, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
         const app = initializeApp(firebaseConfig);
@@ -399,7 +447,12 @@
                     ${r.issues ? `<dt>Issues</dt><dd style="color:var(--accent)">${esc(r.issues)}</dd>` : ''}
                     ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
                     <dt>Supervisor</dt><dd>${esc(r.supervisorName || r.supervisor)}</dd>
+                    ${r.editedBy ? `<dt>Edited</dt><dd class="muted">${esc(r.editedBy)}${r.editedAtIso ? ' · ' + fmtDateTime(r.editedAtIso) : ''}</dd>` : ''}
                 </dl>
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+                    <button class="btn-edit" onclick="adminEditReport(${jsArg(r._id)})"><i class="fas fa-pen"></i> Edit</button>
+                    <button class="btn-del" onclick="adminDeleteReport(${jsArg(r._id)})"><i class="fas fa-trash"></i> Delete</button>
+                </div>
             </div>`;
         const sortReports = list => list.slice().sort((a, b) => b.date.localeCompare(a.date) || String(a.projectName).localeCompare(String(b.projectName)));
 
@@ -471,6 +524,11 @@
                 privRaw = {}; privLoaded = true;
                 snap.forEach(d => privRaw[d.id] = d.data());
                 rebuildProjects();
+            });
+
+            onSnapshot(collection(db, "report_logs"), snap => {
+                logCache = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+                renderLogs();
             });
 
             onSnapshot(collection(db, "supervisors"), snap => {
@@ -723,6 +781,137 @@
             html2pdf().from(el).set({ margin: 0.5, filename: `Sungroup_Report.pdf` }).save().then(() => el.style.display = 'none');
         };
 
+        // ---------- Edit / delete reports + change logs ----------
+        const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'manpower', 'hours', 'issues', 'nextPlan'];
+        const LOG_LABELS = { date: 'Date', block: 'Block', progress: 'Completion %', health: 'Status', workDone: 'Work done', itemsDone: 'Quantities', manpower: 'Manpower', hours: 'Hours', issues: 'Issues', nextPlan: 'Next day' };
+        const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] ?? null]));
+        function fmtDateTime(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return isNaN(d) ? '—' : d.toLocaleString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+        const fmtLogValue = (k, v) => {
+            if (v === null || v === undefined || v === '') return '—';
+            if (k === 'itemsDone') return (v || []).length ? v.map(i => `${i.code}: ${fmtQty(i.qty)} ${i.uom || ''}`.trim()).join(', ') : '—';
+            if (k === 'progress') return pct(v) + '%';
+            if (k === 'date') return fmtDate(v);
+            const s = String(v); return s.length > 140 ? s.slice(0, 140) + '…' : s;
+        };
+        async function writeLog(action, r, extra) {
+            await addDoc(collection(db, 'report_logs'), {
+                action, reportId: r._id, projectId: r.projectId, projectName: r.projectName || '', block: r.block || null, reportDate: r.date,
+                reportBy: r.supervisorName || r.supervisor || '', by: auth.currentUser.email, byEmail: auth.currentUser.email, byUid: auth.currentUser.uid,
+                source: 'Admin panel', at: serverTimestamp(), atIso: new Date().toISOString(), ...extra
+            });
+        }
+        // Rebuild a project's progress summary from its reports (after an edit or delete).
+        async function recomputeSummary(pid, reports) {
+            const p = projCache[pid]; if (!p) return;
+            const blocks = Array.isArray(p.blocks) ? p.blocks : [], bp = {};
+            const latest = list => list.slice().sort((a, b) => b.date.localeCompare(a.date))[0];
+            blocks.forEach(b => {
+                const rs = reports.filter(r => r.block === b.no), items = Array.isArray(b.items) ? b.items : [];
+                if (items.length) {
+                    const t = {}; rs.forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
+                    bp[b.no] = itemsPct(items, t);
+                } else { const l = latest(rs); bp[b.no] = l ? pct(l.progress) : 0; }
+            });
+            const last = latest(reports);
+            const upd = {
+                progress: blocks.length ? blockAvg(blocks, bp) : (last ? pct(last.progress) : 0),
+                health: last ? (last.health || 'On Track') : null,
+                lastReportDate: last ? last.date : null,
+                lastReportBy: last ? (last.supervisorName || last.supervisor || '') : null
+            };
+            if (blocks.length) upd.blockProgress = bp;
+            await setDoc(doc(db, "project_private", pid), upd, { merge: true });
+        }
+
+        let editingReport = null;
+        const blockOfReport = r => { const p = projCache[r.projectId]; return p && Array.isArray(p.blocks) ? p.blocks.find(b => b.no === r.block) : null; };
+        window.adminEditReport = (id) => {
+            const r = repCache.find(x => x._id === id); if (!r) return;
+            editingReport = r;
+            const $ = k => document.getElementById(k);
+            $('rm-sub').innerText = `${r.projectName || r.projectId}${r.block ? ' · Block ' + r.block : ''} · ${fmtDate(r.date)} · by ${r.supervisorName || r.supervisor}`;
+            $('rm-health').value = r.health || 'On Track';
+            $('rm-progress').value = pct(r.progress);
+            $('rm-manpower').value = r.manpower ?? ''; $('rm-hours').value = r.hours ?? '';
+            $('rm-work').value = r.workDone || ''; $('rm-issues').value = r.issues || ''; $('rm-next').value = r.nextPlan || '';
+            $('rm-reason').value = ''; $('rm-error').innerText = '';
+            const b = blockOfReport(r), items = b && Array.isArray(b.items) ? b.items : [];
+            const mine = {}; (r.itemsDone || []).forEach(i => mine[i.code] = i.qty);
+            if (items.length) {
+                const others = {}; repCache.filter(x => x.projectId === r.projectId && x.block === r.block && x._id !== r._id).forEach(x => (x.itemsDone || []).forEach(i => { others[i.code] = (others[i.code] || 0) + (Number(i.qty) || 0); }));
+                $('rm-items').innerHTML = `<label style="margin-top:6px;">Quantities on this report</label>` + items.map(i => `<div class="rm-item"><span><strong>${esc(i.code)}.</strong> ${esc(i.name)} <span class="muted">· others ${fmtQty(others[i.code])} / ${fmtQty(i.qty)} ${esc(i.uom)}</span></span><input type="number" min="0" step="any" data-code="${esc(i.code)}" value="${mine[i.code] ?? ''}" placeholder="0"></div>`).join('');
+                $('rm-progress').readOnly = true; $('rm-progress-label').innerText = 'Completion % (from quantities)';
+                const upd = () => { const t = { ...others }; document.querySelectorAll('#rm-items input').forEach(inp => t[inp.dataset.code] = (t[inp.dataset.code] || 0) + (Number(inp.value) || 0)); $('rm-progress').value = itemsPct(items, t); };
+                document.querySelectorAll('#rm-items input').forEach(inp => inp.oninput = upd); upd();
+            } else {
+                $('rm-items').innerHTML = ''; $('rm-progress').readOnly = false; $('rm-progress-label').innerText = 'Completion %';
+            }
+            $('rep-modal').classList.remove('hidden');
+        };
+        window.closeReportEdit = () => { editingReport = null; document.getElementById('rep-modal').classList.add('hidden'); };
+        window.saveReportEdit = async () => {
+            const r = editingReport; if (!r) return;
+            const $ = k => document.getElementById(k), err = $('rm-error'); err.innerText = '';
+            const num = v => v === '' ? null : Number(v);
+            const b = blockOfReport(r), items = b && Array.isArray(b.items) ? b.items : [];
+            let itemsDone = r.itemsDone ?? null;
+            if (items.length) {
+                const others = {}; repCache.filter(x => x.projectId === r.projectId && x.block === r.block && x._id !== r._id).forEach(x => (x.itemsDone || []).forEach(i => { others[i.code] = (others[i.code] || 0) + (Number(i.qty) || 0); }));
+                const vals = {}; document.querySelectorAll('#rm-items input').forEach(inp => { const v = Number(inp.value); if (inp.value !== '' && v > 0) vals[inp.dataset.code] = v; });
+                for (const i of items) if ((others[i.code] || 0) + (vals[i.code] || 0) > i.qty) { err.innerText = `${i.code}. ${i.name}: only ${fmtQty(Math.max(0, i.qty - (others[i.code] || 0)))} ${i.uom} available.`; return; }
+                itemsDone = items.filter(i => vals[i.code]).map(i => ({ code: i.code, name: i.name, uom: i.uom, qty: vals[i.code] }));
+            }
+            const changes = {
+                health: $('rm-health').value, progress: pct($('rm-progress').value), manpower: num($('rm-manpower').value), hours: num($('rm-hours').value),
+                workDone: $('rm-work').value.trim(), issues: $('rm-issues').value.trim(), nextPlan: $('rm-next').value.trim(), itemsDone
+            };
+            const before = pickLog(r), after = pickLog({ ...r, ...changes });
+            const changed = LOG_FIELDS.filter(k => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+            if (!changed.length) { closeReportEdit(); return; }
+            $('rm-save').disabled = true;
+            try {
+                await setDoc(doc(db, "project_reports", r._id), { ...changes, editedBy: auth.currentUser.email, editedAtIso: new Date().toISOString(), updatedAt: serverTimestamp() }, { merge: true });
+                await recomputeSummary(r.projectId, repCache.filter(x => x.projectId === r.projectId).map(x => x._id === r._id ? { ...x, ...changes } : x));
+                await writeLog('edit', r, { before, after, changed, reason: $('rm-reason').value.trim() });
+                closeReportEdit();
+            } catch (e) { err.innerText = 'Could not save: ' + e.message; }
+            finally { $('rm-save').disabled = false; }
+        };
+        window.adminDeleteReport = async (id) => {
+            const r = repCache.find(x => x._id === id); if (!r) return;
+            const reason = prompt(`Delete the ${fmtDate(r.date)} report by ${r.supervisorName || r.supervisor} for ${r.projectName || r.projectId}${r.block ? ' (Block ' + r.block + ')' : ''}? This cannot be undone.\n\nReason (optional):`, '');
+            if (reason === null) return;
+            await deleteDoc(doc(db, "project_reports", id));
+            await recomputeSummary(r.projectId, repCache.filter(x => x.projectId === r.projectId && x._id !== id));
+            await writeLog('delete', r, { before: pickLog(r), reason: reason.trim() });
+        };
+
+        let logCache = [];
+        window.renderLogs = () => {
+            const act = document.getElementById('logAction').value, proj = document.getElementById('logProject').value;
+            const projSel = document.getElementById('logProject'), keep = projSel.value;
+            const names = [...new Set(logCache.map(l => l.projectName || l.projectId))].sort();
+            projSel.innerHTML = '<option value="">All projects</option>' + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+            projSel.value = names.includes(keep) ? keep : '';
+            const rows = logCache.filter(l => (!act || l.action === act) && (!proj || (l.projectName || l.projectId) === proj))
+                .sort((a, b) => String(b.atIso).localeCompare(String(a.atIso)));
+            document.getElementById('logBody').innerHTML = rows.length ? rows.map(l => {
+                const what = l.action === 'delete'
+                    ? `<div class="log-change">Deleted report: ${esc(fmtLogValue('workDone', l.before && l.before.workDone))}${l.before && (l.before.itemsDone || []).length ? '<br>Quantities: ' + esc(fmtLogValue('itemsDone', l.before.itemsDone)) : ''}${l.before ? '<br>Completion: ' + esc(fmtLogValue('progress', l.before.progress)) : ''}</div>`
+                    : (l.changed || []).map(k => `<div class="log-change"><strong>${esc(LOG_LABELS[k] || k)}:</strong> <span class="old">${esc(fmtLogValue(k, l.before && l.before[k]))}</span> → <span class="new">${esc(fmtLogValue(k, l.after && l.after[k]))}</span></div>`).join('');
+                return `<tr><td>${fmtDateTime(l.atIso)}</td>
+                    <td>${esc(l.by)}<br><span class="muted">${esc(l.source || '')}</span></td>
+                    <td>${l.action === 'delete' ? '<span class="badge b-bad">Deleted</span>' : '<span class="badge b-warn">Edited</span>'}</td>
+                    <td><strong>${esc(l.projectName || l.projectId)}</strong><br><span class="muted">${l.block ? 'Block ' + esc(l.block) + ' · ' : ''}${fmtDate(l.reportDate)} · by ${esc(l.reportBy)}</span></td>
+                    <td>${what}</td>
+                    <td>${l.reason ? esc(l.reason) : '<span class="muted">—</span>'}</td></tr>`;
+            }).join('') : '<tr><td colspan="6" class="muted">No report edits or deletions yet.</td></tr>';
+        };
+
         window.showTab = (id, btn) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -738,6 +927,7 @@
                 manpower: ['Manpower Hub', 'Staff, assignments and batch attendance.'],
                 equipment: ['Equipment', 'Assets and where they are deployed.'],
                 attendance: ['Attendance', 'Attendance logs and PDF export.'],
+                logs: ['Report Logs', 'Every edit and deletion of a daily report: who, when, what changed and why.'],
                 leads: ['Inquiries', 'Messages from the website contact and careers forms.']
             };
             const [t, s] = titles[id] || ['', ''];
