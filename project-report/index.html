@@ -82,6 +82,15 @@
         #rp-scope-text { white-space: pre-wrap; }
         .scope-label { font-size: 12px; font-weight: 700; color: #a86f00; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
         @media (max-width: 520px) { .block-pick { width: 100%; } }
+        .qty-row { display: grid; grid-template-columns: 1fr 110px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .qty-row:last-child { border-bottom: none; }
+        .qty-row .q-name { font-size: 14px; }
+        .qty-row .pbar { height: 6px; margin-top: 4px; }
+        .qty-row input { text-align: right; font-weight: 700; }
+        .qty-row input::placeholder { font-weight: 400; color: #b8c0c8; }
+        .qty-row.over input { border-color: var(--bad); background: #fdecea; }
+        .q-left { white-space: nowrap; }
+        input[readonly] { background: #f1f4f7; color: var(--muted); }
         .notice { background: #eaf3fb; border-left: 4px solid var(--blue); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
         .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
 
@@ -201,6 +210,11 @@
                             </select>
                         </div>
                     </div>
+                    <div class="field" id="rf-items-wrap" hidden>
+                        <label>Quantity Completed Today</label>
+                        <p class="meta" style="margin-bottom:8px;">Enter only what was completed today. Leave items you didn't work on blank.</p>
+                        <div id="rf-items"></div>
+                    </div>
                     <div class="field">
                         <label for="rf-progress"><span id="rf-progress-label">Overall Completion (%)</span> <span class="req">*</span></label>
                         <div class="range-row">
@@ -208,7 +222,7 @@
                             <input type="number" id="rf-progress" min="0" max="100" step="1" value="0" required>
                         </div>
                     </div>
-                    <div class="field"><label for="rf-work">Work Completed Today <span class="req">*</span></label><textarea id="rf-work" required maxlength="5000" placeholder="e.g. Cable pulling for MSB-2 done (120m). Terminations 60% on DB-4…"></textarea></div>
+                    <div class="field"><label for="rf-work">Work Completed Today <span class="req" id="rf-work-req">*</span></label><textarea id="rf-work" required maxlength="5000" placeholder="e.g. Cable pulling for MSB-2 done (120m). Terminations 60% on DB-4…"></textarea></div>
                     <div class="grid-2">
                         <div class="field"><label for="rf-manpower">Manpower On Site</label><input type="number" id="rf-manpower" min="0" step="1" placeholder="0"></div>
                         <div class="field"><label for="rf-hours">Working Hours</label><input type="number" id="rf-hours" min="0" step="0.5" placeholder="e.g. 9"></div>
@@ -390,7 +404,8 @@
             unsubHistory = onSnapshot(query(collection(db, 'project_reports'), where('projectId', '==', id)), snap => {
                 history = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a, b) => b.date.localeCompare(a.date) || String(a.block || '').localeCompare(String(b.block || ''), undefined, { numeric: true }));
                 renderHistory();
-                prefillForDate();
+                const k = prefilledKey; prefillForDate();
+                if (k === prefilledKey) renderItems(); // refresh "done so far" without touching typed values
             });
         }
 
@@ -415,15 +430,70 @@
             const p = projects[currentId] || {};
             const b = blocksOf(p).find(x => x.no === $('rf-block').value);
             $('rp-scope').hidden = !b;
-            if (b) { $('rp-scope-no').textContent = b.no; $('rp-scope-text').textContent = b.desc || 'No description added by admin yet.'; }
-            $('rf-progress-label').textContent = b ? `Block ${b.no} Completion (%)` : 'Overall Completion (%)';
+            if (b) { $('rp-scope-no').textContent = b.no; $('rp-scope-text').textContent = b.desc || (itemsOf(b).length ? '' : 'No description added by admin yet.'); }
+            const hasItems = itemsOf(b).length > 0;
+            $('rf-progress-label').textContent = b ? `Block ${b.no} Completion (%)${hasItems ? ' — calculated from quantities' : ''}` : 'Overall Completion (%)';
+            $('rf-progress').readOnly = hasItems; $('rf-progress-range').disabled = hasItems;
+            $('rf-work').required = !hasItems;
+            $('rf-work-req').hidden = hasItems;
+            renderItems();
+        }
+
+        // ---------- per-item quantities ----------
+        const itemsOf = b => (b && Array.isArray(b.items)) ? b.items : [];
+        const fmtQty = n => (Number(n) || 0).toLocaleString('en-SG', { maximumFractionDigits: 2 });
+        const currentBlock = () => blocksOf(projects[currentId] || {}).find(x => x.no === $('rf-block').value);
+        // Quantities done per item for this block across all reports, except the one being edited.
+        function doneBefore(block, excludeId) {
+            const t = {};
+            history.filter(r => r.block === block && r._id !== excludeId).forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
+            return t;
+        }
+        const itemsPct = (items, totals) => items.length ? Math.round(items.reduce((s, i) => s + Math.min(1, (totals[i.code] || 0) / (i.qty || 1)), 0) / items.length * 100) : null;
+        function readToday() {
+            const t = {};
+            document.querySelectorAll('#rf-items input[data-code]').forEach(inp => { const v = Number(inp.value); if (inp.value !== '' && v > 0) t[inp.dataset.code] = v; });
+            return t;
+        }
+        function renderItems() {
+            const b = currentBlock(), items = itemsOf(b);
+            $('rf-items-wrap').hidden = !items.length;
+            if (!items.length) { $('rf-items').innerHTML = ''; return; }
+            const keep = readToday(); // keep what the user typed across live refreshes
+            const before = doneBefore(b.no, myReportId(currentId, $('rf-date').value, b.no));
+            $('rf-items').innerHTML = items.map(i => `
+                <div class="qty-row" data-row="${esc(i.code)}">
+                    <div class="q-name"><strong>${esc(i.code)}.</strong> ${esc(i.name)}
+                        <div class="meta">Done <strong>${fmtQty(before[i.code])}</strong> / ${fmtQty(i.qty)} ${esc(i.uom)} · <span class="q-left">${fmtQty(Math.max(0, i.qty - (before[i.code] || 0)))} left</span></div>
+                        <div class="pbar"><span style="width:${Math.min(100, (before[i.code] || 0) / i.qty * 100)}%"></span></div>
+                    </div>
+                    <input type="number" inputmode="decimal" min="0" step="any" placeholder="0" data-code="${esc(i.code)}" aria-label="Today's quantity for ${esc(i.name)}">
+                </div>`).join('');
+            document.querySelectorAll('#rf-items input[data-code]').forEach(inp => {
+                if (keep[inp.dataset.code] != null) inp.value = keep[inp.dataset.code];
+                inp.oninput = updateItemsProgress;
+            });
+            updateItemsProgress();
+        }
+        function updateItemsProgress() {
+            const b = currentBlock(), items = itemsOf(b); if (!items.length) return;
+            const before = doneBefore(b.no, myReportId(currentId, $('rf-date').value, b.no)), today = readToday();
+            const totals = {}; items.forEach(i => totals[i.code] = (before[i.code] || 0) + (today[i.code] || 0));
+            items.forEach(i => { const row = document.querySelector(`#rf-items [data-row="${CSS.escape(i.code)}"]`); if (row) row.classList.toggle('over', totals[i.code] > i.qty); });
+            setProgress(itemsPct(items, totals));
+        }
+        function fillItems(itemsDone) {
+            const map = {}; (itemsDone || []).forEach(i => map[i.code] = i.qty);
+            document.querySelectorAll('#rf-items input[data-code]').forEach(inp => inp.value = map[inp.dataset.code] ?? '');
+            updateItemsProgress();
         }
         function onBlockChange(clear = true) {
             const p = projects[currentId] || {};
             const block = $('rf-block').value;
             if (clear && $('rf-notice').hidden === false) ['rf-work', 'rf-manpower', 'rf-hours', 'rf-issues', 'rf-next'].forEach(k => $(k).value = '');
+            $('rf-items').innerHTML = '';
             renderScope();
-            if (block) setProgress(pct((p.blockProgress || {})[block]));
+            if (block && !itemsOf(currentBlock()).length) setProgress(pct((p.blockProgress || {})[block]));
             else if (!blocksOf(p).length) setProgress(pct(p.progress));
             prefilledKey = null; prefillForDate();
         }
@@ -462,8 +532,10 @@
                 $('rf-work').value = mine.workDone || ''; $('rf-manpower').value = mine.manpower ?? '';
                 $('rf-hours').value = mine.hours ?? ''; $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
                 $('rf-submit').innerHTML = '<i class="fas fa-save"></i> Update Report';
+                renderItems(); fillItems(mine.itemsDone);
             } else {
                 n.hidden = true;
+                renderItems(); fillItems([]);
                 $('rf-submit').innerHTML = '<i class="fas fa-paper-plane"></i> Submit Report';
             }
         }
@@ -479,17 +551,31 @@
             const blocks = blocksOf(p);
             const block = $('rf-block').value;
             const date = $('rf-date').value;
-            const work = $('rf-work').value.trim();
+            let work = $('rf-work').value.trim();
             if (blocks.length && !block) { toast('Please select the block number.', 'err'); $('rf-block').focus(); return; }
-            if (!date || !work) { toast('Please fill in the date and work completed.', 'err'); return; }
+            if (!date) { toast('Please fill in the report date.', 'err'); return; }
             if (date > localDate()) { toast('Report date cannot be in the future.', 'err'); return; }
+            const id = myReportId(currentId, date, block);
+            const items = itemsOf(currentBlock());
+            let itemsDone = null;
+            if (items.length) {
+                const today = readToday(), before = doneBefore(block, id);
+                for (const i of items) {
+                    if ((before[i.code] || 0) + (today[i.code] || 0) > i.qty) {
+                        toast(`${i.code}. ${i.name}: only ${fmtQty(Math.max(0, i.qty - (before[i.code] || 0)))} ${i.uom} left.`, 'err'); return;
+                    }
+                }
+                itemsDone = items.filter(i => today[i.code]).map(i => ({ code: i.code, name: i.name, uom: i.uom, qty: today[i.code] }));
+                if (!itemsDone.length && !work) { toast('Enter today\'s quantity for at least one item, or describe the work done.', 'err'); return; }
+                const totals = {}; items.forEach(i => totals[i.code] = (before[i.code] || 0) + (today[i.code] || 0));
+                setProgress(itemsPct(items, totals));
+            } else if (!work) { toast('Please describe the work completed today.', 'err'); return; }
             const progress = pct($('rf-progress').value);
             const num = v => v === '' ? null : Number(v);
-            const id = myReportId(currentId, date, block);
             const isNew = !history.some(r => r._id === id);
             const data = {
                 projectId: currentId, projectName: p.name, block: block || null, date, progress, health: $('rf-health').value,
-                workDone: work, manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
+                workDone: work, itemsDone, manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
                 issues: $('rf-issues').value.trim(), nextPlan: $('rf-next').value.trim(),
                 supervisor: user.email, supervisorUid: user.uid, updatedAt: serverTimestamp()
             };
@@ -500,7 +586,8 @@
             const isLatestOverall = !p.lastReportDate || date >= p.lastReportDate;
             if (block) {
                 const latestForBlock = history.filter(r => r.block === block && r._id !== id).reduce((m, r) => r.date > m ? r.date : m, '');
-                if (date >= latestForBlock) {
+                // Quantity-based blocks are cumulative, so any report (even back-dated) updates the block %.
+                if (items.length || date >= latestForBlock) {
                     const bp = { ...(p.blockProgress || {}), [block]: progress };
                     upd.blockProgress = { [block]: progress };
                     const avg = blockAvg(blocks, bp);
@@ -527,7 +614,8 @@
                 <div class="report">
                     <div class="r-head"><strong>${esc(fmtDate(r.date))}${r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
                     <dl>
-                        <dt>Work done</dt><dd>${esc(r.workDone)}</dd>
+                        ${r.workDone ? `<dt>Work done</dt><dd>${esc(r.workDone)}</dd>` : ''}
+                        ${(r.itemsDone || []).length ? `<dt>Quantities</dt><dd>${esc(r.itemsDone.map(i => `${i.code}. ${i.name}: ${fmtQty(i.qty)} ${i.uom || ''}`).join('\n'))}</dd>` : ''}
                         ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
                         ${r.issues ? `<dt>Issues</dt><dd>${esc(r.issues)}</dd>` : ''}
                         ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
