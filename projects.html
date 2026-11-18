@@ -108,7 +108,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = { 
             apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", 
@@ -124,8 +124,8 @@
             const loader = document.getElementById('loading-projects');
             
             try {
-                // Fetch all documents from the "projects" collection
-                const querySnapshot = await getDocs(collection(db, "projects"));
+                // Fetch only projects marked for the public website (internal ones stay hidden)
+                const querySnapshot = await getDocs(query(collection(db, "projects"), where("showOnWebsite", "==", true)));
                 
                 loader.style.display = 'none';
                 container.innerHTML = '';

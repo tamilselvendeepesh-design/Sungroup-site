@@ -43,6 +43,27 @@
         #batch-bar { position: fixed; bottom: 20px; left: calc(var(--sidebar-w) + 50px); right: 50px; background: var(--primary-dark); padding: 15px 30px; border-radius: 50px; display: none; align-items: center; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 999; }
         
         .hidden { display: none !important; }
+
+        /* Project reports */
+        .pbar { height: 8px; background: #0a0c14; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; min-width: 80px; }
+        .pbar > span { display: block; height: 100%; background: var(--primary); }
+        .pbar.big { height: 14px; margin-top: 12px; }
+        .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: bold; white-space: nowrap; }
+        .b-ok { background: rgba(46,204,113,.15); color: var(--success); }
+        .b-warn { background: rgba(243,156,18,.15); color: var(--accent); }
+        .b-bad { background: rgba(231,76,60,.15); color: var(--danger); }
+        .b-muted { background: #222634; color: #8a8fa3; }
+        .stale { color: var(--danger); }
+        .muted { color: #8a8fa3; font-size: 0.75rem; }
+        .report { border-left: 3px solid var(--primary); background: #0f121c; padding: 14px 16px; border-radius: 6px; margin-bottom: 12px; font-size: 0.8rem; }
+        .report .r-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .report dl { display: grid; grid-template-columns: 120px 1fr; gap: 5px 12px; margin: 0; }
+        .report dt { color: #8a8fa3; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; padding-top: 2px; }
+        .report dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
+        .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; }
+        .card-head h3 { margin: 0; }
+        .card-head input, .card-head select { width: auto; padding: 8px 10px; }
+        .btn-view { color: white; background: var(--primary-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
         #pdf-export-container { display: none; background: white; color: black; padding: 40px; }
     </style>
 </head>
@@ -64,6 +85,7 @@
         <div style="text-align:center; padding: 20px; border-bottom: 1px solid var(--border);"><h3 style="color:var(--primary)">SUNGROUP</h3></div>
         <button class="nav-item active" onclick="showTab('dash')"><i class="fas fa-chart-line"></i> Dashboard</button>
         <button class="nav-item" onclick="showTab('projects')"><i class="fas fa-ship"></i> Projects</button>
+        <button class="nav-item" id="nav-reports" onclick="showTab('reports')"><i class="fas fa-clipboard-list"></i> Project Reports</button>
         <button class="nav-item" onclick="showTab('manpower')"><i class="fas fa-users-cog"></i> Manpower Hub</button>
         <button class="nav-item" onclick="showTab('equipment')"><i class="fas fa-tools"></i> Equipment</button>
         <button class="nav-item" onclick="showTab('attendance')"><i class="fas fa-calendar-check"></i> Attendance</button>
@@ -85,6 +107,8 @@
                 <div class="stat-card"><h2><span id="stat-proj">0</span></h2><p>Live Projects</p></div>
                 <div class="stat-card" style="border-color:var(--success)"><h2><span id="stat-onsite">0</span></h2><p>Staff On-Site</p></div>
                 <div class="stat-card" style="border-color:var(--accent)"><h2><span id="stat-standby">0</span></h2><p>At HQ</p></div>
+                <div class="stat-card" style="border-color:#8e44ad"><h2><span id="stat-eq">0</span></h2><p>Assets</p></div>
+                <div class="stat-card" style="border-color:var(--primary-dark)"><h2><span id="stat-avg">0%</span></h2><p>Avg. Project Completion</p></div>
             </div>
             <div class="card">
                 <h3>Current HQ / Standby</h3>
@@ -100,10 +124,68 @@
                     <div><label>Name</label><input type="text" id="pName"></div>
                     <div><label>Client</label><input type="text" id="pClient"></div>
                     <div><label>Status</label><select id="pStatus"><option value="Active">Active</option><option value="Completed">Completed</option></select></div>
+                    <div><label>Show on Website</label><select id="pWeb"><option value="yes">Yes</option><option value="no">No (internal only)</option></select></div>
                 </div>
                 <button onclick="saveProject()" class="btn-main">Save Project</button>
             </div>
-            <div class="card"><table><thead><tr><th>Project</th><th>Client</th><th>Status</th><th>Actions</th></tr></thead><tbody id="projTableBody"></tbody></table></div>
+            <div class="card"><table><thead><tr><th>Project</th><th>Client</th><th>Status</th><th>Progress</th><th>Last Report</th><th>Actions</th></tr></thead><tbody id="projTableBody"></tbody></table></div>
+        </div>
+
+        <!-- OVERALL PROJECT REPORTS -->
+        <div id="tab-reports" class="tab-content hidden">
+            <div class="stats-grid">
+                <div class="stat-card"><h2 id="ov-active">0</h2><p>Active Projects</p></div>
+                <div class="stat-card" style="border-color:var(--success)"><h2 id="ov-avg">0%</h2><p>Avg. Completion</p></div>
+                <div class="stat-card" style="border-color:var(--success)"><h2 id="ov-today">0</h2><p>Reported Today</p></div>
+                <div class="stat-card" style="border-color:var(--danger)"><h2 id="ov-missing">0</h2><p>No Report Today</p></div>
+                <div class="stat-card" style="border-color:var(--accent)"><h2 id="ov-risk">0</h2><p>At Risk / Delayed</p></div>
+            </div>
+            <div class="card">
+                <div class="card-head">
+                    <h3>All Projects Overview</h3>
+                    <select id="ovFilter" onchange="renderOverview()"><option value="Active">Active</option><option value="Completed">Completed</option><option value="All">All</option></select>
+                </div>
+                <table><thead><tr><th>Project</th><th>Client</th><th style="width:22%">Completion</th><th>Status</th><th>Last Report</th><th>Supervisor</th><th></th></tr></thead><tbody id="ovTableBody"></tbody></table>
+            </div>
+            <div class="card">
+                <div class="card-head">
+                    <h3>Daily Reports</h3>
+                    <div style="display:flex; gap:10px;"><input type="date" id="ovDate" onchange="renderOverview()"><button class="btn-edit" onclick="exportDailyPDF()"><i class="fas fa-file-pdf"></i> PDF</button></div>
+                </div>
+                <div id="ovFeed"></div>
+            </div>
+            <p class="muted">Supervisors file reports at <a href="/project-report/" target="_blank" style="color:var(--primary)">/project-report</a></p>
+        </div>
+
+        <!-- SINGLE PROJECT DETAIL -->
+        <div id="tab-detail" class="tab-content hidden">
+            <button class="btn-edit" onclick="showTab('reports', document.getElementById('nav-reports'))" style="margin-bottom:15px;"><i class="fas fa-arrow-left"></i> All projects</button>
+            <div class="card">
+                <div class="card-head" style="margin-bottom:5px;">
+                    <h2 id="d-name" style="margin:0; color:var(--primary)"></h2>
+                    <div id="d-badges"></div>
+                </div>
+                <p class="muted" id="d-meta"></p>
+                <div class="pbar big"><span id="d-bar" style="width:0%"></span></div>
+                <p style="margin-top:8px;"><strong id="d-progress">0%</strong> complete · <span id="d-last" class="muted"></span></p>
+                <p class="muted" id="d-desc" style="white-space:pre-wrap; margin-top:10px;"></p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><h2 id="d-staff">0</h2><p>Staff Assigned</p></div>
+                <div class="stat-card" style="border-color:var(--success)"><h2 id="d-onsite">0</h2><p>On-Site Now</p></div>
+                <div class="stat-card" style="border-color:#8e44ad"><h2 id="d-eq">0</h2><p>Assets Deployed</p></div>
+                <div class="stat-card" style="border-color:var(--accent)"><h2 id="d-reports">0</h2><p>Reports Filed</p></div>
+            </div>
+            <div class="card"><h3>Manpower</h3><table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="dManBody"></tbody></table></div>
+            <div class="card"><h3>Equipment</h3><table><thead><tr><th>Asset</th><th>Serial ID</th></tr></thead><tbody id="dEqBody"></tbody></table></div>
+            <div class="card"><h3>Recent Attendance <span class="muted">(staff currently assigned)</span></h3><table><thead><tr><th>Date</th><th>Name</th><th>Status</th></tr></thead><tbody id="dAttBody"></tbody></table></div>
+            <div class="card">
+                <div class="card-head">
+                    <h3>Daily Work Reports</h3>
+                    <button class="btn-edit" onclick="exportProjectPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                </div>
+                <div id="dFeed"></div>
+            </div>
         </div>
 
         <div id="tab-manpower" class="tab-content hidden">
@@ -161,36 +243,110 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, query, orderBy, getDocs, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, deleteDoc, query, orderBy, getDocs, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let activeStaff = {}; 
+        let activeStaff = {};
 
-        onAuthStateChanged(auth, user => {
-            document.getElementById('auth-gate').style.display = user ? 'none' : 'flex';
-            document.getElementById('sidebar').style.display = user ? 'flex' : 'none';
-            document.getElementById('viewport').style.display = user ? 'block' : 'none';
-            if(user) startSync();
+        // Caches used by the Project Reports / project detail views
+        let projCache = {}, manCache = [], eqCache = [], attCache = [], repCache = [];
+        let detailId = null;
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const localDate = (d = new Date()) => { const z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+        const fmtDate = s => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }); };
+        const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
+        const jsArg = s => esc(JSON.stringify(String(s ?? '')));
+        const pct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+        const pbar = v => `<div class="pbar"><span style="width:${pct(v)}%"></span></div>`;
+        const healthBadge = h => { if (!h) return '<span class="badge b-muted">No reports</span>'; const c = h === 'On Track' ? 'b-ok' : h === 'At Risk' ? 'b-warn' : 'b-bad'; return `<span class="badge ${c}">${esc(h)}</span>`; };
+        const lastCell = p => { const n = daysAgo(p.lastReportDate); if (n === null) return '<span class="muted">Never</span>'; const txt = n === 0 ? 'Today' : n === 1 ? 'Yesterday' : `${n} days ago`; return `<span class="${n > 0 && p.status === 'Active' ? 'stale' : ''}">${txt}</span><br><span class="muted">${fmtDate(p.lastReportDate)}</span>`; };
+        const reportHTML = (r, showProject) => `
+            <div class="report">
+                <div class="r-head">
+                    <div><strong>${showProject ? `<a href="#" onclick="viewProject(${jsArg(r.projectId)});return false;" style="color:var(--primary)">${esc(r.projectName || r.projectId)}</a> · ` : ''}${fmtDate(r.date)}</strong></div>
+                    <div>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></div>
+                </div>
+                <dl>
+                    <dt>Work done</dt><dd>${esc(r.workDone)}</dd>
+                    ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
+                    ${r.issues ? `<dt>Issues</dt><dd style="color:var(--accent)">${esc(r.issues)}</dd>` : ''}
+                    ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
+                    <dt>Supervisor</dt><dd>${esc(r.supervisor)}</dd>
+                </dl>
+            </div>`;
+        const sortReports = list => list.slice().sort((a, b) => b.date.localeCompare(a.date) || String(a.projectName).localeCompare(String(b.projectName)));
+
+        // Only accounts listed in the Firestore "admins" collection (document ID = email) may use this page.
+        // Supervisors sign in at /project-report instead. Firestore rules enforce the same check server-side.
+        async function isAdmin(user) {
+            try { return (await getDoc(doc(db, "admins", (user.email || '').toLowerCase()))).exists(); }
+            catch (e) { return false; }
+        }
+
+        let synced = false;
+        onAuthStateChanged(auth, async user => {
+            const ok = !!user && await isAdmin(user);
+            if (user && !ok) {
+                document.getElementById('auth-error').innerHTML = 'This account does not have admin access. Supervisors: please use <a href="/project-report/" style="color:var(--primary)">/project-report</a>.';
+                await signOut(auth);
+                return;
+            }
+            document.getElementById('auth-gate').style.display = ok ? 'none' : 'flex';
+            document.getElementById('sidebar').style.display = ok ? 'flex' : 'none';
+            document.getElementById('viewport').style.display = ok ? 'block' : 'none';
+            if (ok && !synced) { synced = true; startSync(); }
+            if (!user && synced) location.reload(); // drop live listeners after logout
         });
 
-        document.getElementById('loginBtn').onclick = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value);
+        document.getElementById('loginBtn').onclick = () => {
+            document.getElementById('auth-error').textContent = '';
+            signInWithEmailAndPassword(auth, document.getElementById('email').value.trim(), document.getElementById('pass').value)
+                .catch(() => document.getElementById('auth-error').textContent = 'Incorrect email or key.');
+        };
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
         function startSync() {
-            onSnapshot(collection(db, "projects"), snap => {
+            // "projects" = public info (website shows those with showOnWebsite == true).
+            // "project_private" = internal info (progress, health, last report, creator, scope).
+            let projRaw = {}, privRaw = {}, projLoaded = false, privLoaded = false;
+            const rebuildProjects = () => {
+                if (!projLoaded || !privLoaded) return;
                 const b = document.getElementById('projTableBody'); b.innerHTML = '';
                 const dropdowns = document.querySelectorAll('.proj-select-list');
                 let opts = '<option value="HQ">HQ / Standby</option>', actives = 0;
-                snap.forEach(d => {
-                    const p = d.data(); if(p.status==='Active'){ opts += `<option value="${p.name}">${p.name}</option>`; actives++; }
-                    b.innerHTML += `<tr><td>${p.name}</td><td>${p.client}</td><td>${p.status}</td><td><button onclick="window.editProj('${d.id}')" class="btn-edit">Edit</button><button onclick="window.kill('projects','${d.id}')" class="btn-del">X</button></td></tr>`;
+                projCache = {};
+                Object.entries(projRaw).forEach(([id, raw]) => {
+                    const p = { ...(privRaw[id] || {}), ...raw, id }; projCache[id] = p;
+                    if(p.status==='Active'){ opts += `<option value="${esc(p.name)}">${esc(p.name)}</option>`; actives++; }
+                    const web = p.showOnWebsite ? '' : '<br><span class="badge b-muted" title="Not shown on the public Projects page">Hidden from website</span>';
+                    b.innerHTML += `<tr><td>${esc(p.name)}</td><td>${esc(p.client)}</td><td>${esc(p.status)}${web}</td><td>${pbar(p.progress)}<span class="muted">${pct(p.progress)}%</span></td><td>${lastCell(p)}</td><td><button onclick="window.viewProject(${jsArg(id)})" class="btn-view">View</button> <button onclick="window.editProj(${jsArg(id)})" class="btn-edit">Edit</button> <button onclick="window.kill('projects',${jsArg(id)})" class="btn-del">X</button></td></tr>`;
                 });
                 dropdowns.forEach(s => s.innerHTML = opts);
                 document.getElementById('stat-proj').innerText = actives;
+                renderOverview(); renderDetail();
+            };
+            onSnapshot(collection(db, "projects"), snap => {
+                projRaw = {}; projLoaded = true;
+                snap.forEach(d => {
+                    projRaw[d.id] = d.data();
+                    // One-time upgrade: projects made before this field existed were public, keep them public.
+                    if (projRaw[d.id].showOnWebsite === undefined) setDoc(doc(db, "projects", d.id), { showOnWebsite: true }, { merge: true });
+                });
+                rebuildProjects();
+            });
+            onSnapshot(collection(db, "project_private"), snap => {
+                privRaw = {}; privLoaded = true;
+                snap.forEach(d => privRaw[d.id] = d.data());
+                rebuildProjects();
+            });
+
+            onSnapshot(collection(db, "project_reports"), snap => {
+                repCache = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+                renderOverview(); renderDetail();
             });
 
             onSnapshot(collection(db, "manpower"), snap => {
@@ -206,15 +362,18 @@
                 document.getElementById('stat-onsite').innerText = onsite;
                 document.getElementById('stat-standby').innerText = standby;
                 initBatchListeners();
+                manCache = snap.docs.map(d => d.data()); renderDetail();
             });
 
             onSnapshot(collection(db, "equipment"), snap => {
+                eqCache = snap.docs.map(d => d.data()); renderDetail();
                 const b = document.getElementById('eqTableBody'); b.innerHTML = '';
                 snap.forEach(d => { const e = d.data(); b.innerHTML += `<tr><td>${e.name}</td><td>${e.id}</td><td>${e.project}</td><td><button onclick="window.editEq('${d.id}')" class="btn-edit">Edit</button><button onclick="window.kill('equipment','${d.id}')" class="btn-del">X</button></td></tr>`; });
                 document.getElementById('stat-eq').innerText = snap.size;
             });
 
             onSnapshot(query(collection(db, "attendance_logs"), orderBy("date", "desc")), snap => {
+                attCache = snap.docs.map(d => d.data()); renderDetail();
                 const b = document.getElementById('attendTableBody'); b.innerHTML = '';
                 snap.forEach(d => { const l = d.data(); b.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.status}</td><td><button onclick="window.adjustLog('${d.id}')" class="btn-edit">Edit</button><button onclick="window.kill('attendance_logs','${d.id}')" class="btn-del">X</button></td></tr>`; });
             });
@@ -267,12 +426,13 @@
         // Standard CRUD
         window.saveProject = async () => {
             const n = document.getElementById('pName').value, s = document.getElementById('pStatus').value, id = document.getElementById('editProjId').value || n;
-            await setDoc(doc(db, "projects", id), { name: n, client: document.getElementById('pClient').value, status: s }, { merge: true });
+            await setDoc(doc(db, "projects", id), { name: n, client: document.getElementById('pClient').value, status: s, showOnWebsite: document.getElementById('pWeb').value === 'yes' }, { merge: true });
             if(s === 'Completed') {
                 const mSnap = await getDocs(query(collection(db, "manpower"), where("assignedTo", "==", n)));
                 mSnap.forEach(d => setDoc(doc(db, "manpower", d.id), { assignedTo: "HQ", status: "Standby" }, { merge: true }));
             }
             ['pName','pClient','editProjId'].forEach(k=>document.getElementById(k).value='');
+            document.getElementById('pWeb').value = 'yes';
         };
 
         window.saveManpower = async () => {
@@ -289,11 +449,15 @@
             ['eqName','eqID','editEqId'].forEach(k=>document.getElementById(k).value='');
         };
 
-        window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pStatus').value=d.status; document.getElementById('editProjId').value=id; };
+        window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pStatus').value=d.status; document.getElementById('pWeb').value = d.showOnWebsite === false ? 'no' : 'yes'; document.getElementById('editProjId').value=id; };
         window.editMan = async (id) => { const d = (await getDocs(collection(db,"manpower"))).docs.find(x=>x.id===id).data(); document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('editManId').value=id; };
         window.editEq = async (id) => { const d = (await getDocs(collection(db,"equipment"))).docs.find(x=>x.id===id).data(); document.getElementById('eqName').value=d.name; document.getElementById('eqID').value=d.id; document.getElementById('eqProj').value=d.project; document.getElementById('editEqId').value=id; };
         
-        window.kill = async (c, id) => { if(confirm("Delete?")) await deleteDoc(doc(db, c, id)); };
+        window.kill = async (c, id) => {
+            if(!confirm("Delete?")) return;
+            await deleteDoc(doc(db, c, id));
+            if (c === 'projects') await deleteDoc(doc(db, "project_private", id));
+        };
         window.resetAttendance = async () => { if(confirm("Purge all logs?") && prompt("Type RESET:") === "RESET") { const snap = await getDocs(collection(db, "attendance_logs")); const batch = writeBatch(db); snap.forEach(d => batch.delete(d.ref)); await batch.commit(); } };
         window.adjustLog = async (id) => { const s = prompt("New Status:"); if(s) await setDoc(doc(db, "attendance_logs", id), { status: s }, { merge: true }); };
 
@@ -313,7 +477,104 @@
             html2pdf().from(el).set({ margin: 0.5, filename: `Sungroup_Report.pdf` }).save().then(() => el.style.display = 'none');
         };
 
-        window.showTab = (id) => { document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById('tab-'+id).classList.remove('hidden'); event.currentTarget.classList.add('active'); };
+        window.showTab = (id, btn) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-'+id).classList.remove('hidden');
+            const b = btn || (window.event && window.event.currentTarget);
+            if (b && b.classList) b.classList.add('active');
+            document.getElementById('viewport').scrollTop = 0;
+        };
+
+        // ---------- Project Reports: overall view ----------
+        window.renderOverview = () => {
+            const today = localDate();
+            const dateInput = document.getElementById('ovDate');
+            if (!dateInput.value) dateInput.value = today;
+            const all = Object.values(projCache);
+            const active = all.filter(p => p.status === 'Active');
+            const reportedToday = new Set(repCache.filter(r => r.date === today).map(r => r.projectId));
+            const activeReported = active.filter(p => reportedToday.has(p.id)).length;
+            const avg = active.length ? Math.round(active.reduce((s, p) => s + pct(p.progress), 0) / active.length) : 0;
+            document.getElementById('ov-active').innerText = active.length;
+            document.getElementById('ov-avg').innerText = avg + '%';
+            document.getElementById('stat-avg').innerText = avg + '%';
+            document.getElementById('ov-today').innerText = activeReported;
+            document.getElementById('ov-missing').innerText = active.length - activeReported;
+            document.getElementById('ov-risk').innerText = active.filter(p => p.health === 'At Risk' || p.health === 'Delayed').length;
+
+            const f = document.getElementById('ovFilter').value;
+            const rows = all.filter(p => f === 'All' || p.status === f)
+                .sort((a, b) => (a.status === 'Completed') - (b.status === 'Completed') || String(a.name).localeCompare(String(b.name)));
+            document.getElementById('ovTableBody').innerHTML = rows.length ? rows.map(p => `<tr>
+                <td><strong>${esc(p.name)}</strong>${p.location ? `<br><span class="muted">${esc(p.location)}</span>` : ''}</td>
+                <td>${esc(p.client)}</td>
+                <td>${pbar(p.progress)}<span class="muted">${pct(p.progress)}%</span></td>
+                <td>${p.status === 'Completed' ? '<span class="badge b-muted">Completed</span>' : healthBadge(p.health)}</td>
+                <td>${lastCell(p)}</td>
+                <td>${esc(p.lastReportBy || '—')}</td>
+                <td><button class="btn-view" onclick="viewProject(${jsArg(p.id)})">View</button></td>
+            </tr>`).join('') : '<tr><td colspan="7" class="muted">No projects.</td></tr>';
+
+            const day = dateInput.value;
+            const dayReports = sortReports(repCache.filter(r => r.date === day));
+            const missing = active.filter(p => !dayReports.some(r => r.projectId === p.id)).map(p => esc(p.name));
+            document.getElementById('ovFeed').innerHTML =
+                (missing.length ? `<p class="muted" style="margin-bottom:12px;"><span class="stale"><i class="fas fa-exclamation-circle"></i> No report for ${fmtDate(day)}:</span> ${missing.join(', ')}</p>` : '') +
+                (dayReports.length ? dayReports.map(r => reportHTML(r, true)).join('') : `<p class="muted">No reports filed for ${fmtDate(day)}.</p>`);
+        };
+
+        // ---------- Project Reports: single project ----------
+        window.viewProject = (id) => { detailId = id; showTab('detail', document.getElementById('nav-reports')); renderDetail(); };
+
+        function renderDetail() {
+            if (!detailId) return;
+            const p = projCache[detailId];
+            if (!p) { document.getElementById('d-name').innerText = 'Project not found'; return; }
+            document.getElementById('d-name').innerText = p.name;
+            document.getElementById('d-badges').innerHTML = `<span class="badge ${p.status === 'Active' ? 'b-ok' : 'b-muted'}">${esc(p.status)}</span> ${healthBadge(p.health)}`;
+            document.getElementById('d-meta').innerText = [p.client && 'Client: ' + p.client, p.location && 'Site: ' + p.location, p.startDate && 'Start: ' + fmtDate(p.startDate), p.targetDate && 'Target: ' + fmtDate(p.targetDate), p.createdBy && 'Created by ' + p.createdBy].filter(Boolean).join(' · ');
+            document.getElementById('d-bar').style.width = pct(p.progress) + '%';
+            document.getElementById('d-progress').innerText = pct(p.progress) + '%';
+            const n = daysAgo(p.lastReportDate);
+            document.getElementById('d-last').innerText = n === null ? 'No reports yet' : `Last report ${fmtDate(p.lastReportDate)}${p.lastReportBy ? ' by ' + p.lastReportBy : ''}`;
+            document.getElementById('d-desc').innerText = p.description || '';
+
+            const staff = manCache.filter(m => m.assignedTo === p.name);
+            const eq = eqCache.filter(e => e.project === p.name);
+            const reports = sortReports(repCache.filter(r => r.projectId === p.id));
+            const names = new Set(staff.map(m => m.name));
+            const att = attCache.filter(l => names.has(l.name)).slice(0, 30);
+
+            document.getElementById('d-staff').innerText = staff.length;
+            document.getElementById('d-onsite').innerText = staff.filter(m => m.status === 'On-Site').length;
+            document.getElementById('d-eq').innerText = eq.length;
+            document.getElementById('d-reports').innerText = reports.length;
+            document.getElementById('dManBody').innerHTML = staff.length ? staff.map(m => `<tr><td>${esc(m.name)}</td><td>${esc(m.status)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No staff assigned.</td></tr>';
+            document.getElementById('dEqBody').innerHTML = eq.length ? eq.map(e => `<tr><td>${esc(e.name)}</td><td>${esc(e.id)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No equipment deployed.</td></tr>';
+            document.getElementById('dAttBody').innerHTML = att.length ? att.map(l => `<tr><td>${esc(l.date)}</td><td>${esc(l.name)}</td><td>${esc(l.status)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">No attendance records.</td></tr>';
+            document.getElementById('dFeed').innerHTML = reports.length ? reports.map(r => reportHTML(r, false)).join('') : '<p class="muted">No reports filed yet.</p>';
+        }
+
+        // ---------- PDF exports ----------
+        const pdfCell = 'border:1px solid #ddd;padding:6px;vertical-align:top;font-size:11px;white-space:pre-wrap;';
+        const pdfTable = list => `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#eee">
+            <th style="${pdfCell}">Date</th><th style="${pdfCell}">Project</th><th style="${pdfCell}">%</th><th style="${pdfCell}">Status</th><th style="${pdfCell}">Work Done</th><th style="${pdfCell}">Manpower</th><th style="${pdfCell}">Issues</th><th style="${pdfCell}">Supervisor</th></tr></thead><tbody>` +
+            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc(r.workDone)}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
+        function savePDF(html, filename) {
+            document.getElementById('pdf-content').innerHTML = html;
+            const el = document.getElementById('pdf-export-container'); el.style.display = 'block';
+            html2pdf().from(el).set({ margin: 0.4, filename, jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } }).save().then(() => el.style.display = 'none');
+        }
+        window.exportProjectPDF = () => {
+            const p = projCache[detailId]; if (!p) return;
+            const reports = sortReports(repCache.filter(r => r.projectId === p.id));
+            savePDF(`<h2>${esc(p.name)} — Daily Work Reports</h2><p>Client: ${esc(p.client || '—')} · Completion: ${pct(p.progress)}% · Generated ${fmtDate(localDate())}</p>` + pdfTable(reports), `${p.name.replace(/[^\w-]+/g, '_')}_Reports.pdf`);
+        };
+        window.exportDailyPDF = () => {
+            const day = document.getElementById('ovDate').value || localDate();
+            savePDF(`<h2>Daily Project Reports — ${fmtDate(day)}</h2>` + pdfTable(sortReports(repCache.filter(r => r.date === day))), `Sungroup_Daily_Report_${day}.pdf`);
+        };
     </script>
 </body>
 </html>
