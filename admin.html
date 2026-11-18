@@ -64,6 +64,8 @@
         .btn-edit:hover { background: #eaf3fb; }
         .btn-view { color: white; background: var(--primary); border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: 600; }
         .btn-view:hover { background: var(--primary-dark); }
+        .btn-pass { color: #fff; background: var(--success); border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.75rem; margin-top: 4px; }
+        .btn-pass:hover { filter: brightness(.92); }
 
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; padding: 10px 12px; border-bottom: 2px solid var(--border); background: #f8fafc; }
@@ -186,7 +188,7 @@
                     <div><label>Name</label><input type="text" id="pName"></div>
                     <div><label>Client</label><input type="text" id="pClient"></div>
                     <div><label>Status</label><select id="pStatus"><option value="Active">Active</option><option value="Completed">Completed</option></select></div>
-                    <div><label>Show on Website</label><select id="pWeb"><option value="yes">Yes</option><option value="no">No (internal only)</option></select></div>
+                    <div><label>Inspection</label><select id="pWeb"><option value="no">Awaiting inspection (not on website)</option><option value="yes">Passed inspection (shows on website)</option></select></div>
                 </div>
                 <button onclick="saveProject()" class="btn-main">Save Project</button>
             </div>
@@ -374,6 +376,15 @@
         const pct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
         const pbar = v => `<div class="pbar"><span style="width:${pct(v)}%"></span></div>`;
         const healthBadge = h => { if (!h) return '<span class="badge b-muted">No reports</span>'; const c = h === 'On Track' ? 'b-ok' : h === 'At Risk' ? 'b-warn' : 'b-bad'; return `<span class="badge ${c}">${esc(h)}</span>`; };
+        // Inspection approval: only projects that passed inspection appear on the public Projects page.
+        const inspectionBadge = p => p.inspection === 'Passed'
+            ? `<span class="badge b-ok" title="${esc(p.inspectionPassedAt ? 'Passed ' + fmtDate(String(p.inspectionPassedAt).slice(0, 10)) + (p.inspectionPassedBy ? ' · ' + p.inspectionPassedBy : '') : '')}"><i class="fas fa-check-circle"></i> Passed inspection · on website</span>`
+            : '<span class="badge b-warn" title="Not shown on the public Projects page until it passes inspection"><i class="fas fa-hourglass-half"></i> Awaiting inspection</span>';
+        window.passInspection = async (id) => {
+            const p = projCache[id]; if (!p) return;
+            if (!confirm(`Mark "${p.name}" as passed inspection? It will appear on the public Projects page.`)) return;
+            await setDoc(doc(db, "projects", id), { inspection: 'Passed', showOnWebsite: true, inspectionPassedAt: new Date().toISOString(), inspectionPassedBy: auth.currentUser.email }, { merge: true });
+        };
         const lastCell = p => { const n = daysAgo(p.lastReportDate); if (n === null) return '<span class="muted">Never</span>'; const txt = n === 0 ? 'Today' : n === 1 ? 'Yesterday' : `${n} days ago`; return `<span class="${n > 0 && p.status === 'Active' ? 'stale' : ''}">${txt}</span><br><span class="muted">${fmtDate(p.lastReportDate)}</span>`; };
         const reportHTML = (r, showProject) => `
             <div class="report">
@@ -434,7 +445,7 @@
                 Object.entries(projRaw).forEach(([id, raw]) => {
                     const p = { ...(privRaw[id] || {}), ...raw, id }; projCache[id] = p;
                     if(p.status==='Active'){ opts += `<option value="${esc(p.name)}">${esc(p.name)}</option>`; actives++; }
-                    const web = p.showOnWebsite ? '' : '<br><span class="badge b-muted" title="Not shown on the public Projects page">Hidden from website</span>';
+                    const web = '<br>' + inspectionBadge(p) + (p.inspection === 'Passed' ? '' : ` <button class="btn-pass" onclick="window.passInspection(${jsArg(id)})"><i class="fas fa-check"></i> Pass Inspection</button>`);
                     b.innerHTML += `<tr><td>${esc(p.name)}</td><td>${esc(p.client)}</td><td>${esc(p.status)}${web}</td><td>${pbar(p.progress)}<span class="muted">${pct(p.progress)}%</span></td><td>${lastCell(p)}</td><td><button onclick="window.viewProject(${jsArg(id)})" class="btn-view">View</button> <button onclick="window.editProj(${jsArg(id)})" class="btn-edit">Edit</button> <button onclick="window.kill('projects',${jsArg(id)})" class="btn-del">X</button></td></tr>`;
                 });
                 dropdowns.forEach(s => s.innerHTML = opts);
@@ -445,8 +456,14 @@
                 projRaw = {}; projLoaded = true;
                 snap.forEach(d => {
                     projRaw[d.id] = d.data();
-                    // One-time upgrade: projects made before this field existed were public, keep them public.
-                    if (projRaw[d.id].showOnWebsite === undefined) setDoc(doc(db, "projects", d.id), { showOnWebsite: true }, { merge: true });
+                    // One-time upgrade to inspection approval: projects already Completed count as passed
+                    // (and stay on the website); everything else waits for an admin to pass it.
+                    if (projRaw[d.id].inspection === undefined) {
+                        const passed = projRaw[d.id].status === 'Completed';
+                        setDoc(doc(db, "projects", d.id), passed
+                            ? { inspection: 'Passed', showOnWebsite: true, inspectionPassedAt: new Date().toISOString(), inspectionPassedBy: 'Approved automatically (completed before inspection approval was added)' }
+                            : { inspection: 'Pending', showOnWebsite: false }, { merge: true });
+                    }
                 });
                 rebuildProjects();
             });
@@ -543,13 +560,17 @@
         // Standard CRUD
         window.saveProject = async () => {
             const n = document.getElementById('pName').value, s = document.getElementById('pStatus').value, id = document.getElementById('editProjId').value || n;
-            await setDoc(doc(db, "projects", id), { name: n, client: document.getElementById('pClient').value, status: s, showOnWebsite: document.getElementById('pWeb').value === 'yes' }, { merge: true });
+            const passed = document.getElementById('pWeb').value === 'yes';
+            const wasPassed = projCache[id] && projCache[id].inspection === 'Passed';
+            const data = { name: n, client: document.getElementById('pClient').value, status: s, inspection: passed ? 'Passed' : 'Pending', showOnWebsite: passed };
+            if (passed && !wasPassed) Object.assign(data, { inspectionPassedAt: new Date().toISOString(), inspectionPassedBy: auth.currentUser.email });
+            await setDoc(doc(db, "projects", id), data, { merge: true });
             if(s === 'Completed') {
                 const mSnap = await getDocs(query(collection(db, "manpower"), where("assignedTo", "==", n)));
                 mSnap.forEach(d => setDoc(doc(db, "manpower", d.id), { assignedTo: "HQ", status: "Standby" }, { merge: true }));
             }
             ['pName','pClient','editProjId'].forEach(k=>document.getElementById(k).value='');
-            document.getElementById('pWeb').value = 'yes';
+            document.getElementById('pWeb').value = 'no';
         };
 
         window.saveManpower = async () => {
@@ -566,7 +587,7 @@
             ['eqName','eqID','editEqId'].forEach(k=>document.getElementById(k).value='');
         };
 
-        window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pStatus').value=d.status; document.getElementById('pWeb').value = d.showOnWebsite === false ? 'no' : 'yes'; document.getElementById('editProjId').value=id; };
+        window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pStatus').value=d.status; document.getElementById('pWeb').value = d.inspection === 'Passed' ? 'yes' : 'no'; document.getElementById('editProjId').value=id; };
         window.editMan = async (id) => { const d = (await getDocs(collection(db,"manpower"))).docs.find(x=>x.id===id).data(); document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('editManId').value=id; };
         window.editEq = async (id) => { const d = (await getDocs(collection(db,"equipment"))).docs.find(x=>x.id===id).data(); document.getElementById('eqName').value=d.name; document.getElementById('eqID').value=d.id; document.getElementById('eqProj').value=d.project; document.getElementById('editEqId').value=id; };
         
@@ -770,7 +791,7 @@
             const p = projCache[detailId];
             if (!p) { document.getElementById('d-name').innerText = 'Project not found'; return; }
             document.getElementById('d-name').innerText = p.name;
-            document.getElementById('d-badges').innerHTML = `<span class="badge ${p.status === 'Active' ? 'b-ok' : 'b-muted'}">${esc(p.status)}</span> ${healthBadge(p.health)}`;
+            document.getElementById('d-badges').innerHTML = `<span class="badge ${p.status === 'Active' ? 'b-ok' : 'b-muted'}">${esc(p.status)}</span> ${healthBadge(p.health)} ${inspectionBadge(p)}${p.inspection === 'Passed' ? '' : ` <button class="btn-pass" onclick="window.passInspection(${jsArg(p.id)})"><i class="fas fa-check"></i> Pass Inspection</button>`}`;
             document.getElementById('d-meta').innerText = [p.client && 'Client: ' + p.client, p.location && 'Site: ' + p.location, p.startDate && 'Start: ' + fmtDate(p.startDate), p.targetDate && 'Target: ' + fmtDate(p.targetDate), p.createdBy && 'Created by ' + p.createdBy].filter(Boolean).join(' · ');
             document.getElementById('d-bar').style.width = pct(p.progress) + '%';
             document.getElementById('d-progress').innerText = pct(p.progress) + '%';
