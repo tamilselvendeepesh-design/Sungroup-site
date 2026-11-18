@@ -7,69 +7,119 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        :root { 
-            --primary: #00d2ff; --primary-dark: #1e73be; --accent: #f39c12;
-            --danger: #e74c3c; --success: #2ecc71;
-            --dark: #0a0c14; --surface: #161a27; --border: #2d3142; --text: #d5d6d7;
-            --sidebar-w: 260px;
+        /* Same look as the supervisor Project Reports page: light background, Sungroup blue and orange. */
+        :root {
+            --primary: #1e73be; --primary-dark: #155a96; --accent: #f0a123;
+            --danger: #d64541; --success: #2e9e5b; --warn: #a86f00;
+            --dark: #f4f7f9; --surface: #ffffff; --border: #e1e6eb; --text: #2b3138; --muted: #6b7680;
+            --sidebar-w: 250px;
         }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--dark); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background: var(--dark); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; line-height: 1.45; }
+        h2, h3 { color: var(--primary); }
+        h3 { margin-top: 0; font-size: 1.05rem; }
+        a { color: var(--primary); }
 
-        #alert-toast { position: fixed; top: 20px; right: 20px; background: var(--accent); color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 10000; display: none; }
-        #auth-gate { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); padding: 20px 15px; display: none; flex-direction: column; }
-        .nav-item { width: 100%; padding: 12px 15px; margin: 4px 0; background: none; border: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: 0.3s; font-size: 0.85rem; }
-        .nav-item:hover, .nav-item.active { background: var(--primary-dark); color: white; }
-        .viewport { flex: 1; overflow-y: auto; padding: 30px; display: none; }
-        
-        .card { background: var(--surface); padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; border-top: 3px solid var(--primary); }
-        
-        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        label { display: block; font-size: 0.7rem; color: var(--primary); margin-bottom: 6px; font-weight: bold; text-transform: uppercase; }
-        input, select { width: 100%; padding: 12px; background: #0a0c14; border: 1px solid var(--border); color: white; border-radius: 6px; }
-        
-        .btn-main { background: var(--primary-dark); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
-        .btn-del { color: var(--danger); background: none; border: 1px solid var(--danger); padding: 4px 8px; border-radius: 4px; cursor: pointer; }
-        .btn-edit { color: var(--primary); background: none; border: 1px solid var(--primary); padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        #alert-toast { position: fixed; top: 20px; right: 20px; background: var(--accent); color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); z-index: 10000; display: none; }
+        #auth-gate { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+        #auth-gate .card { border-top: 4px solid var(--accent); }
+        #auth-gate img { max-width: 300px; width: 80%; height: auto; margin-bottom: 18px; }
+
+        .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); padding: 0 12px 16px; display: none; flex-direction: column; flex-shrink: 0; overflow-y: auto; overflow-x: hidden; }
+        .side-logo { padding: 14px 6px 12px; border-bottom: 3px solid var(--primary); margin: 0 -12px 12px; text-align: center; background: #fff; }
+        .side-logo img { max-width: 100%; height: auto; max-height: 46px; display: block; margin: 0 auto; }
+        .side-logo small { display: block; margin-top: 4px; color: var(--muted); font-size: 0.7rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+        .nav-item { width: 100%; padding: 11px 14px; margin: 2px 0; background: none; border: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 12px; transition: background .2s, color .2s; font-size: 0.9rem; font-weight: 600; }
+        .nav-item i { width: 18px; text-align: center; color: var(--primary); }
+        .nav-item:hover { background: #eaf3fb; }
+        .nav-item.active { background: var(--primary); color: white; }
+        .nav-item.active i { color: white; }
+        #logoutBtn i { color: var(--danger); }
+
+        .viewport { flex: 1; overflow-y: auto; padding: 0; display: none; }
+        .page-title { background: var(--primary); color: #fff; border-top: 4px solid var(--accent); padding: 20px 30px; }
+        .page-title h1 { margin: 0; font-size: 1.4rem; }
+        .page-title p { margin: 2px 0 0; opacity: .85; font-size: 0.9rem; }
+        .page-body { padding: 24px 30px 60px; }
+
+        .card { background: var(--surface); padding: 22px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: var(--surface); padding: 16px 18px; border-radius: 10px; border: 1px solid var(--border); border-top: 4px solid var(--primary); }
+        .stat-card h2 { margin: 0; font-size: 1.7rem; color: var(--text); }
+        .stat-card p { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 14px; }
+        label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+        input, select, textarea { width: 100%; padding: 10px 12px; background: #fff; border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-size: 0.9rem; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: 2px solid rgba(30,115,190,.3); border-color: var(--primary); }
+        input[type=checkbox] { width: auto; }
+        textarea { resize: vertical; }
+
+        .btn-main { background: var(--primary); color: white; border: none; padding: 11px; border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%; font-size: 0.9rem; }
+        .btn-main:hover { background: var(--primary-dark); }
+        .btn-main:disabled { opacity: .6; cursor: wait; }
+        .btn-del { color: var(--danger); background: #fff; border: 1px solid var(--danger); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; }
+        .btn-del:hover { background: #fbe4e2; }
+        .btn-edit { color: var(--primary); background: #fff; border: 1px solid var(--primary); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; }
+        .btn-edit:hover { background: #eaf3fb; }
+        .btn-view { color: white; background: var(--primary); border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: 600; }
+        .btn-view:hover { background: var(--primary-dark); }
 
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; font-size: 0.7rem; color: #666; padding: 12px; border-bottom: 2px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; }
-        
+        th { text-align: left; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; padding: 10px 12px; border-bottom: 2px solid var(--border); background: #f8fafc; }
+        td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 0.86rem; vertical-align: top; }
+        tbody tr:hover td { background: #fafcfe; }
+
         /* Batch Action Bar */
-        #batch-bar { position: fixed; bottom: 20px; left: calc(var(--sidebar-w) + 50px); right: 50px; background: var(--primary-dark); padding: 15px 30px; border-radius: 50px; display: none; align-items: center; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 999; }
-        
+        #batch-bar { position: fixed; bottom: 20px; left: calc(var(--sidebar-w) + 40px); right: 40px; background: var(--primary); color: #fff; padding: 12px 26px; border-radius: 50px; display: none; align-items: center; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 999; }
+
         .hidden { display: none !important; }
 
         /* Project reports */
-        .pbar { height: 8px; background: #0a0c14; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; min-width: 80px; }
-        .pbar > span { display: block; height: 100%; background: var(--primary); }
-        .pbar.big { height: 14px; margin-top: 12px; }
-        .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: bold; white-space: nowrap; }
-        .b-ok { background: rgba(46,204,113,.15); color: var(--success); }
-        .b-warn { background: rgba(243,156,18,.15); color: var(--accent); }
-        .b-bad { background: rgba(231,76,60,.15); color: var(--danger); }
-        .b-muted { background: #222634; color: #8a8fa3; }
-        .stale { color: var(--danger); }
-        .muted { color: #8a8fa3; font-size: 0.75rem; }
-        .report { border-left: 3px solid var(--primary); background: #0f121c; padding: 14px 16px; border-radius: 6px; margin-bottom: 12px; font-size: 0.8rem; }
+        .pbar { height: 8px; background: #e6ebf0; border-radius: 5px; overflow: hidden; min-width: 80px; }
+        .pbar > span { display: block; height: 100%; background: var(--primary); border-radius: 5px; }
+        .pbar.big { height: 12px; margin-top: 12px; }
+        .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+        .b-ok { background: #e3f4ea; color: var(--success); }
+        .b-warn { background: #fdf1d8; color: var(--warn); }
+        .b-bad { background: #fbe4e2; color: var(--danger); }
+        .b-muted { background: #eef1f4; color: var(--muted); }
+        .stale { color: var(--danger); font-weight: 600; }
+        .muted { color: var(--muted); font-size: 0.8rem; }
+        .report { border-left: 3px solid var(--primary); background: #f8fafc; padding: 12px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.86rem; }
         .report .r-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
         .report dl { display: grid; grid-template-columns: 120px 1fr; gap: 5px 12px; margin: 0; }
-        .report dt { color: #8a8fa3; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; padding-top: 2px; }
+        .report dt { color: var(--muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding-top: 2px; }
         .report dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
-        .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; }
+        .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
         .card-head h3 { margin: 0; }
-        .card-head input, .card-head select { width: auto; padding: 8px 10px; }
+        .card-head input, .card-head select { width: auto; padding: 7px 10px; }
         .items-edit td { padding: 4px 6px; border-bottom: none; }
+        .items-edit tbody tr:hover td { background: none; }
         .items-edit input { padding: 8px; }
-        .item-line { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 10px; align-items: center; margin-top: 6px; font-size: 0.75rem; }
+        .item-line { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 10px; align-items: center; margin-top: 6px; font-size: 0.8rem; }
         #dBlockBody td:nth-child(2) { min-width: 320px; }
         .item-line .pbar { height: 6px; }
-        .btn-view { color: white; background: var(--primary-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+        /* Project access checklists */
+        .access-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px; margin: 10px 0 14px; max-height: 320px; overflow-y: auto; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; }
+        .access-list label { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 0.86rem; font-weight: 500; color: var(--text); margin: 0; cursor: pointer; }
+        .chip { display: inline-block; background: #eaf3fb; color: var(--primary); border-radius: 999px; padding: 2px 9px; font-size: 0.75rem; font-weight: 600; margin: 2px 4px 2px 0; }
+        .access-edit td { background: #f8fafc; }
+
         #pdf-export-container { display: none; background: white; color: black; padding: 40px; }
+
+        @media (max-width: 760px) {
+            body { flex-direction: column; height: auto; overflow: auto; }
+            .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; padding: 0 8px 8px; }
+            .side-logo { width: calc(100% + 16px); margin: 0 -8px 6px; }
+            .nav-item { width: auto; flex: 1 1 auto; font-size: 0.8rem; padding: 8px 10px; }
+            #logoutBtn { margin-top: 2px !important; }
+            .page-title, .page-body { padding-left: 16px; padding-right: 16px; }
+            #batch-bar { left: 16px; right: 16px; flex-wrap: wrap; border-radius: 14px; }
+            .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stat-card h2 { font-size: 1.4rem; }
+        }
     </style>
 </head>
 <body>
@@ -77,17 +127,20 @@
     <div id="alert-toast"><i class="fas fa-bell"></i> New Inquiry Received!</div>
 
     <div id="auth-gate">
-        <div class="card" style="width: 380px; text-align: center;">
-            <h2 style="color:var(--primary)">Titan ERP Login</h2>
-            <input type="email" id="email" placeholder="Admin Email">
-            <input type="password" id="pass" placeholder="System Key" style="margin-top:10px;">
-            <button id="loginBtn" class="btn-main" style="margin-top:20px;">Initialize System</button>
-            <p id="auth-error" style="color:var(--danger); font-size:0.7rem; margin-top:10px;"></p>
+        <img src="logo.png" alt="Sungroup Engineering">
+        <div class="card" style="width: 100%; max-width: 380px;">
+            <h2 style="margin-top:0;"><i class="fas fa-user-lock"></i> Admin Login</h2>
+            <label for="email">Email</label>
+            <input type="email" id="email" autocomplete="username">
+            <label for="pass" style="margin-top:12px;">Password</label>
+            <input type="password" id="pass" autocomplete="current-password">
+            <button id="loginBtn" class="btn-main" style="margin-top:18px;">Sign In</button>
+            <p id="auth-error" style="color:var(--danger); font-size:0.8rem; margin-top:10px;"></p>
         </div>
     </div>
 
     <nav class="sidebar" id="sidebar">
-        <div style="text-align:center; padding: 20px; border-bottom: 1px solid var(--border);"><h3 style="color:var(--primary)">SUNGROUP</h3></div>
+        <div class="side-logo"><img src="logo.png" alt="Sungroup Engineering"><small>Admin Panel</small></div>
         <button class="nav-item active" onclick="showTab('dash')"><i class="fas fa-chart-line"></i> Dashboard</button>
         <button class="nav-item" onclick="showTab('projects')"><i class="fas fa-ship"></i> Projects</button>
         <button class="nav-item" id="nav-reports" onclick="showTab('reports')"><i class="fas fa-clipboard-list"></i> Project Reports</button>
@@ -96,6 +149,7 @@
         <button class="nav-item" onclick="showTab('equipment')"><i class="fas fa-tools"></i> Equipment</button>
         <button class="nav-item" onclick="showTab('attendance')"><i class="fas fa-calendar-check"></i> Attendance</button>
         <button class="nav-item" onclick="showTab('leads')"><i class="fas fa-inbox"></i> Inquiries</button>
+        <a class="nav-item" href="/project-report/" target="_blank" style="text-decoration:none;"><i class="fas fa-external-link-alt"></i> Supervisor Page</a>
         <button id="logoutBtn" class="nav-item" style="margin-top:auto; color:var(--danger);"><i class="fas fa-power-off"></i> Logout</button>
     </nav>
 
@@ -108,13 +162,15 @@
     </div>
 
     <main class="viewport" id="viewport">
+        <div class="page-title"><h1 id="page-title">Dashboard</h1><p id="page-sub">Overview of live projects and staff.</p></div>
+        <div class="page-body">
         <div id="tab-dash" class="tab-content">
             <div class="stats-grid">
                 <div class="stat-card"><h2><span id="stat-proj">0</span></h2><p>Live Projects</p></div>
-                <div class="stat-card" style="border-color:var(--success)"><h2><span id="stat-onsite">0</span></h2><p>Staff On-Site</p></div>
-                <div class="stat-card" style="border-color:var(--accent)"><h2><span id="stat-standby">0</span></h2><p>At HQ</p></div>
-                <div class="stat-card" style="border-color:#8e44ad"><h2><span id="stat-eq">0</span></h2><p>Assets</p></div>
-                <div class="stat-card" style="border-color:var(--primary-dark)"><h2><span id="stat-avg">0%</span></h2><p>Avg. Project Completion</p></div>
+                <div class="stat-card" style="border-top-color:var(--success)"><h2><span id="stat-onsite">0</span></h2><p>Staff On-Site</p></div>
+                <div class="stat-card" style="border-top-color:var(--accent)"><h2><span id="stat-standby">0</span></h2><p>At HQ</p></div>
+                <div class="stat-card" style="border-top-color:#8e44ad"><h2><span id="stat-eq">0</span></h2><p>Assets</p></div>
+                <div class="stat-card" style="border-top-color:var(--primary-dark)"><h2><span id="stat-avg">0%</span></h2><p>Avg. Project Completion</p></div>
             </div>
             <div class="card">
                 <h3>Current HQ / Standby</h3>
@@ -141,10 +197,10 @@
         <div id="tab-reports" class="tab-content hidden">
             <div class="stats-grid">
                 <div class="stat-card"><h2 id="ov-active">0</h2><p>Active Projects</p></div>
-                <div class="stat-card" style="border-color:var(--success)"><h2 id="ov-avg">0%</h2><p>Avg. Completion</p></div>
-                <div class="stat-card" style="border-color:var(--success)"><h2 id="ov-today">0</h2><p>Reported Today</p></div>
-                <div class="stat-card" style="border-color:var(--danger)"><h2 id="ov-missing">0</h2><p>No Report Today</p></div>
-                <div class="stat-card" style="border-color:var(--accent)"><h2 id="ov-risk">0</h2><p>At Risk / Delayed</p></div>
+                <div class="stat-card" style="border-top-color:var(--success)"><h2 id="ov-avg">0%</h2><p>Avg. Completion</p></div>
+                <div class="stat-card" style="border-top-color:var(--success)"><h2 id="ov-today">0</h2><p>Reported Today</p></div>
+                <div class="stat-card" style="border-top-color:var(--danger)"><h2 id="ov-missing">0</h2><p>No Report Today</p></div>
+                <div class="stat-card" style="border-top-color:var(--accent)"><h2 id="ov-risk">0</h2><p>At Risk / Delayed</p></div>
             </div>
             <div class="card">
                 <div class="card-head">
@@ -182,7 +238,7 @@
                 <div class="grid-inputs" style="grid-template-columns: 180px 1fr;">
                     <input type="hidden" id="bEditNo">
                     <div><label>Block No.</label><input type="text" id="bNo" maxlength="40" placeholder="e.g. B101"></div>
-                    <div><label>Work Description / Notes</label><textarea id="bDesc" maxlength="3000" rows="3" placeholder="e.g. Works Order no., due date, inspection requirements" style="width:100%; padding:12px; background:#0a0c14; border:1px solid var(--border); color:white; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
+                    <div><label>Work Description / Notes</label><textarea id="bDesc" maxlength="3000" rows="3" placeholder="e.g. Works Order no., due date, inspection requirements"></textarea></div>
                 </div>
                 <div style="margin-bottom:15px;">
                     <label>Work Items <span class="muted" style="text-transform:none; font-weight:normal;">(supervisors report the quantity done for each item; block % is calculated from these)</span></label>
@@ -196,11 +252,17 @@
                 <p id="bError" style="color:var(--danger); font-size:0.75rem; margin-top:8px;"></p>
                 <table style="margin-top:10px;"><thead><tr><th style="width:110px">Block</th><th>Work Description</th><th style="width:18%">Progress</th><th>Last Report</th><th style="width:120px">Actions</th></tr></thead><tbody id="dBlockBody"></tbody></table>
             </div>
+            <div class="card">
+                <h3><i class="fas fa-user-shield"></i> Supervisor Access</h3>
+                <p class="muted">Tick the supervisors who can see and report on this project. The supervisor who created it always keeps access.</p>
+                <div class="access-list" id="dAccessList"></div>
+                <div style="display:flex; align-items:center; gap:12px;"><button class="btn-main" style="width:auto; padding:9px 22px;" onclick="saveProjectAccess()">Save Access</button><span id="dAccessMsg" class="muted"></span></div>
+            </div>
             <div class="stats-grid">
                 <div class="stat-card"><h2 id="d-staff">0</h2><p>Staff Assigned</p></div>
-                <div class="stat-card" style="border-color:var(--success)"><h2 id="d-onsite">0</h2><p>On-Site Now</p></div>
-                <div class="stat-card" style="border-color:#8e44ad"><h2 id="d-eq">0</h2><p>Assets Deployed</p></div>
-                <div class="stat-card" style="border-color:var(--accent)"><h2 id="d-reports">0</h2><p>Reports Filed</p></div>
+                <div class="stat-card" style="border-top-color:var(--success)"><h2 id="d-onsite">0</h2><p>On-Site Now</p></div>
+                <div class="stat-card" style="border-top-color:#8e44ad"><h2 id="d-eq">0</h2><p>Assets Deployed</p></div>
+                <div class="stat-card" style="border-top-color:var(--accent)"><h2 id="d-reports">0</h2><p>Reports Filed</p></div>
             </div>
             <div class="card"><h3>Manpower</h3><table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="dManBody"></tbody></table></div>
             <div class="card"><h3>Equipment</h3><table><thead><tr><th>Asset</th><th>Serial ID</th></tr></thead><tbody id="dEqBody"></tbody></table></div>
@@ -273,13 +335,15 @@
             </div>
             <div class="card">
                 <h3>Supervisor Logins</h3>
-                <table><thead><tr><th>Username</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="supBody"></tbody></table>
+                <p class="muted" style="margin-bottom:10px;">Click <strong>Projects</strong> to choose which projects a supervisor can see and report on. Supervisors can also always report on projects they created themselves.</p>
+                <table><thead><tr><th>Username</th><th>Status</th><th>Projects They Can Report On</th><th>Created</th><th style="width:190px">Actions</th></tr></thead><tbody id="supBody"></tbody></table>
                 <p class="muted" style="margin-top:12px;">Removing a supervisor blocks them from the project report page straight away; their past reports are kept. If a supervisor forgets their password: Remove them here, delete their login under Firebase Console → Authentication → Users, then add them again with a new one-time password.</p>
             </div>
         </div>
 
         <div id="tab-leads" class="tab-content hidden">
             <div class="card"><table><thead><tr><th>Date</th><th>Name</th><th>Message</th><th>Actions</th></tr></thead><tbody id="leadTableBody"></tbody></table></div>
+        </div>
         </div>
     </main>
 
@@ -375,7 +439,7 @@
                 });
                 dropdowns.forEach(s => s.innerHTML = opts);
                 document.getElementById('stat-proj').innerText = actives;
-                renderOverview(); renderDetail();
+                renderOverview(); renderDetail(); renderSupervisors();
             };
             onSnapshot(collection(db, "projects"), snap => {
                 projRaw = {}; projLoaded = true;
@@ -517,6 +581,8 @@
                     reports.slice(i, i + 400).forEach(r => batch.delete(doc(db, "project_reports", r._id)));
                     await batch.commit();
                 }
+                const withAccess = supCache.filter(s => (s.projects || []).includes(id));
+                if (withAccess.length) { const b2 = writeBatch(db); withAccess.forEach(s => b2.set(doc(db, "supervisors", s.username), { projects: s.projects.filter(x => x !== id) }, { merge: true })); await b2.commit(); }
                 if (detailId === id) { detailId = null; showTab('reports', document.getElementById('nav-reports')); }
             }
         };
@@ -527,15 +593,61 @@
         // A second Firebase app instance creates accounts without signing the admin out.
         const creatorAuth = getAuth(initializeApp(firebaseConfig, 'account-creator'));
         let supCache = [];
+        let accessOpenFor = null; // username whose project checklist is open
+        const projName = id => (projCache[id] && projCache[id].name) || id;
+        const sortedProjects = () => Object.values(projCache).sort((a, b) => (a.status === 'Completed') - (b.status === 'Completed') || String(a.name).localeCompare(String(b.name)));
+        // Keep unsaved ticks when live data refreshes the lists.
+        const ticked = id => { const el = document.getElementById(id); return el ? new Set([...el.querySelectorAll('input:checked')].map(i => i.value)) : null; };
         function renderSupervisors() {
-            document.getElementById('supBody').innerHTML = supCache.length ? supCache
-                .sort((a, b) => a.username.localeCompare(b.username))
-                .map(s => `<tr><td><strong>${esc(s.displayName || s.username)}</strong><br><span class="muted">${esc(s.username)}</span></td>
+            const keepOpen = accessOpenFor ? ticked('accessList') : null;
+            const rows = supCache.sort((a, b) => a.username.localeCompare(b.username)).map(s => {
+                const mine = (Array.isArray(s.projects) ? s.projects : []).filter(id => projCache[id]);
+                const chips = mine.length ? mine.map(id => `<span class="chip">${esc(projName(id))}</span>`).join('') : '<span class="muted">None yet</span>';
+                let html = `<tr><td><strong>${esc(s.displayName || s.username)}</strong><br><span class="muted">${esc(s.username)}</span></td>
                     <td>${s.mustChangePassword ? '<span class="badge b-warn">Waiting for first login</span>' : '<span class="badge b-ok">Active</span>'}</td>
+                    <td>${chips}</td>
                     <td>${s.createdAt ? fmtDate(String(s.createdAt).slice(0, 10)) : '—'}</td>
-                    <td><button class="btn-del" onclick="removeSupervisor(${jsArg(s.username)})">Remove</button></td></tr>`).join('')
-                : '<tr><td colspan="4" class="muted">No supervisor logins yet.</td></tr>';
+                    <td><button class="btn-edit" onclick="openAccess(${jsArg(s.username)})"><i class="fas fa-folder-open"></i> Projects</button> <button class="btn-del" onclick="removeSupervisor(${jsArg(s.username)})">Remove</button></td></tr>`;
+                if (accessOpenFor === s.username) {
+                    const list = sortedProjects();
+                    html += `<tr class="access-edit"><td colspan="5">
+                        <strong>Projects ${esc(s.displayName || s.username)} can report on</strong>
+                        <div class="access-list" id="accessList">${list.length ? list.map(p => `<label><input type="checkbox" value="${esc(p.id)}" ${(keepOpen ? keepOpen.has(p.id) : mine.includes(p.id)) ? 'checked' : ''}> ${esc(p.name)}${p.status === 'Completed' ? ' <span class="muted">(Completed)</span>' : ''}</label>`).join('') : '<span class="muted">No projects yet.</span>'}</div>
+                        <div style="display:flex; gap:10px;"><button class="btn-main" style="width:auto; padding:9px 22px;" onclick="saveAccess(${jsArg(s.username)})">Save</button><button class="btn-edit" onclick="openAccess(null)">Cancel</button></div>
+                    </td></tr>`;
+                }
+                return html;
+            });
+            document.getElementById('supBody').innerHTML = rows.length ? rows.join('') : '<tr><td colspan="5" class="muted">No supervisor logins yet.</td></tr>';
+            renderProjectAccess();
         }
+        window.openAccess = (username) => { accessOpenFor = username; renderSupervisors(); };
+        window.saveAccess = async (username) => {
+            const ids = [...document.querySelectorAll('#accessList input:checked')].map(i => i.value);
+            await setDoc(doc(db, "supervisors", username), { projects: ids }, { merge: true });
+            accessOpenFor = null; renderSupervisors();
+        };
+
+        // Project detail: which supervisors can report on this project
+        let accessShownFor = null;
+        function renderProjectAccess() {
+            const box = document.getElementById('dAccessList'); if (!box || !detailId) return;
+            const keep = accessShownFor === detailId ? ticked('dAccessList') : null;
+            accessShownFor = detailId;
+            box.innerHTML = supCache.length ? supCache.map(s => `<label><input type="checkbox" value="${esc(s.username)}" ${(keep ? keep.has(s.username) : (s.projects || []).includes(detailId)) ? 'checked' : ''}> ${esc(s.displayName || s.username)}</label>`).join('')
+                : '<span class="muted">No supervisor logins yet — add them under Supervisors.</span>';
+        }
+        window.saveProjectAccess = async () => {
+            const chosen = new Set([...document.querySelectorAll('#dAccessList input:checked')].map(i => i.value));
+            const batch = writeBatch(db); let changes = 0;
+            supCache.forEach(s => {
+                const cur = Array.isArray(s.projects) ? s.projects : [];
+                const has = cur.includes(detailId), want = chosen.has(s.username);
+                if (has !== want) { changes++; batch.set(doc(db, "supervisors", s.username), { projects: want ? [...cur, detailId] : cur.filter(x => x !== detailId) }, { merge: true }); }
+            });
+            if (changes) await batch.commit();
+            const m = document.getElementById('dAccessMsg'); m.innerText = changes ? 'Saved.' : 'No changes.'; setTimeout(() => m.innerText = '', 2500);
+        };
         window.addSupervisor = async () => {
             const msg = document.getElementById('sMsg'), btn = document.getElementById('sAddBtn');
             const display = document.getElementById('sUser').value.trim();
@@ -595,6 +707,20 @@
             document.getElementById('tab-'+id).classList.remove('hidden');
             const b = btn || (window.event && window.event.currentTarget);
             if (b && b.classList) b.classList.add('active');
+            const titles = {
+                dash: ['Dashboard', 'Overview of live projects and staff.'],
+                projects: ['Projects', 'Create and edit projects, and choose what shows on the website.'],
+                reports: ['Project Reports', 'Daily work completion across all projects.'],
+                detail: ['Project Details', 'Blocks, work items, supervisor access and daily reports.'],
+                supervisors: ['Supervisors', 'Logins for the supervisor page, and which projects each supervisor can report on.'],
+                manpower: ['Manpower Hub', 'Staff, assignments and batch attendance.'],
+                equipment: ['Equipment', 'Assets and where they are deployed.'],
+                attendance: ['Attendance', 'Attendance logs and PDF export.'],
+                leads: ['Inquiries', 'Messages from the website contact and careers forms.']
+            };
+            const [t, s] = titles[id] || ['', ''];
+            document.getElementById('page-title').innerText = t;
+            document.getElementById('page-sub').innerText = s;
             document.getElementById('viewport').scrollTop = 0;
         };
 
@@ -678,6 +804,7 @@
                 }).join('');
                 return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisorName || last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
             }).join('') : '<tr><td colspan="5" class="muted">No blocks yet. Add the first block above.</td></tr>';
+            renderProjectAccess();
         }
 
         // ---------- Blocks (admin only) ----------
