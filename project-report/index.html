@@ -99,6 +99,11 @@
         .report dl { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; }
         .report dt { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; padding-top: 2px; }
         .report dd { white-space: pre-wrap; word-break: break-word; }
+        .r-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+        .btn-sm { background: #fff; border: 1px solid var(--blue); color: var(--blue); border-radius: 5px; padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .btn-sm:hover { background: #eaf3fb; }
+        .btn-sm.danger { border-color: var(--bad); color: var(--bad); }
+        .btn-sm.danger:hover { background: #fbe4e2; }
         @media (max-width: 520px) { .report dl { grid-template-columns: 1fr; } .report dd { margin-bottom: 6px; } }
 
         #login-view, #pw-view { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 70px); padding: 20px 16px; }
@@ -247,6 +252,7 @@
                     </div>
                     <div class="field"><label for="rf-issues">Issues / Delays / Safety</label><textarea id="rf-issues" maxlength="3000" placeholder="Anything blocking progress, material shortages, safety observations…"></textarea></div>
                     <div class="field"><label for="rf-next">Plan for Next Day</label><textarea id="rf-next" maxlength="3000"></textarea></div>
+                    <div class="field" id="rf-reason-wrap" hidden><label for="rf-reason">Reason for Change <span class="meta" style="text-transform:none; font-weight:400;">(optional, saved in the change log)</span></label><input id="rf-reason" maxlength="300" placeholder="e.g. Wrong quantity entered"></div>
                     <button class="btn btn-primary btn-block" type="submit" id="rf-submit"><i class="fas fa-paper-plane"></i> Submit Report</button>
                 </form>
 
@@ -264,7 +270,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, addDoc, collection, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
         const app = initializeApp(firebaseConfig);
@@ -278,6 +284,7 @@
         const fmtDate = s => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }); };
         const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
         const pct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+        const jsArg = s => esc(JSON.stringify(String(s ?? '')));
         const healthBadge = h => { if (!h) return '<span class="badge b-muted">No reports</span>'; const cls = h === 'On Track' ? 'b-ok' : h === 'At Risk' ? 'b-warn' : 'b-bad'; return `<span class="badge ${cls}">${esc(h)}</span>`; };
         const lastText = s => { const n = daysAgo(s); if (n === null) return 'No reports yet'; if (n === 0) return 'Last report today'; if (n === 1) return 'Last report yesterday'; return `Last report ${n} days ago`; };
 
@@ -636,9 +643,11 @@
                 $('rf-work').value = mine.workDone || ''; $('rf-manpower').value = mine.manpower ?? '';
                 $('rf-hours').value = mine.hours ?? ''; $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
                 $('rf-submit').innerHTML = '<i class="fas fa-save"></i> Update Report';
+                $('rf-reason-wrap').hidden = false; $('rf-reason').value = '';
                 renderItems(); fillItems(mine.itemsDone);
             } else {
                 n.hidden = true;
+                $('rf-reason-wrap').hidden = true; $('rf-reason').value = '';
                 renderItems(); fillItems([]);
                 $('rf-submit').innerHTML = '<i class="fas fa-paper-plane"></i> Submit Report';
             }
@@ -704,11 +713,71 @@
 
             $('rf-submit').disabled = true;
             try {
+                const old = history.find(r => r._id === id);
                 await setDoc(doc(db, 'project_reports', id), data, { merge: true });
-                if (Object.keys(upd).length) await setDoc(doc(db, 'project_private', currentId), upd, { merge: true });
+                if (old) {
+                    // Changing an existing report: recalculate the project summary from all reports and log the change.
+                    await recomputeSummary(p, history.map(r => r._id === id ? { ...r, ...data } : r));
+                    const before = pickLog(old), after = pickLog({ ...old, ...data });
+                    const changed = LOG_FIELDS.filter(k => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+                    if (changed.length) await writeLog('edit', { ...old, _id: id }, { before, after, changed, reason: $('rf-reason').value.trim() });
+                } else if (Object.keys(upd).length) {
+                    await setDoc(doc(db, 'project_private', currentId), upd, { merge: true });
+                }
+                $('rf-reason').value = '';
                 toast(isNew ? 'Report submitted' : 'Report updated');
             } catch (err) { toast('Could not save report: ' + err.message, 'err'); }
             finally { $('rf-submit').disabled = false; }
+        };
+
+        // ---------- change log, delete and recalculation ----------
+        const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'manpower', 'hours', 'issues', 'nextPlan'];
+        const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] ?? null]));
+        async function writeLog(action, r, extra) {
+            await addDoc(collection(db, 'report_logs'), {
+                action, reportId: r._id, projectId: r.projectId, projectName: r.projectName || '', block: r.block || null, reportDate: r.date,
+                reportBy: r.supervisorName || r.supervisor || '', by: myName, byEmail: user.email, byUid: user.uid,
+                source: 'Supervisor page', at: serverTimestamp(), atIso: new Date().toISOString(), ...extra
+            });
+        }
+        // Rebuild the project's progress summary from its reports (used after an edit or a delete).
+        async function recomputeSummary(p, reports) {
+            const blocks = blocksOf(p), bp = {};
+            const latest = list => list.slice().sort((a, b) => b.date.localeCompare(a.date))[0];
+            blocks.forEach(b => {
+                const rs = reports.filter(r => r.block === b.no), items = itemsOf(b);
+                if (items.length) {
+                    const t = {}; rs.forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
+                    bp[b.no] = itemsPct(items, t);
+                } else { const l = latest(rs); bp[b.no] = l ? pct(l.progress) : 0; }
+            });
+            const last = latest(reports);
+            const upd = {
+                progress: blocks.length ? blockAvg(blocks, bp) : (last ? pct(last.progress) : 0),
+                health: last ? (last.health || 'On Track') : null,
+                lastReportDate: last ? last.date : null,
+                lastReportBy: last ? (last.supervisorName || last.supervisor || '') : null
+            };
+            if (blocks.length) upd.blockProgress = bp;
+            await setDoc(doc(db, 'project_private', p.id), upd, { merge: true });
+        }
+        window.editMyReport = (id) => {
+            const r = history.find(x => x._id === id); if (!r) return;
+            if (r.block && blocksOf(projects[currentId]).some(b => b.no === r.block)) { $('rf-block').value = r.block; onBlockChange(false); }
+            $('rf-date').value = r.date; prefilledKey = null; prefillForDate();
+            $('report-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            toast(`Editing your ${fmtDate(r.date)} report${r.block ? ' for Block ' + r.block : ''}`);
+        };
+        window.deleteMyReport = async (id) => {
+            const r = history.find(x => x._id === id), p = projects[currentId]; if (!r || !p) return;
+            const reason = prompt(`Delete your report for ${fmtDate(r.date)}${r.block ? ' (Block ' + r.block + ')' : ''}? This cannot be undone.\n\nReason (optional):`, '');
+            if (reason === null) return;
+            try {
+                await deleteDoc(doc(db, 'project_reports', id));
+                await recomputeSummary(p, history.filter(x => x._id !== id));
+                await writeLog('delete', r, { before: pickLog(r), reason: reason.trim() });
+                toast('Report deleted');
+            } catch (err) { toast('Could not delete report: ' + err.message, 'err'); }
         };
 
         function renderHistory() {
@@ -725,6 +794,10 @@
                         ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
                         <dt>Supervisor</dt><dd>${esc(r.supervisorName || r.supervisor)}</dd>
                     </dl>
+                    ${r.supervisorUid === user.uid ? `<div class="r-actions">
+                        <button type="button" class="btn-sm" onclick="editMyReport(${jsArg(r._id)})"><i class="fas fa-pen"></i> Edit</button>
+                        <button type="button" class="btn-sm danger" onclick="deleteMyReport(${jsArg(r._id)})"><i class="fas fa-trash"></i> Delete</button>
+                    </div>` : ''}
                 </div>`).join('') + (history.length > 30 ? `<p class="meta">Showing the latest 30 of ${history.length} reports.</p>` : '');
         }
     </script>
