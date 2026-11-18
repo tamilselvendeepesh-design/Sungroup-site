@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Project Reports | Sungroup Engineering</title>
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --blue: #1e73be; --blue-dark: #155a96; --orange: #f0a123;
+            --bg: #f4f7f9; --card: #ffffff; --border: #e1e6eb; --text: #2b3138; --muted: #6b7680;
+            --ok: #2e9e5b; --warn: #d99100; --bad: #d64541;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+        [hidden] { display: none !important; }
+        .wrap { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 16px; }
+
+        header.top { background: #fff; border-bottom: 3px solid var(--blue); padding: 10px 0; position: sticky; top: 0; z-index: 50; }
+        .top-flex { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .top-flex img { height: 44px; display: block; }
+        .user-box { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); min-width: 0; }
+        .user-box span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+
+        .page-title { background: var(--blue); color: #fff; padding: 22px 0; border-top: 4px solid var(--orange); }
+        .page-title h1 { font-size: 22px; }
+        .page-title p { opacity: .85; font-size: 14px; }
+
+        main { padding: 20px 0 50px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+        h2 { font-size: 18px; margin-bottom: 12px; color: var(--blue); }
+        h3 { font-size: 15px; margin-bottom: 8px; }
+
+        label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 5px; }
+        input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; background: #fff; color: var(--text); }
+        input:focus, select:focus, textarea:focus { outline: 2px solid rgba(30,115,190,.35); border-color: var(--blue); }
+        textarea { min-height: 90px; resize: vertical; }
+        .field { margin-bottom: 14px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 14px; }
+        .req { color: var(--bad); }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 18px; border-radius: 6px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; }
+        .btn-primary { background: var(--blue); color: #fff; }
+        .btn-primary:hover { background: var(--blue-dark); }
+        .btn-accent { background: var(--orange); color: #fff; }
+        .btn-ghost { background: none; color: var(--blue); border: 2px solid var(--blue); padding: 8px 14px; }
+        .btn-link { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; }
+        .btn-block { width: 100%; }
+        .btn:disabled { opacity: .6; cursor: wait; }
+
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+        .toolbar input[type=search] { flex: 1; min-width: 180px; }
+        .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+        .chk input { width: auto; }
+
+        .proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+        .proj-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px; cursor: pointer; transition: box-shadow .2s, border-color .2s; text-align: left; width: 100%; font-size: 14px; color: var(--text); }
+        .proj-card:hover { border-color: var(--blue); box-shadow: 0 4px 14px rgba(30,115,190,.12); }
+        .proj-card h3 { font-size: 16px; margin-bottom: 2px; }
+        .meta { font-size: 13px; color: var(--muted); }
+        .proj-card .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; }
+
+        .pbar { height: 8px; background: #e6ebf0; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .pbar > span { display: block; height: 100%; background: var(--blue); border-radius: 4px; }
+        .pbar.big { height: 12px; }
+
+        .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .b-ok { background: #e3f4ea; color: var(--ok); }
+        .b-warn { background: #fdf1d8; color: #a86f00; }
+        .b-bad { background: #fbe4e2; color: var(--bad); }
+        .b-muted { background: #eef1f4; color: var(--muted); }
+
+        .range-row { display: flex; align-items: center; gap: 12px; }
+        .range-row input[type=range] { flex: 1; padding: 0; accent-color: var(--blue); }
+        .range-row input[type=number] { width: 90px; }
+
+        .notice { background: #eaf3fb; border-left: 4px solid var(--blue); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+        .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
+
+        .report { border-left: 3px solid var(--blue); background: #f8fafc; padding: 12px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+        .report .r-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+        .report dl { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; }
+        .report dt { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; padding-top: 2px; }
+        .report dd { white-space: pre-wrap; word-break: break-word; }
+        @media (max-width: 520px) { .report dl { grid-template-columns: 1fr; } .report dd { margin-bottom: 6px; } }
+
+        #login-view { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 70px); padding: 20px 16px; }
+        #login-view .card { width: 100%; max-width: 380px; }
+        .error { color: var(--bad); font-size: 13px; min-height: 18px; margin-top: 8px; }
+
+        #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #222; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 100; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: calc(100% - 32px); }
+        #toast.ok { background: var(--ok); }
+        #toast.err { background: var(--bad); }
+
+        footer { text-align: center; font-size: 12px; color: var(--muted); padding: 20px 0 30px; }
+    </style>
+</head>
+<body>
+    <header class="top">
+        <div class="wrap top-flex">
+            <a href="../index.html"><img src="../logo.png" alt="Sungroup"></a>
+            <div class="user-box" id="user-box" hidden>
+                <i class="fas fa-user-circle"></i><span id="user-email"></span>
+                <button class="btn-link" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- LOGIN -->
+    <section id="login-view" hidden>
+        <form class="card" id="login-form">
+            <h2><i class="fas fa-clipboard-check"></i> Supervisor Login</h2>
+            <p class="meta" style="margin-bottom:16px;">Sign in to submit daily project work reports.</p>
+            <div class="field"><label for="email">Email</label><input type="email" id="email" autocomplete="username" required></div>
+            <div class="field"><label for="pass">Password</label><input type="password" id="pass" autocomplete="current-password" required></div>
+            <button class="btn btn-primary btn-block" id="login-btn" type="submit">Sign In</button>
+            <p class="error" id="login-error"></p>
+        </form>
+    </section>
+
+    <!-- APP -->
+    <div id="app-view" hidden>
+        <div class="page-title">
+            <div class="wrap">
+                <h1 id="view-title">Project Work Reports</h1>
+                <p id="view-sub">Select a project to file today's work completion report.</p>
+            </div>
+        </div>
+
+        <main class="wrap">
+            <!-- HOME: project list -->
+            <section id="view-home">
+                <div class="toolbar">
+                    <input type="search" id="search" placeholder="Search projects…">
+                    <label class="chk"><input type="checkbox" id="show-completed"> Show completed</label>
+                    <button class="btn btn-accent" id="new-proj-btn"><i class="fas fa-plus"></i> New Project</button>
+                </div>
+                <div class="proj-grid" id="proj-grid"></div>
+            </section>
+
+            <!-- NEW PROJECT -->
+            <section id="view-new" hidden>
+                <button class="btn-link" data-back style="margin-bottom:10px;"><i class="fas fa-arrow-left"></i> Back to projects</button>
+                <form class="card" id="new-form">
+                    <h2>Create New Project</h2>
+                    <div class="grid-2">
+                        <div class="field"><label for="np-name">Project Name <span class="req">*</span></label><input id="np-name" required maxlength="120"></div>
+                        <div class="field"><label for="np-client">Client</label><input id="np-client" maxlength="120"></div>
+                        <div class="field"><label for="np-location">Site / Location</label><input id="np-location" maxlength="160"></div>
+                        <div class="field"><label for="np-start">Start Date</label><input type="date" id="np-start"></div>
+                        <div class="field"><label for="np-target">Target Completion</label><input type="date" id="np-target"></div>
+                    </div>
+                    <div class="field"><label for="np-desc">Scope of Work</label><textarea id="np-desc" maxlength="3000"></textarea></div>
+                    <button class="btn btn-primary btn-block" type="submit" id="np-submit"><i class="fas fa-save"></i> Create Project</button>
+                    <p class="error" id="np-error"></p>
+                </form>
+            </section>
+
+            <!-- REPORT for a project -->
+            <section id="view-report" hidden>
+                <button class="btn-link" data-back style="margin-bottom:10px;"><i class="fas fa-arrow-left"></i> Back to projects</button>
+
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                        <div>
+                            <h2 id="rp-name" style="margin-bottom:2px;"></h2>
+                            <p class="meta" id="rp-meta"></p>
+                        </div>
+                        <div id="rp-health"></div>
+                    </div>
+                    <div class="pbar big"><span id="rp-bar" style="width:0%"></span></div>
+                    <p class="meta" style="margin-top:6px;"><strong id="rp-progress">0%</strong> complete · <span id="rp-last"></span></p>
+                </div>
+
+                <form class="card" id="report-form">
+                    <h2>Daily Work Completion Report</h2>
+                    <div class="notice" id="rf-notice" hidden></div>
+                    <div class="grid-2">
+                        <div class="field"><label for="rf-date">Report Date <span class="req">*</span></label><input type="date" id="rf-date" required></div>
+                        <div class="field"><label for="rf-health">Status</label>
+                            <select id="rf-health">
+                                <option>On Track</option><option>At Risk</option><option>Delayed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="rf-progress">Overall Completion (%) <span class="req">*</span></label>
+                        <div class="range-row">
+                            <input type="range" id="rf-progress-range" min="0" max="100" step="1" value="0" aria-label="Completion slider">
+                            <input type="number" id="rf-progress" min="0" max="100" step="1" value="0" required>
+                        </div>
+                    </div>
+                    <div class="field"><label for="rf-work">Work Completed Today <span class="req">*</span></label><textarea id="rf-work" required maxlength="5000" placeholder="e.g. Cable pulling for MSB-2 done (120m). Terminations 60% on DB-4…"></textarea></div>
+                    <div class="grid-2">
+                        <div class="field"><label for="rf-manpower">Manpower On Site</label><input type="number" id="rf-manpower" min="0" step="1" placeholder="0"></div>
+                        <div class="field"><label for="rf-hours">Working Hours</label><input type="number" id="rf-hours" min="0" step="0.5" placeholder="e.g. 9"></div>
+                    </div>
+                    <div class="field"><label for="rf-issues">Issues / Delays / Safety</label><textarea id="rf-issues" maxlength="3000" placeholder="Anything blocking progress, material shortages, safety observations…"></textarea></div>
+                    <div class="field"><label for="rf-next">Plan for Next Day</label><textarea id="rf-next" maxlength="3000"></textarea></div>
+                    <button class="btn btn-primary btn-block" type="submit" id="rf-submit"><i class="fas fa-paper-plane"></i> Submit Report</button>
+                </form>
+
+                <div class="card">
+                    <h2>Report History</h2>
+                    <div id="rp-history"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast" hidden></div>
+    <footer>&copy; 2026 Sungroup Engineering Pte Ltd · Internal use only</footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ---------- helpers ----------
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const localDate = (d = new Date()) => { const z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+        const fmtDate = s => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }); };
+        const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
+        const pct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+        const healthBadge = h => { if (!h) return '<span class="badge b-muted">No reports</span>'; const cls = h === 'On Track' ? 'b-ok' : h === 'At Risk' ? 'b-warn' : 'b-bad'; return `<span class="badge ${cls}">${esc(h)}</span>`; };
+        const lastText = s => { const n = daysAgo(s); if (n === null) return 'No reports yet'; if (n === 0) return 'Last report today'; if (n === 1) return 'Last report yesterday'; return `Last report ${n} days ago`; };
+
+        let toastTimer;
+        function toast(msg, kind = 'ok') { const t = $('toast'); t.textContent = msg; t.className = kind; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3500); }
+
+        // ---------- state ----------
+        let user = null;
+        let projects = {};          // id -> project
+        let todayReported = new Set(); // projectIds with a report dated today
+        let history = [];           // reports of the open project
+        let currentId = null;
+        let unsubs = [], unsubHistory = null;
+
+        // ---------- auth ----------
+        onAuthStateChanged(auth, u => {
+            user = u;
+            $('login-view').hidden = !!u;
+            $('app-view').hidden = !u;
+            $('user-box').hidden = !u;
+            unsubs.forEach(f => f()); unsubs = [];
+            if (unsubHistory) { unsubHistory(); unsubHistory = null; }
+            if (u) { $('user-email').textContent = u.email; startSync(); showView('home'); }
+        });
+
+        $('login-form').onsubmit = async e => {
+            e.preventDefault();
+            $('login-error').textContent = ''; $('login-btn').disabled = true;
+            try { await signInWithEmailAndPassword(auth, $('email').value.trim(), $('pass').value); }
+            catch (err) { $('login-error').textContent = /invalid|wrong|not-found|credential/i.test(err.code || '') ? 'Incorrect email or password.' : 'Sign-in failed. Please try again.'; }
+            finally { $('login-btn').disabled = false; }
+        };
+        $('logout-btn').onclick = () => signOut(auth);
+
+        // ---------- data sync ----------
+        // "projects" holds public info (shown on the website if showOnWebsite is true).
+        // "project_private" holds internal info: progress, health, last report, who created it, scope.
+        let projRaw = {}, privRaw = {};
+        function mergeProjects() {
+            projects = {};
+            Object.entries(projRaw).forEach(([id, p]) => projects[id] = { ...(privRaw[id] || {}), ...p, id });
+            renderProjects();
+            if (currentId) renderProjectHeader();
+        }
+        function startSync() {
+            unsubs.push(onSnapshot(collection(db, 'projects'), snap => {
+                projRaw = {}; snap.forEach(d => projRaw[d.id] = d.data()); mergeProjects();
+            }, err => toast('Could not load projects: ' + err.message, 'err')));
+            unsubs.push(onSnapshot(collection(db, 'project_private'), snap => {
+                privRaw = {}; snap.forEach(d => privRaw[d.id] = d.data()); mergeProjects();
+            }));
+
+            unsubs.push(onSnapshot(query(collection(db, 'project_reports'), where('date', '==', localDate())), snap => {
+                todayReported = new Set(snap.docs.map(d => d.data().projectId));
+                renderProjects();
+            }));
+        }
+
+        // ---------- views ----------
+        function showView(v) {
+            ['home', 'new', 'report'].forEach(n => $('view-' + n).hidden = n !== v);
+            if (v !== 'report') { currentId = null; if (unsubHistory) { unsubHistory(); unsubHistory = null; } }
+            if (v === 'home') { $('view-title').textContent = 'Project Work Reports'; $('view-sub').textContent = "Select a project to file today's work completion report."; }
+            if (v === 'new') { $('view-title').textContent = 'New Project'; $('view-sub').textContent = 'Register a new project so reports can be filed against it.'; }
+            window.scrollTo(0, 0);
+        }
+        document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => showView('home'));
+        $('new-proj-btn').onclick = () => { $('new-form').reset(); $('np-error').textContent = ''; showView('new'); };
+        $('search').oninput = renderProjects;
+        $('show-completed').onchange = renderProjects;
+
+        function renderProjects() {
+            const q = $('search').value.trim().toLowerCase();
+            const showDone = $('show-completed').checked;
+            const list = Object.values(projects)
+                .filter(p => showDone || p.status !== 'Completed')
+                .filter(p => !q || [p.name, p.client, p.location].some(x => String(x || '').toLowerCase().includes(q)))
+                .sort((a, b) => (a.status === 'Completed') - (b.status === 'Completed') || String(a.name).localeCompare(String(b.name)));
+            const g = $('proj-grid');
+            if (!list.length) { g.innerHTML = `<div class="empty card" style="grid-column:1/-1">${Object.keys(projects).length ? 'No projects match your search.' : 'No projects yet. Click <b>New Project</b> to create one.'}</div>`; return; }
+            g.innerHTML = list.map(p => {
+                const done = todayReported.has(p.id);
+                const status = p.status === 'Completed' ? '<span class="badge b-muted">Completed</span>'
+                    : done ? '<span class="badge b-ok"><i class="fas fa-check"></i> Reported today</span>'
+                    : '<span class="badge b-warn">No report today</span>';
+                return `<button class="proj-card" data-id="${esc(p.id)}">
+                    <h3>${esc(p.name)}</h3>
+                    <div class="meta">${esc(p.client || 'No client')}${p.location ? ' · ' + esc(p.location) : ''}</div>
+                    <div class="pbar"><span style="width:${pct(p.progress)}%"></span></div>
+                    <div class="row"><strong>${pct(p.progress)}%</strong>${healthBadge(p.health)}</div>
+                    <div class="row"><span class="meta">${lastText(p.lastReportDate)}</span>${status}</div>
+                </button>`;
+            }).join('');
+            g.querySelectorAll('.proj-card').forEach(c => c.onclick = () => openProject(c.dataset.id));
+        }
+
+        // ---------- new project ----------
+        $('new-form').onsubmit = async e => {
+            e.preventDefault();
+            const name = $('np-name').value.trim().replace(/\s+/g, ' ');
+            if (!name) return;
+            const id = name.replace(/\//g, '-');
+            if (Object.values(projects).some(p => String(p.name || '').toLowerCase() === name.toLowerCase())) { $('np-error').textContent = 'A project with this name already exists.'; return; }
+            $('np-submit').disabled = true; $('np-error').textContent = '';
+            try {
+                const existing = await getDoc(doc(db, 'projects', id));
+                if (existing.exists()) { $('np-error').textContent = 'A project with this name already exists.'; return; }
+                const location = $('np-location').value.trim();
+                // Supervisor-created projects stay off the public website until an admin turns them on.
+                await setDoc(doc(db, 'projects', id), {
+                    name, client: $('np-client').value.trim(), location, loc: location,
+                    startDate: $('np-start').value, targetDate: $('np-target').value,
+                    status: 'Active', showOnWebsite: false
+                });
+                await setDoc(doc(db, 'project_private', id), {
+                    description: $('np-desc').value.trim(), progress: 0, createdBy: user.email, createdAt: serverTimestamp()
+                });
+                toast('Project created');
+                projects[id] = projects[id] || { id, name, client: $('np-client').value.trim(), status: 'Active', progress: 0 };
+                openProject(id);
+            } catch (err) { $('np-error').textContent = 'Could not create project: ' + err.message; }
+            finally { $('np-submit').disabled = false; }
+        };
+
+        // ---------- project report ----------
+        function openProject(id) {
+            showView('report');
+            currentId = id;
+            const p = projects[id] || {};
+            $('view-title').textContent = p.name || id;
+            $('view-sub').textContent = 'File the daily work completion report.';
+            renderProjectHeader();
+            $('report-form').reset();
+            $('rf-date').value = localDate();
+            $('rf-date').max = localDate();
+            setProgress(pct(p.progress));
+            $('rf-health').value = p.health || 'On Track';
+            history = []; prefilledKey = null; renderHistory();
+            unsubHistory = onSnapshot(query(collection(db, 'project_reports'), where('projectId', '==', id)), snap => {
+                history = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a, b) => b.date.localeCompare(a.date) || String(b.supervisor).localeCompare(String(a.supervisor)));
+                renderHistory();
+                prefillForDate();
+            });
+        }
+
+        function renderProjectHeader() {
+            const p = projects[currentId]; if (!p) return;
+            $('rp-name').textContent = p.name;
+            const bits = [p.client, p.location, p.targetDate ? 'Target ' + fmtDate(p.targetDate) : ''].filter(Boolean);
+            $('rp-meta').textContent = bits.join(' · ') || '—';
+            $('rp-health').innerHTML = healthBadge(p.health);
+            $('rp-bar').style.width = pct(p.progress) + '%';
+            $('rp-progress').textContent = pct(p.progress) + '%';
+            $('rp-last').textContent = lastText(p.lastReportDate) + (p.lastReportBy ? ' by ' + p.lastReportBy : '');
+        }
+
+        function setProgress(v) { $('rf-progress').value = v; $('rf-progress-range').value = v; }
+        $('rf-progress-range').oninput = e => $('rf-progress').value = e.target.value;
+        $('rf-progress').oninput = e => $('rf-progress-range').value = pct(e.target.value);
+
+        const myReportId = (pid, date) => `${pid}__${date}__${user.uid}`;
+        let prefilledKey = null; // avoid overwriting what the user is typing on live updates
+        function prefillForDate() {
+            const date = $('rf-date').value;
+            const mine = history.find(r => r._id === myReportId(currentId, date));
+            const key = mine ? mine._id : 'none:' + date;
+            if (key === prefilledKey) return;
+            prefilledKey = key;
+            const n = $('rf-notice');
+            if (mine) {
+                n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> You already submitted a report for ${esc(fmtDate(date))}. Submitting again will update it.`;
+                setProgress(pct(mine.progress)); $('rf-health').value = mine.health || 'On Track';
+                $('rf-work').value = mine.workDone || ''; $('rf-manpower').value = mine.manpower ?? '';
+                $('rf-hours').value = mine.hours ?? ''; $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
+                $('rf-submit').innerHTML = '<i class="fas fa-save"></i> Update Report';
+            } else {
+                n.hidden = true;
+                $('rf-submit').innerHTML = '<i class="fas fa-paper-plane"></i> Submit Report';
+            }
+        }
+        $('rf-date').onchange = () => {
+            const had = $('rf-notice').hidden === false;
+            if (had) { ['rf-work', 'rf-manpower', 'rf-hours', 'rf-issues', 'rf-next'].forEach(k => $(k).value = ''); }
+            prefillForDate();
+        };
+
+        $('report-form').onsubmit = async e => {
+            e.preventDefault();
+            const p = projects[currentId]; if (!p) return;
+            const date = $('rf-date').value;
+            const work = $('rf-work').value.trim();
+            if (!date || !work) { toast('Please fill in the date and work completed.', 'err'); return; }
+            if (date > localDate()) { toast('Report date cannot be in the future.', 'err'); return; }
+            const progress = pct($('rf-progress').value);
+            const num = v => v === '' ? null : Number(v);
+            const id = myReportId(currentId, date);
+            const isNew = !history.some(r => r._id === id);
+            const data = {
+                projectId: currentId, projectName: p.name, date, progress, health: $('rf-health').value,
+                workDone: work, manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
+                issues: $('rf-issues').value.trim(), nextPlan: $('rf-next').value.trim(),
+                supervisor: user.email, supervisorUid: user.uid, updatedAt: serverTimestamp()
+            };
+            if (isNew) data.createdAt = serverTimestamp();
+            $('rf-submit').disabled = true;
+            try {
+                await setDoc(doc(db, 'project_reports', id), data, { merge: true });
+                if (!p.lastReportDate || date >= p.lastReportDate) {
+                    await setDoc(doc(db, 'project_private', currentId), { progress, health: data.health, lastReportDate: date, lastReportBy: user.email }, { merge: true });
+                }
+                toast(isNew ? 'Report submitted' : 'Report updated');
+            } catch (err) { toast('Could not save report: ' + err.message, 'err'); }
+            finally { $('rf-submit').disabled = false; }
+        };
+
+        function renderHistory() {
+            const h = $('rp-history');
+            if (!history.length) { h.innerHTML = '<div class="empty">No reports filed for this project yet.</div>'; return; }
+            h.innerHTML = history.slice(0, 30).map(r => `
+                <div class="report">
+                    <div class="r-head"><strong>${esc(fmtDate(r.date))}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
+                    <dl>
+                        <dt>Work done</dt><dd>${esc(r.workDone)}</dd>
+                        ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
+                        ${r.issues ? `<dt>Issues</dt><dd>${esc(r.issues)}</dd>` : ''}
+                        ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
+                        <dt>Supervisor</dt><dd>${esc(r.supervisor)}</dd>
+                    </dl>
+                </div>`).join('') + (history.length > 30 ? `<p class="meta">Showing the latest 30 of ${history.length} reports.</p>` : '');
+        }
+    </script>
+</body>
+</html>
