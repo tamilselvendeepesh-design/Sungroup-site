@@ -91,6 +91,7 @@
         <button class="nav-item active" onclick="showTab('dash')"><i class="fas fa-chart-line"></i> Dashboard</button>
         <button class="nav-item" onclick="showTab('projects')"><i class="fas fa-ship"></i> Projects</button>
         <button class="nav-item" id="nav-reports" onclick="showTab('reports')"><i class="fas fa-clipboard-list"></i> Project Reports</button>
+        <button class="nav-item" onclick="showTab('supervisors')"><i class="fas fa-user-shield"></i> Supervisors</button>
         <button class="nav-item" onclick="showTab('manpower')"><i class="fas fa-users-cog"></i> Manpower Hub</button>
         <button class="nav-item" onclick="showTab('equipment')"><i class="fas fa-tools"></i> Equipment</button>
         <button class="nav-item" onclick="showTab('attendance')"><i class="fas fa-calendar-check"></i> Attendance</button>
@@ -258,6 +259,25 @@
             <div class="card"><table><thead><tr><th>Date</th><th>Name</th><th>Status</th><th>Actions</th></tr></thead><tbody id="attendTableBody"></tbody></table></div>
         </div>
 
+        <!-- SUPERVISOR ACCOUNTS -->
+        <div id="tab-supervisors" class="tab-content hidden">
+            <div class="card">
+                <h3>Add Supervisor Login</h3>
+                <p class="muted" style="margin-bottom:15px;">Give the supervisor their username and this one-time password. When they first sign in at <a href="/project-report/" target="_blank" style="color:var(--primary)">sungroupengg.com/project-report</a>, they must choose their own password. Nobody else sees it.</p>
+                <div class="grid-inputs">
+                    <div><label>Username</label><input type="text" id="sUser" maxlength="30" placeholder="e.g. Alom" autocomplete="off"></div>
+                    <div><label>One-time Password</label><input type="text" id="sPass" maxlength="64" placeholder="at least 8 characters" autocomplete="off"></div>
+                </div>
+                <button onclick="addSupervisor()" class="btn-main" id="sAddBtn">Create Login</button>
+                <p id="sMsg" style="font-size:0.75rem; margin-top:10px;"></p>
+            </div>
+            <div class="card">
+                <h3>Supervisor Logins</h3>
+                <table><thead><tr><th>Username</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="supBody"></tbody></table>
+                <p class="muted" style="margin-top:12px;">Removing a supervisor blocks them from the project report page straight away; their past reports are kept. If a supervisor forgets their password: Remove them here, delete their login under Firebase Console → Authentication → Users, then add them again with a new one-time password.</p>
+            </div>
+        </div>
+
         <div id="tab-leads" class="tab-content hidden">
             <div class="card"><table><thead><tr><th>Date</th><th>Name</th><th>Message</th><th>Actions</th></tr></thead><tbody id="leadTableBody"></tbody></table></div>
         </div>
@@ -267,7 +287,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, deleteDoc, query, orderBy, getDocs, where, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
@@ -303,7 +323,7 @@
                     ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
                     ${r.issues ? `<dt>Issues</dt><dd style="color:var(--accent)">${esc(r.issues)}</dd>` : ''}
                     ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
-                    <dt>Supervisor</dt><dd>${esc(r.supervisor)}</dd>
+                    <dt>Supervisor</dt><dd>${esc(r.supervisorName || r.supervisor)}</dd>
                 </dl>
             </div>`;
         const sortReports = list => list.slice().sort((a, b) => b.date.localeCompare(a.date) || String(a.projectName).localeCompare(String(b.projectName)));
@@ -370,6 +390,11 @@
                 privRaw = {}; privLoaded = true;
                 snap.forEach(d => privRaw[d.id] = d.data());
                 rebuildProjects();
+            });
+
+            onSnapshot(collection(db, "supervisors"), snap => {
+                supCache = snap.docs.map(d => ({ username: d.id, ...d.data() }));
+                renderSupervisors();
             });
 
             onSnapshot(collection(db, "project_reports"), snap => {
@@ -482,9 +507,68 @@
         window.editEq = async (id) => { const d = (await getDocs(collection(db,"equipment"))).docs.find(x=>x.id===id).data(); document.getElementById('eqName').value=d.name; document.getElementById('eqID').value=d.id; document.getElementById('eqProj').value=d.project; document.getElementById('editEqId').value=id; };
         
         window.kill = async (c, id) => {
-            if(!confirm("Delete?")) return;
+            const reports = c === 'projects' ? repCache.filter(r => r.projectId === id) : [];
+            if (!confirm(reports.length ? `Delete this project and its ${reports.length} daily report(s)? This cannot be undone.` : "Delete?")) return;
             await deleteDoc(doc(db, c, id));
-            if (c === 'projects') await deleteDoc(doc(db, "project_private", id));
+            if (c === 'projects') {
+                await deleteDoc(doc(db, "project_private", id));
+                for (let i = 0; i < reports.length; i += 400) {
+                    const batch = writeBatch(db);
+                    reports.slice(i, i + 400).forEach(r => batch.delete(doc(db, "project_reports", r._id)));
+                    await batch.commit();
+                }
+                if (detailId === id) { detailId = null; showTab('reports', document.getElementById('nav-reports')); }
+            }
+        };
+
+        // ---------- Supervisor logins ----------
+        // Supervisors sign in with a username; behind the scenes it is <username>@staff.sungroupengg.com.
+        const STAFF_DOMAIN = 'staff.sungroupengg.com';
+        // A second Firebase app instance creates accounts without signing the admin out.
+        const creatorAuth = getAuth(initializeApp(firebaseConfig, 'account-creator'));
+        let supCache = [];
+        function renderSupervisors() {
+            document.getElementById('supBody').innerHTML = supCache.length ? supCache
+                .sort((a, b) => a.username.localeCompare(b.username))
+                .map(s => `<tr><td><strong>${esc(s.displayName || s.username)}</strong><br><span class="muted">${esc(s.username)}</span></td>
+                    <td>${s.mustChangePassword ? '<span class="badge b-warn">Waiting for first login</span>' : '<span class="badge b-ok">Active</span>'}</td>
+                    <td>${s.createdAt ? fmtDate(String(s.createdAt).slice(0, 10)) : '—'}</td>
+                    <td><button class="btn-del" onclick="removeSupervisor(${jsArg(s.username)})">Remove</button></td></tr>`).join('')
+                : '<tr><td colspan="4" class="muted">No supervisor logins yet.</td></tr>';
+        }
+        window.addSupervisor = async () => {
+            const msg = document.getElementById('sMsg'), btn = document.getElementById('sAddBtn');
+            const display = document.getElementById('sUser').value.trim();
+            const username = display.toLowerCase();
+            const pass = document.getElementById('sPass').value;
+            msg.style.color = 'var(--danger)';
+            if (!/^[a-z0-9][a-z0-9._-]{1,29}$/.test(username)) { msg.innerText = 'Username: 2–30 letters or numbers, no spaces.'; return; }
+            if (pass.length < 8) { msg.innerText = 'One-time password must be at least 8 characters.'; return; }
+            if (supCache.some(s => s.username === username)) { msg.innerText = `${display} already has a login.`; return; }
+            btn.disabled = true; msg.style.color = 'var(--text)'; msg.innerText = 'Creating…';
+            try {
+                const email = `${username}@${STAFF_DOMAIN}`;
+                try {
+                    await createUserWithEmailAndPassword(creatorAuth, email, pass);
+                } catch (e) {
+                    // Account left over from a removed supervisor: re-enable it only if this one-time password works.
+                    if (e.code !== 'auth/email-already-in-use') throw e;
+                    try { await signInWithEmailAndPassword(creatorAuth, email, pass); }
+                    catch { throw new Error(`The login "${username}" already exists in Firebase. Delete it under Firebase Console → Authentication → Users, then try again.`); }
+                }
+                await signOut(creatorAuth);
+                await setDoc(doc(db, "supervisors", username), { username, displayName: display, mustChangePassword: true, createdAt: new Date().toISOString(), createdBy: auth.currentUser.email });
+                msg.style.color = 'var(--success)';
+                msg.innerText = `Login created. Give ${display} — Username: ${display} · One-time password: the one you typed. They choose their own password on first sign-in.`;
+                document.getElementById('sUser').value = ''; document.getElementById('sPass').value = '';
+            } catch (e) {
+                msg.style.color = 'var(--danger)';
+                msg.innerText = e.code === 'auth/weak-password' ? 'Password too weak — use at least 8 characters.' : (e.message || 'Could not create login.');
+            } finally { btn.disabled = false; }
+        };
+        window.removeSupervisor = async (username) => {
+            if (!confirm(`Remove ${username}? They will no longer be able to file reports. Their past reports are kept.`)) return;
+            await deleteDoc(doc(db, "supervisors", username));
         };
         window.resetAttendance = async () => { if(confirm("Purge all logs?") && prompt("Type RESET:") === "RESET") { const snap = await getDocs(collection(db, "attendance_logs")); const batch = writeBatch(db); snap.forEach(d => batch.delete(d.ref)); await batch.commit(); } };
         window.adjustLog = async (id) => { const s = prompt("New Status:"); if(s) await setDoc(doc(db, "attendance_logs", id), { status: s }, { merge: true }); };
@@ -592,7 +676,7 @@
                     const done = totals[i.code] || 0, ip = i.qty ? Math.min(100, done / i.qty * 100) : 0;
                     return `<div class="item-line"><span>${esc(i.code)}. ${esc(i.name)} — <strong>${fmtQty(done)} / ${fmtQty(i.qty)} ${esc(i.uom)}</strong></span><span>${pbar(ip)}</span></div>`;
                 }).join('');
-                return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
+                return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisorName || last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
             }).join('') : '<tr><td colspan="5" class="muted">No blocks yet. Add the first block above.</td></tr>';
         }
 
@@ -706,7 +790,7 @@
         const pdfCell = 'border:1px solid #ddd;padding:6px;vertical-align:top;font-size:11px;white-space:pre-wrap;';
         const pdfTable = list => `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#eee">
             <th style="${pdfCell}">Date</th><th style="${pdfCell}">Project</th><th style="${pdfCell}">Block</th><th style="${pdfCell}">%</th><th style="${pdfCell}">Status</th><th style="${pdfCell}">Work Done</th><th style="${pdfCell}">Manpower</th><th style="${pdfCell}">Issues</th><th style="${pdfCell}">Supervisor</th></tr></thead><tbody>` +
-            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${esc(r.block || '')}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc([r.workDone, ...qtyLines(r)].filter(Boolean).join('\n'))}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
+            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${esc(r.block || '')}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc([r.workDone, ...qtyLines(r)].filter(Boolean).join('\n'))}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisorName || r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
         function savePDF(html, filename) {
             document.getElementById('pdf-content').innerHTML = html;
             const el = document.getElementById('pdf-export-container'); el.style.display = 'block';
