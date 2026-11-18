@@ -63,6 +63,11 @@
         .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; }
         .card-head h3 { margin: 0; }
         .card-head input, .card-head select { width: auto; padding: 8px 10px; }
+        .items-edit td { padding: 4px 6px; border-bottom: none; }
+        .items-edit input { padding: 8px; }
+        .item-line { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 10px; align-items: center; margin-top: 6px; font-size: 0.75rem; }
+        #dBlockBody td:nth-child(2) { min-width: 320px; }
+        .item-line .pbar { height: 6px; }
         .btn-view { color: white; background: var(--primary-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
         #pdf-export-container { display: none; background: white; color: black; padding: 40px; }
     </style>
@@ -176,7 +181,12 @@
                 <div class="grid-inputs" style="grid-template-columns: 180px 1fr;">
                     <input type="hidden" id="bEditNo">
                     <div><label>Block No.</label><input type="text" id="bNo" maxlength="40" placeholder="e.g. B101"></div>
-                    <div><label>Work Description</label><textarea id="bDesc" maxlength="3000" rows="4" placeholder="e.g. Earth boss without angle bar – 650 pcs&#10;Starter bracket with doubler – 1,450 pcs" style="width:100%; padding:12px; background:#0a0c14; border:1px solid var(--border); color:white; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
+                    <div><label>Work Description / Notes</label><textarea id="bDesc" maxlength="3000" rows="3" placeholder="e.g. Works Order no., due date, inspection requirements" style="width:100%; padding:12px; background:#0a0c14; border:1px solid var(--border); color:white; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label>Work Items <span class="muted" style="text-transform:none; font-weight:normal;">(supervisors report the quantity done for each item; block % is calculated from these)</span></label>
+                    <table class="items-edit"><thead><tr><th style="width:90px">Item No.</th><th>Description</th><th style="width:120px">Total Qty</th><th style="width:90px">Unit</th><th style="width:40px"></th></tr></thead><tbody id="bItemsBody"></tbody></table>
+                    <button onclick="addItemRow()" class="btn-edit" style="margin-top:8px;"><i class="fas fa-plus"></i> Add item</button>
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button onclick="saveBlock()" class="btn-main" id="bSaveBtn">Add Block</button>
@@ -275,6 +285,8 @@
         const fmtDate = s => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }); };
         const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
         const jsArg = s => esc(JSON.stringify(String(s ?? '')));
+        const fmtQty = n => (Number(n) || 0).toLocaleString('en-SG', { maximumFractionDigits: 2 });
+        const qtyLines = r => (r.itemsDone || []).filter(i => Number(i.qty) > 0).map(i => `${i.code}. ${i.name}: ${fmtQty(i.qty)} ${i.uom || ''}`.trim());
         const pct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
         const pbar = v => `<div class="pbar"><span style="width:${pct(v)}%"></span></div>`;
         const healthBadge = h => { if (!h) return '<span class="badge b-muted">No reports</span>'; const c = h === 'On Track' ? 'b-ok' : h === 'At Risk' ? 'b-warn' : 'b-bad'; return `<span class="badge ${c}">${esc(h)}</span>`; };
@@ -286,7 +298,8 @@
                     <div>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></div>
                 </div>
                 <dl>
-                    <dt>Work done</dt><dd>${esc(r.workDone)}</dd>
+                    ${r.workDone ? `<dt>Work done</dt><dd>${esc(r.workDone)}</dd>` : ''}
+                    ${qtyLines(r).length ? `<dt>Quantities</dt><dd>${esc(qtyLines(r).join('\n'))}</dd>` : ''}
                     ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
                     ${r.issues ? `<dt>Issues</dt><dd style="color:var(--accent)">${esc(r.issues)}</dd>` : ''}
                     ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
@@ -573,18 +586,68 @@
             const blocks = p.blocks || [], bp = p.blockProgress || {};
             document.getElementById('dBlockBody').innerHTML = blocks.length ? blocks.map(b => {
                 const last = reports.find(r => r.block === b.no);
-                return `<tr><td><strong>${esc(b.no)}</strong></td><td style="white-space:pre-wrap">${esc(b.desc)}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
+                const items = Array.isArray(b.items) ? b.items : [];
+                const totals = itemTotals(p.id, b.no);
+                const itemsHTML = items.map(i => {
+                    const done = totals[i.code] || 0, ip = i.qty ? Math.min(100, done / i.qty * 100) : 0;
+                    return `<div class="item-line"><span>${esc(i.code)}. ${esc(i.name)} — <strong>${fmtQty(done)} / ${fmtQty(i.qty)} ${esc(i.uom)}</strong></span><span>${pbar(ip)}</span></div>`;
+                }).join('');
+                return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
             }).join('') : '<tr><td colspan="5" class="muted">No blocks yet. Add the first block above.</td></tr>';
         }
 
         // ---------- Blocks (admin only) ----------
         const blockAvg = (blocks, bp) => blocks.length ? Math.round(blocks.reduce((s, b) => s + pct(bp[b.no]), 0) / blocks.length) : null;
+        // Quantity done per item code for a block, summed across all reports.
+        function itemTotals(projectId, blockNo) {
+            const t = {};
+            repCache.filter(r => r.projectId === projectId && r.block === blockNo).forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
+            return t;
+        }
+        // Block % from items: each item counts equally, capped at 100%.
+        const itemsPct = (items, totals) => items.length ? Math.round(items.reduce((s, i) => s + Math.min(1, (totals[i.code] || 0) / (i.qty || 1)), 0) / items.length * 100) : null;
         async function writeBlocks(blocks) {
             const p = projCache[detailId]; if (!p) return;
             const data = { blocks };
-            const avg = blockAvg(blocks, p.blockProgress || {});
+            const bp = { ...(p.blockProgress || {}) };
+            blocks.forEach(b => { if (Array.isArray(b.items) && b.items.length) bp[b.no] = itemsPct(b.items, itemTotals(p.id, b.no)); });
+            if (blocks.length) data.blockProgress = bp;
+            const avg = blockAvg(blocks, bp);
             if (avg !== null) data.progress = avg;
             await setDoc(doc(db, "project_private", detailId), data, { merge: true });
+        }
+
+        // ---------- item rows editor ----------
+        window.addItemRow = (it = {}) => {
+            const body = document.getElementById('bItemsBody');
+            const n = body.children.length;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><input class="it-code" maxlength="20" placeholder="${(n + 1) * 10}"></td><td><input class="it-name" maxlength="200" placeholder="e.g. Earth boss without angle bar (SS)"></td><td><input class="it-qty" type="number" min="0" step="any" placeholder="0"></td><td><input class="it-uom" maxlength="15" placeholder="pcs"></td><td><button class="btn-del" title="Remove item">X</button></td>`;
+            tr.querySelector('.it-code').value = it.code ?? '';
+            tr.querySelector('.it-name').value = it.name ?? '';
+            tr.querySelector('.it-qty').value = it.qty ?? '';
+            tr.querySelector('.it-uom').value = it.uom ?? '';
+            tr.querySelector('button').onclick = () => tr.remove();
+            body.appendChild(tr);
+        };
+        function readItems() {
+            const items = [], seen = new Set();
+            for (const [idx, tr] of [...document.getElementById('bItemsBody').children].entries()) {
+                const name = tr.querySelector('.it-name').value.trim();
+                const qtyRaw = tr.querySelector('.it-qty').value.trim();
+                let code = tr.querySelector('.it-code').value.trim();
+                const uom = tr.querySelector('.it-uom').value.trim() || 'pcs';
+                if (!name && !qtyRaw && !code) continue; // empty row
+                if (!name) throw new Error(`Item ${idx + 1}: enter a description.`);
+                const qty = Number(qtyRaw);
+                if (!(qty > 0)) throw new Error(`Item "${name}": enter a total quantity above 0.`);
+                if (!code) code = String((idx + 1) * 10);
+                code = code.replace(/[.\/]/g, '-');
+                if (seen.has(code)) throw new Error(`Item No. ${code} is used twice.`);
+                seen.add(code);
+                items.push({ code, name, qty, uom });
+            }
+            return items;
         }
         window.saveBlock = async () => {
             const p = projCache[detailId]; if (!p) return;
@@ -593,19 +656,24 @@
             const editing = document.getElementById('bEditNo').value;
             const err = document.getElementById('bError'); err.innerText = '';
             if (!no) { err.innerText = 'Enter a block number.'; return; }
+            let items;
+            try { items = readItems(); } catch (e) { err.innerText = e.message; return; }
             const blocks = (p.blocks || []).map(b => ({ ...b }));
             const clash = blocks.find(b => b.no.toLowerCase() === no.toLowerCase() && b.no !== editing);
             if (clash) { err.innerText = `Block ${clash.no} already exists.`; return; }
+            if (editing && editing !== no && repCache.some(r => r.projectId === p.id && r.block === editing)) {
+                err.innerText = `Block ${editing} already has reports, so its number can't be changed. Add a new block instead.`; return;
+            }
             if (editing) {
                 const b = blocks.find(x => x.no === editing);
-                if (b) { b.no = no; b.desc = desc; }
+                if (b) { b.no = no; b.desc = desc; b.items = items; }
                 if (editing !== no && p.blockProgress && p.blockProgress[editing] != null) {
                     // carry progress over to the renamed block
                     await setDoc(doc(db, "project_private", detailId), { blockProgress: { [no]: p.blockProgress[editing] } }, { merge: true });
                     p.blockProgress = { ...p.blockProgress, [no]: p.blockProgress[editing] };
                 }
             } else {
-                blocks.push({ no, desc });
+                blocks.push({ no, desc, items });
             }
             blocks.sort((a, b) => a.no.localeCompare(b.no, undefined, { numeric: true }));
             await writeBlocks(blocks);
@@ -615,12 +683,16 @@
             const b = (projCache[detailId]?.blocks || []).find(x => x.no === no); if (!b) return;
             document.getElementById('bNo').value = b.no; document.getElementById('bDesc').value = b.desc || '';
             document.getElementById('bEditNo').value = b.no;
+            document.getElementById('bItemsBody').innerHTML = '';
+            (Array.isArray(b.items) ? b.items : []).forEach(it => window.addItemRow(it));
+            document.getElementById('bNo').scrollIntoView({ block: 'center' });
             document.getElementById('bSaveBtn').innerText = 'Update Block';
             document.getElementById('bCancelBtn').classList.remove('hidden');
             document.getElementById('bNo').focus();
         };
         window.cancelBlockEdit = () => {
             ['bNo', 'bDesc', 'bEditNo'].forEach(k => document.getElementById(k).value = '');
+            document.getElementById('bItemsBody').innerHTML = '';
             document.getElementById('bSaveBtn').innerText = 'Add Block';
             document.getElementById('bCancelBtn').classList.add('hidden');
             document.getElementById('bError').innerText = '';
@@ -634,7 +706,7 @@
         const pdfCell = 'border:1px solid #ddd;padding:6px;vertical-align:top;font-size:11px;white-space:pre-wrap;';
         const pdfTable = list => `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#eee">
             <th style="${pdfCell}">Date</th><th style="${pdfCell}">Project</th><th style="${pdfCell}">Block</th><th style="${pdfCell}">%</th><th style="${pdfCell}">Status</th><th style="${pdfCell}">Work Done</th><th style="${pdfCell}">Manpower</th><th style="${pdfCell}">Issues</th><th style="${pdfCell}">Supervisor</th></tr></thead><tbody>` +
-            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${esc(r.block || '')}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc(r.workDone)}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
+            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${esc(r.block || '')}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc([r.workDone, ...qtyLines(r)].filter(Boolean).join('\n'))}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
         function savePDF(html, filename) {
             document.getElementById('pdf-content').innerHTML = html;
             const el = document.getElementById('pdf-export-container'); el.style.display = 'block';
