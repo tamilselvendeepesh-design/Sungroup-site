@@ -388,13 +388,27 @@
         // "projects" holds public info (shown on the website if showOnWebsite is true).
         // "project_private" holds internal info: progress, health, last report, who created it, scope.
         let projRaw = {}, privRaw = {};
+        // Supervisors only see projects an admin gave them access to, plus ones they created.
+        // Admins using this page see every project. The database rules enforce the same thing.
+        let myProjects = null; // null = admin (no restriction)
+        const canSee = p => myProjects === null || myProjects.includes(p.id) || p.createdByUid === (user && user.uid);
         function mergeProjects() {
             projects = {};
-            Object.entries(projRaw).forEach(([id, p]) => projects[id] = { ...(privRaw[id] || {}), ...p, id });
+            Object.entries(projRaw).forEach(([id, p]) => { const m = { ...(privRaw[id] || {}), ...p, id }; if (canSee(m)) projects[id] = m; });
             renderProjects();
-            if (currentId) renderProjectHeader();
+            if (currentId) {
+                if (!projects[currentId]) { toast('You no longer have access to that project.', 'err'); showView('home'); }
+                else renderProjectHeader();
+            }
         }
         function startSync() {
+            const uname = usernameOf(user);
+            myProjects = uname ? [] : null;
+            if (uname) unsubs.push(onSnapshot(doc(db, 'supervisors', uname), snap => {
+                if (!snap.exists()) { signOut(auth); $('login-error').textContent = 'This login is not active. Please contact the office.'; return; }
+                myProjects = Array.isArray(snap.data().projects) ? snap.data().projects : [];
+                mergeProjects();
+            }));
             unsubs.push(onSnapshot(collection(db, 'projects'), snap => {
                 projRaw = {}; snap.forEach(d => projRaw[d.id] = d.data()); mergeProjects();
             }, err => toast('Could not load projects: ' + err.message, 'err')));
@@ -429,7 +443,7 @@
                 .filter(p => !q || [p.name, p.client, p.location].some(x => String(x || '').toLowerCase().includes(q)))
                 .sort((a, b) => (a.status === 'Completed') - (b.status === 'Completed') || String(a.name).localeCompare(String(b.name)));
             const g = $('proj-grid');
-            if (!list.length) { g.innerHTML = `<div class="empty card" style="grid-column:1/-1">${Object.keys(projects).length ? 'No projects match your search.' : 'No projects yet. Click <b>New Project</b> to create one.'}</div>`; return; }
+            if (!list.length) { g.innerHTML = `<div class="empty card" style="grid-column:1/-1">${Object.keys(projects).length ? 'No projects match your search.' : myProjects !== null ? 'No projects have been assigned to you yet. Please ask the office, or click <b>New Project</b> to register one.' : 'No projects yet. Click <b>New Project</b> to create one.'}</div>`; return; }
             g.innerHTML = list.map(p => {
                 const done = todayReported.has(p.id);
                 const status = p.status === 'Completed' ? '<span class="badge b-muted">Completed</span>'
@@ -462,7 +476,7 @@
                 await setDoc(doc(db, 'projects', id), {
                     name, client: $('np-client').value.trim(), location, loc: location,
                     startDate: $('np-start').value, targetDate: $('np-target').value,
-                    status: 'Active', showOnWebsite: false
+                    status: 'Active', showOnWebsite: false, createdByUid: user.uid
                 });
                 await setDoc(doc(db, 'project_private', id), {
                     description: $('np-desc').value.trim(), progress: 0, createdBy: myName, createdAt: serverTimestamp()
