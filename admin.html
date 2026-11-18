@@ -630,10 +630,11 @@
                     <td>${s.createdAt ? fmtDate(String(s.createdAt).slice(0, 10)) : '—'}</td>
                     <td><button class="btn-edit" onclick="openAccess(${jsArg(s.username)})"><i class="fas fa-folder-open"></i> Projects</button> <button class="btn-del" onclick="removeSupervisor(${jsArg(s.username)})">Remove</button></td></tr>`;
                 if (accessOpenFor === s.username) {
-                    const list = sortedProjects();
+                    // Only projects still awaiting inspection; passed ones stay listed only while still ticked, so they can be unticked.
+                    const list = sortedProjects().filter(p => p.inspection !== 'Passed' || mine.includes(p.id));
                     html += `<tr class="access-edit"><td colspan="5">
                         <strong>Projects ${esc(s.displayName || s.username)} can report on</strong>
-                        <div class="access-list" id="accessList">${list.length ? list.map(p => `<label><input type="checkbox" value="${esc(p.id)}" ${(keepOpen ? keepOpen.has(p.id) : mine.includes(p.id)) ? 'checked' : ''}> ${esc(p.name)}${p.status === 'Completed' ? ' <span class="muted">(Completed)</span>' : ''}</label>`).join('') : '<span class="muted">No projects yet.</span>'}</div>
+                        <div class="access-list" id="accessList">${list.length ? list.map(p => `<label><input type="checkbox" value="${esc(p.id)}" ${(keepOpen ? keepOpen.has(p.id) : mine.includes(p.id)) ? 'checked' : ''}> ${esc(p.name)}${p.status === 'Completed' ? ' <span class="muted">(Completed)</span>' : ''}</label>`).join('') : '<span class="muted">No projects awaiting inspection.</span>'}</div>
                         <div style="display:flex; gap:10px;"><button class="btn-main" style="width:auto; padding:9px 22px;" onclick="saveAccess(${jsArg(s.username)})">Save</button><button class="btn-edit" onclick="openAccess(null)">Cancel</button></div>
                     </td></tr>`;
                 }
