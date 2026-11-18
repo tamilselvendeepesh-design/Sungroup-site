@@ -176,7 +176,7 @@
                 <div class="grid-inputs" style="grid-template-columns: 180px 1fr;">
                     <input type="hidden" id="bEditNo">
                     <div><label>Block No.</label><input type="text" id="bNo" maxlength="40" placeholder="e.g. B101"></div>
-                    <div><label>Work Description</label><input type="text" id="bDesc" maxlength="1000" placeholder="e.g. Cable tray installation, earth bosses, lighting"></div>
+                    <div><label>Work Description</label><textarea id="bDesc" maxlength="3000" rows="4" placeholder="e.g. Earth boss without angle bar – 650 pcs&#10;Starter bracket with doubler – 1,450 pcs" style="width:100%; padding:12px; background:#0a0c14; border:1px solid var(--border); color:white; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button onclick="saveBlock()" class="btn-main" id="bSaveBtn">Add Block</button>
