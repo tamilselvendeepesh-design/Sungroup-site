@@ -76,6 +76,12 @@
         .range-row input[type=range] { flex: 1; padding: 0; accent-color: var(--blue); }
         .range-row input[type=number] { width: 90px; }
 
+        .block-pick { min-width: 160px; }
+        .block-pick select { font-weight: 700; border-color: var(--blue); }
+        .scope { background: #fff8ea; border-left: 4px solid var(--orange); border-radius: 6px; padding: 10px 12px; margin-top: 12px; font-size: 14px; word-break: break-word; }
+        #rp-scope-text { white-space: pre-wrap; }
+        .scope-label { font-size: 12px; font-weight: 700; color: #a86f00; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
+        @media (max-width: 520px) { .block-pick { width: 100%; } }
         .notice { background: #eaf3fb; border-left: 4px solid var(--blue); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
         .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
 
@@ -168,7 +174,17 @@
                             <h2 id="rp-name" style="margin-bottom:2px;"></h2>
                             <p class="meta" id="rp-meta"></p>
                         </div>
-                        <div id="rp-health"></div>
+                        <div class="block-pick" id="rp-block-wrap" hidden>
+                            <label for="rf-block">Block No. <span class="req">*</span></label>
+                            <select id="rf-block" form="report-form"></select>
+                        </div>
+                    </div>
+                    <div class="scope" id="rp-scope" hidden>
+                        <div class="scope-label"><i class="fas fa-clipboard-list"></i> Scope of work · Block <span id="rp-scope-no"></span></div>
+                        <div id="rp-scope-text"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px;">
+                        <span class="meta">Project overall</span><span id="rp-health"></span>
                     </div>
                     <div class="pbar big"><span id="rp-bar" style="width:0%"></span></div>
                     <p class="meta" style="margin-top:6px;"><strong id="rp-progress">0%</strong> complete · <span id="rp-last"></span></p>
@@ -186,7 +202,7 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label for="rf-progress">Overall Completion (%) <span class="req">*</span></label>
+                        <label for="rf-progress"><span id="rf-progress-label">Overall Completion (%)</span> <span class="req">*</span></label>
                         <div class="range-row">
                             <input type="range" id="rf-progress-range" min="0" max="100" step="1" value="0" aria-label="Completion slider">
                             <input type="number" id="rf-progress" min="0" max="100" step="1" value="0" required>
@@ -317,7 +333,7 @@
                     : '<span class="badge b-warn">No report today</span>';
                 return `<button class="proj-card" data-id="${esc(p.id)}">
                     <h3>${esc(p.name)}</h3>
-                    <div class="meta">${esc(p.client || 'No client')}${p.location ? ' · ' + esc(p.location) : ''}</div>
+                    <div class="meta">${esc(p.client || 'No client')}${p.location ? ' · ' + esc(p.location) : ''}${Array.isArray(p.blocks) && p.blocks.length ? ` · ${p.blocks.length} block${p.blocks.length > 1 ? 's' : ''}` : ''}</div>
                     <div class="pbar"><span style="width:${pct(p.progress)}%"></span></div>
                     <div class="row"><strong>${pct(p.progress)}%</strong>${healthBadge(p.health)}</div>
                     <div class="row"><span class="meta">${lastText(p.lastReportDate)}</span>${status}</div>
@@ -361,19 +377,57 @@
             const p = projects[id] || {};
             $('view-title').textContent = p.name || id;
             $('view-sub').textContent = 'File the daily work completion report.';
+            $('rf-block').value = '';
             renderProjectHeader();
             $('report-form').reset();
+            $('rf-block').value = '';
             $('rf-date').value = localDate();
             $('rf-date').max = localDate();
             setProgress(pct(p.progress));
             $('rf-health').value = p.health || 'On Track';
+            onBlockChange(false);
             history = []; prefilledKey = null; renderHistory();
             unsubHistory = onSnapshot(query(collection(db, 'project_reports'), where('projectId', '==', id)), snap => {
-                history = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a, b) => b.date.localeCompare(a.date) || String(b.supervisor).localeCompare(String(a.supervisor)));
+                history = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a, b) => b.date.localeCompare(a.date) || String(a.block || '').localeCompare(String(b.block || ''), undefined, { numeric: true }));
                 renderHistory();
                 prefillForDate();
             });
         }
+
+        // ---------- blocks (list and work descriptions are set by admins) ----------
+        const blocksOf = p => Array.isArray(p && p.blocks) ? p.blocks : [];
+        const blockAvg = (blocks, bp) => blocks.length ? Math.round(blocks.reduce((s, b) => s + pct(bp[b.no]), 0) / blocks.length) : null;
+
+        function renderBlockPicker() {
+            const p = projects[currentId] || {};
+            const blocks = blocksOf(p);
+            const sel = $('rf-block'), keep = sel.value;
+            $('rp-block-wrap').hidden = !blocks.length;
+            sel.required = blocks.length > 0;
+            sel.innerHTML = '<option value="">— Select block —</option>' + blocks.map(b => {
+                const bp = (p.blockProgress || {})[b.no];
+                return `<option value="${esc(b.no)}">${esc(b.no)}${bp != null ? ` (${pct(bp)}%)` : ''}</option>`;
+            }).join('');
+            if (blocks.some(b => b.no === keep)) sel.value = keep;
+            renderScope();
+        }
+        function renderScope() {
+            const p = projects[currentId] || {};
+            const b = blocksOf(p).find(x => x.no === $('rf-block').value);
+            $('rp-scope').hidden = !b;
+            if (b) { $('rp-scope-no').textContent = b.no; $('rp-scope-text').textContent = b.desc || 'No description added by admin yet.'; }
+            $('rf-progress-label').textContent = b ? `Block ${b.no} Completion (%)` : 'Overall Completion (%)';
+        }
+        function onBlockChange(clear = true) {
+            const p = projects[currentId] || {};
+            const block = $('rf-block').value;
+            if (clear && $('rf-notice').hidden === false) ['rf-work', 'rf-manpower', 'rf-hours', 'rf-issues', 'rf-next'].forEach(k => $(k).value = '');
+            renderScope();
+            if (block) setProgress(pct((p.blockProgress || {})[block]));
+            else if (!blocksOf(p).length) setProgress(pct(p.progress));
+            prefilledKey = null; prefillForDate();
+        }
+        $('rf-block').onchange = () => onBlockChange(true);
 
         function renderProjectHeader() {
             const p = projects[currentId]; if (!p) return;
@@ -384,23 +438,26 @@
             $('rp-bar').style.width = pct(p.progress) + '%';
             $('rp-progress').textContent = pct(p.progress) + '%';
             $('rp-last').textContent = lastText(p.lastReportDate) + (p.lastReportBy ? ' by ' + p.lastReportBy : '');
+            renderBlockPicker();
         }
 
         function setProgress(v) { $('rf-progress').value = v; $('rf-progress-range').value = v; }
         $('rf-progress-range').oninput = e => $('rf-progress').value = e.target.value;
         $('rf-progress').oninput = e => $('rf-progress-range').value = pct(e.target.value);
 
-        const myReportId = (pid, date) => `${pid}__${date}__${user.uid}`;
+        const blockKey = b => String(b).replace(/\//g, '-');
+        const myReportId = (pid, date, block) => block ? `${pid}__${date}__${blockKey(block)}__${user.uid}` : `${pid}__${date}__${user.uid}`;
         let prefilledKey = null; // avoid overwriting what the user is typing on live updates
         function prefillForDate() {
-            const date = $('rf-date').value;
-            const mine = history.find(r => r._id === myReportId(currentId, date));
-            const key = mine ? mine._id : 'none:' + date;
+            if (!currentId || !user) return;
+            const date = $('rf-date').value, block = $('rf-block').value;
+            const mine = history.find(r => r._id === myReportId(currentId, date, block));
+            const key = mine ? mine._id : `none:${date}:${block}`;
             if (key === prefilledKey) return;
             prefilledKey = key;
             const n = $('rf-notice');
             if (mine) {
-                n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> You already submitted a report for ${esc(fmtDate(date))}. Submitting again will update it.`;
+                n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> You already submitted a report for ${esc(fmtDate(date))}${block ? ' on Block ' + esc(block) : ''}. Submitting again will update it.`;
                 setProgress(pct(mine.progress)); $('rf-health').value = mine.health || 'On Track';
                 $('rf-work').value = mine.workDone || ''; $('rf-manpower').value = mine.manpower ?? '';
                 $('rf-hours').value = mine.hours ?? ''; $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
@@ -419,27 +476,45 @@
         $('report-form').onsubmit = async e => {
             e.preventDefault();
             const p = projects[currentId]; if (!p) return;
+            const blocks = blocksOf(p);
+            const block = $('rf-block').value;
             const date = $('rf-date').value;
             const work = $('rf-work').value.trim();
+            if (blocks.length && !block) { toast('Please select the block number.', 'err'); $('rf-block').focus(); return; }
             if (!date || !work) { toast('Please fill in the date and work completed.', 'err'); return; }
             if (date > localDate()) { toast('Report date cannot be in the future.', 'err'); return; }
             const progress = pct($('rf-progress').value);
             const num = v => v === '' ? null : Number(v);
-            const id = myReportId(currentId, date);
+            const id = myReportId(currentId, date, block);
             const isNew = !history.some(r => r._id === id);
             const data = {
-                projectId: currentId, projectName: p.name, date, progress, health: $('rf-health').value,
+                projectId: currentId, projectName: p.name, block: block || null, date, progress, health: $('rf-health').value,
                 workDone: work, manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
                 issues: $('rf-issues').value.trim(), nextPlan: $('rf-next').value.trim(),
                 supervisor: user.email, supervisorUid: user.uid, updatedAt: serverTimestamp()
             };
             if (isNew) data.createdAt = serverTimestamp();
+
+            // Summary on the project: per-block % (only from the newest report for that block), overall % and last report.
+            const upd = {};
+            const isLatestOverall = !p.lastReportDate || date >= p.lastReportDate;
+            if (block) {
+                const latestForBlock = history.filter(r => r.block === block && r._id !== id).reduce((m, r) => r.date > m ? r.date : m, '');
+                if (date >= latestForBlock) {
+                    const bp = { ...(p.blockProgress || {}), [block]: progress };
+                    upd.blockProgress = { [block]: progress };
+                    const avg = blockAvg(blocks, bp);
+                    if (avg !== null) upd.progress = avg;
+                }
+            } else if (isLatestOverall) {
+                upd.progress = progress;
+            }
+            if (isLatestOverall) Object.assign(upd, { health: data.health, lastReportDate: date, lastReportBy: user.email });
+
             $('rf-submit').disabled = true;
             try {
                 await setDoc(doc(db, 'project_reports', id), data, { merge: true });
-                if (!p.lastReportDate || date >= p.lastReportDate) {
-                    await setDoc(doc(db, 'project_private', currentId), { progress, health: data.health, lastReportDate: date, lastReportBy: user.email }, { merge: true });
-                }
+                if (Object.keys(upd).length) await setDoc(doc(db, 'project_private', currentId), upd, { merge: true });
                 toast(isNew ? 'Report submitted' : 'Report updated');
             } catch (err) { toast('Could not save report: ' + err.message, 'err'); }
             finally { $('rf-submit').disabled = false; }
@@ -450,7 +525,7 @@
             if (!history.length) { h.innerHTML = '<div class="empty">No reports filed for this project yet.</div>'; return; }
             h.innerHTML = history.slice(0, 30).map(r => `
                 <div class="report">
-                    <div class="r-head"><strong>${esc(fmtDate(r.date))}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
+                    <div class="r-head"><strong>${esc(fmtDate(r.date))}${r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
                     <dl>
                         <dt>Work done</dt><dd>${esc(r.workDone)}</dd>
                         ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
