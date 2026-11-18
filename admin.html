@@ -170,6 +170,21 @@
                 <p style="margin-top:8px;"><strong id="d-progress">0%</strong> complete · <span id="d-last" class="muted"></span></p>
                 <p class="muted" id="d-desc" style="white-space:pre-wrap; margin-top:10px;"></p>
             </div>
+            <div class="card">
+                <h3>Blocks &amp; Scope of Work</h3>
+                <p class="muted" style="margin-bottom:12px;">Supervisors pick a block when filing a report and see its work description. Only admins can change this list. Project completion is the average of all blocks.</p>
+                <div class="grid-inputs" style="grid-template-columns: 180px 1fr;">
+                    <input type="hidden" id="bEditNo">
+                    <div><label>Block No.</label><input type="text" id="bNo" maxlength="40" placeholder="e.g. B101"></div>
+                    <div><label>Work Description</label><input type="text" id="bDesc" maxlength="1000" placeholder="e.g. Cable tray installation, earth bosses, lighting"></div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="saveBlock()" class="btn-main" id="bSaveBtn">Add Block</button>
+                    <button onclick="cancelBlockEdit()" class="btn-edit hidden" id="bCancelBtn" style="width:auto; padding:0 20px;">Cancel</button>
+                </div>
+                <p id="bError" style="color:var(--danger); font-size:0.75rem; margin-top:8px;"></p>
+                <table style="margin-top:10px;"><thead><tr><th style="width:110px">Block</th><th>Work Description</th><th style="width:18%">Progress</th><th>Last Report</th><th style="width:120px">Actions</th></tr></thead><tbody id="dBlockBody"></tbody></table>
+            </div>
             <div class="stats-grid">
                 <div class="stat-card"><h2 id="d-staff">0</h2><p>Staff Assigned</p></div>
                 <div class="stat-card" style="border-color:var(--success)"><h2 id="d-onsite">0</h2><p>On-Site Now</p></div>
@@ -267,7 +282,7 @@
         const reportHTML = (r, showProject) => `
             <div class="report">
                 <div class="r-head">
-                    <div><strong>${showProject ? `<a href="#" onclick="viewProject(${jsArg(r.projectId)});return false;" style="color:var(--primary)">${esc(r.projectName || r.projectId)}</a> · ` : ''}${fmtDate(r.date)}</strong></div>
+                    <div><strong>${showProject ? `<a href="#" onclick="viewProject(${jsArg(r.projectId)});return false;" style="color:var(--primary)">${esc(r.projectName || r.projectId)}</a> · ` : ''}${fmtDate(r.date)}</strong>${r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</div>
                     <div>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></div>
                 </div>
                 <dl>
@@ -554,13 +569,72 @@
             document.getElementById('dEqBody').innerHTML = eq.length ? eq.map(e => `<tr><td>${esc(e.name)}</td><td>${esc(e.id)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No equipment deployed.</td></tr>';
             document.getElementById('dAttBody').innerHTML = att.length ? att.map(l => `<tr><td>${esc(l.date)}</td><td>${esc(l.name)}</td><td>${esc(l.status)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">No attendance records.</td></tr>';
             document.getElementById('dFeed').innerHTML = reports.length ? reports.map(r => reportHTML(r, false)).join('') : '<p class="muted">No reports filed yet.</p>';
+
+            const blocks = p.blocks || [], bp = p.blockProgress || {};
+            document.getElementById('dBlockBody').innerHTML = blocks.length ? blocks.map(b => {
+                const last = reports.find(r => r.block === b.no);
+                return `<tr><td><strong>${esc(b.no)}</strong></td><td style="white-space:pre-wrap">${esc(b.desc)}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
+            }).join('') : '<tr><td colspan="5" class="muted">No blocks yet. Add the first block above.</td></tr>';
         }
+
+        // ---------- Blocks (admin only) ----------
+        const blockAvg = (blocks, bp) => blocks.length ? Math.round(blocks.reduce((s, b) => s + pct(bp[b.no]), 0) / blocks.length) : null;
+        async function writeBlocks(blocks) {
+            const p = projCache[detailId]; if (!p) return;
+            const data = { blocks };
+            const avg = blockAvg(blocks, p.blockProgress || {});
+            if (avg !== null) data.progress = avg;
+            await setDoc(doc(db, "project_private", detailId), data, { merge: true });
+        }
+        window.saveBlock = async () => {
+            const p = projCache[detailId]; if (!p) return;
+            const no = document.getElementById('bNo').value.trim().replace(/\s+/g, ' ');
+            const desc = document.getElementById('bDesc').value.trim();
+            const editing = document.getElementById('bEditNo').value;
+            const err = document.getElementById('bError'); err.innerText = '';
+            if (!no) { err.innerText = 'Enter a block number.'; return; }
+            const blocks = (p.blocks || []).map(b => ({ ...b }));
+            const clash = blocks.find(b => b.no.toLowerCase() === no.toLowerCase() && b.no !== editing);
+            if (clash) { err.innerText = `Block ${clash.no} already exists.`; return; }
+            if (editing) {
+                const b = blocks.find(x => x.no === editing);
+                if (b) { b.no = no; b.desc = desc; }
+                if (editing !== no && p.blockProgress && p.blockProgress[editing] != null) {
+                    // carry progress over to the renamed block
+                    await setDoc(doc(db, "project_private", detailId), { blockProgress: { [no]: p.blockProgress[editing] } }, { merge: true });
+                    p.blockProgress = { ...p.blockProgress, [no]: p.blockProgress[editing] };
+                }
+            } else {
+                blocks.push({ no, desc });
+            }
+            blocks.sort((a, b) => a.no.localeCompare(b.no, undefined, { numeric: true }));
+            await writeBlocks(blocks);
+            window.cancelBlockEdit();
+        };
+        window.editBlock = (no) => {
+            const b = (projCache[detailId]?.blocks || []).find(x => x.no === no); if (!b) return;
+            document.getElementById('bNo').value = b.no; document.getElementById('bDesc').value = b.desc || '';
+            document.getElementById('bEditNo').value = b.no;
+            document.getElementById('bSaveBtn').innerText = 'Update Block';
+            document.getElementById('bCancelBtn').classList.remove('hidden');
+            document.getElementById('bNo').focus();
+        };
+        window.cancelBlockEdit = () => {
+            ['bNo', 'bDesc', 'bEditNo'].forEach(k => document.getElementById(k).value = '');
+            document.getElementById('bSaveBtn').innerText = 'Add Block';
+            document.getElementById('bCancelBtn').classList.add('hidden');
+            document.getElementById('bError').innerText = '';
+        };
+        window.deleteBlock = async (no) => {
+            if (!confirm(`Remove block ${no}? Its past reports are kept.`)) return;
+            await writeBlocks((projCache[detailId]?.blocks || []).filter(b => b.no !== no));
+        };
 
         // ---------- PDF exports ----------
         const pdfCell = 'border:1px solid #ddd;padding:6px;vertical-align:top;font-size:11px;white-space:pre-wrap;';
         const pdfTable = list => `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#eee">
-            <th style="${pdfCell}">Date</th><th style="${pdfCell}">Project</th><th style="${pdfCell}">%</th><th style="${pdfCell}">Status</th><th style="${pdfCell}">Work Done</th><th style="${pdfCell}">Manpower</th><th style="${pdfCell}">Issues</th><th style="${pdfCell}">Supervisor</th></tr></thead><tbody>` +
-            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc(r.workDone)}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
+            <th style="${pdfCell}">Date</th><th style="${pdfCell}">Project</th><th style="${pdfCell}">Block</th><th style="${pdfCell}">%</th><th style="${pdfCell}">Status</th><th style="${pdfCell}">Work Done</th><th style="${pdfCell}">Manpower</th><th style="${pdfCell}">Issues</th><th style="${pdfCell}">Supervisor</th></tr></thead><tbody>` +
+            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${esc(r.block || '')}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc(r.workDone)}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
         function savePDF(html, filename) {
             document.getElementById('pdf-content').innerHTML = html;
             const el = document.getElementById('pdf-export-container'); el.style.display = 'block';
