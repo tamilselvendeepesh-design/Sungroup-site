@@ -101,8 +101,9 @@
         .report dd { white-space: pre-wrap; word-break: break-word; }
         @media (max-width: 520px) { .report dl { grid-template-columns: 1fr; } .report dd { margin-bottom: 6px; } }
 
-        #login-view { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 70px); padding: 20px 16px; }
-        #login-view .card { width: 100%; max-width: 380px; }
+        #login-view, #pw-view { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 70px); padding: 20px 16px; }
+        #login-view .card, #pw-view .card { width: 100%; max-width: 380px; }
+        @media (max-width: 520px) { .hide-sm { display: none; } }
         .error { color: var(--bad); font-size: 13px; min-height: 18px; margin-top: 8px; }
 
         #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #222; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 100; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: calc(100% - 32px); }
@@ -118,6 +119,7 @@
             <a href="../index.html"><img src="../logo.png" alt="Sungroup"></a>
             <div class="user-box" id="user-box" hidden>
                 <i class="fas fa-user-circle"></i><span id="user-email"></span>
+                <button class="btn-link" id="chpw-btn" title="Change password"><i class="fas fa-key"></i><span class="hide-sm"> Password</span></button>
                 <button class="btn-link" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
         </div>
@@ -128,10 +130,26 @@
         <form class="card" id="login-form">
             <h2><i class="fas fa-clipboard-check"></i> Supervisor Login</h2>
             <p class="meta" style="margin-bottom:16px;">Sign in to submit daily project work reports.</p>
-            <div class="field"><label for="email">Email</label><input type="email" id="email" autocomplete="username" required></div>
+            <div class="field"><label for="email">Username</label><input type="text" id="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="e.g. Alom" required></div>
             <div class="field"><label for="pass">Password</label><input type="password" id="pass" autocomplete="current-password" required></div>
             <button class="btn btn-primary btn-block" id="login-btn" type="submit">Sign In</button>
             <p class="error" id="login-error"></p>
+            <p class="meta" style="margin-top:6px;">First time? Use the one-time password from the office — you'll choose your own next. Forgot your password? Ask the office to reset it.</p>
+        </form>
+    </section>
+
+    <!-- CHOOSE / CHANGE PASSWORD -->
+    <section id="pw-view" hidden>
+        <form class="card" id="pw-form">
+            <h2><i class="fas fa-key"></i> <span id="pw-title">Choose Your Password</span></h2>
+            <p class="meta" id="pw-sub" style="margin-bottom:16px;"></p>
+            <input type="text" id="pw-username" autocomplete="username" hidden>
+            <div class="field"><label for="pw-new">New Password</label><input type="password" id="pw-new" autocomplete="new-password" minlength="8" required></div>
+            <div class="field"><label for="pw-confirm">Type It Again</label><input type="password" id="pw-confirm" autocomplete="new-password" minlength="8" required></div>
+            <label class="chk" style="margin-bottom:14px;"><input type="checkbox" id="pw-show"> Show password</label>
+            <button class="btn btn-primary btn-block" id="pw-btn" type="submit"><i class="fas fa-save"></i> Save Password</button>
+            <button class="btn btn-ghost btn-block" id="pw-cancel" type="button" style="margin-top:10px;">Cancel</button>
+            <p class="error" id="pw-error"></p>
         </form>
     </section>
 
@@ -245,7 +263,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" };
@@ -275,24 +293,96 @@
         let unsubs = [], unsubHistory = null;
 
         // ---------- auth ----------
-        onAuthStateChanged(auth, u => {
+        // Supervisors sign in with a username, stored in Firebase as <username>@staff.sungroupengg.com.
+        // Admins can still sign in with their full email address.
+        const STAFF_DOMAIN = 'staff.sungroupengg.com';
+        const usernameOf = u => (u && u.email && u.email.toLowerCase().endsWith('@' + STAFF_DOMAIN)) ? u.email.toLowerCase().split('@')[0] : null;
+        let myName = '', mustChange = false, synced = false;
+
+        function showScreen(s) {
+            $('login-view').hidden = s !== 'login';
+            $('pw-view').hidden = s !== 'pw';
+            $('app-view').hidden = s !== 'app';
+            $('user-box').hidden = s === 'login';
+        }
+
+        onAuthStateChanged(auth, async u => {
             user = u;
-            $('login-view').hidden = !!u;
-            $('app-view').hidden = !u;
-            $('user-box').hidden = !u;
-            unsubs.forEach(f => f()); unsubs = [];
+            unsubs.forEach(f => f()); unsubs = []; synced = false;
             if (unsubHistory) { unsubHistory(); unsubHistory = null; }
-            if (u) { $('user-email').textContent = u.email; startSync(); showView('home'); }
+            if (!u) { showScreen('login'); return; }
+            const uname = usernameOf(u);
+            myName = u.email; mustChange = false;
+            if (uname) {
+                let snap = null;
+                try { snap = await getDoc(doc(db, 'supervisors', uname)); } catch (e) { /* treated as removed */ }
+                if (!snap || !snap.exists()) {
+                    await signOut(auth);
+                    $('login-error').textContent = 'This login is not active. Please contact the office.';
+                    return;
+                }
+                const d = snap.data();
+                myName = d.displayName || uname;
+                mustChange = !!d.mustChangePassword;
+            }
+            $('user-email').textContent = myName;
+            if (mustChange) openPw(true); else enterApp();
         });
+        function enterApp() {
+            showScreen('app');
+            if (!synced) { synced = true; startSync(); showView('home'); }
+        }
 
         $('login-form').onsubmit = async e => {
             e.preventDefault();
             $('login-error').textContent = ''; $('login-btn').disabled = true;
-            try { await signInWithEmailAndPassword(auth, $('email').value.trim(), $('pass').value); }
-            catch (err) { $('login-error').textContent = /invalid|wrong|not-found|credential/i.test(err.code || '') ? 'Incorrect email or password.' : 'Sign-in failed. Please try again.'; }
+            const raw = $('email').value.trim();
+            const email = raw.includes('@') ? raw : `${raw.toLowerCase()}@${STAFF_DOMAIN}`;
+            try { await signInWithEmailAndPassword(auth, email, $('pass').value); $('pass').value = ''; }
+            catch (err) {
+                $('login-error').textContent = /invalid|wrong|not-found|credential/i.test(err.code || '') ? 'Incorrect username or password.'
+                    : err.code === 'auth/too-many-requests' ? 'Too many attempts. Please wait a few minutes and try again.'
+                    : 'Sign-in failed. Please check your connection and try again.';
+            }
             finally { $('login-btn').disabled = false; }
         };
         $('logout-btn').onclick = () => signOut(auth);
+
+        // ---------- choose / change password ----------
+        function openPw(forced) {
+            $('pw-form').reset(); $('pw-error').textContent = '';
+            $('pw-username').value = user ? user.email : '';
+            $('pw-title').textContent = forced ? 'Choose Your Password' : 'Change Password';
+            $('pw-sub').textContent = forced
+                ? `Welcome, ${myName}! Choose your own password (at least 8 characters). You'll use it with your username every time you sign in.`
+                : 'Choose a new password (at least 8 characters).';
+            $('pw-cancel').hidden = forced;
+            showScreen('pw');
+            $('pw-new').focus();
+        }
+        $('chpw-btn').onclick = () => openPw(false);
+        $('pw-cancel').onclick = () => enterApp();
+        $('pw-show').onchange = e => { const t = e.target.checked ? 'text' : 'password'; $('pw-new').type = t; $('pw-confirm').type = t; };
+        $('pw-form').onsubmit = async e => {
+            e.preventDefault();
+            const pw = $('pw-new').value, err = $('pw-error');
+            err.textContent = '';
+            if (pw.length < 8) { err.textContent = 'Use at least 8 characters.'; return; }
+            if (pw !== $('pw-confirm').value) { err.textContent = "The two passwords don't match."; return; }
+            $('pw-btn').disabled = true;
+            try {
+                await updatePassword(auth.currentUser, pw);
+                const uname = usernameOf(user);
+                if (uname) await setDoc(doc(db, 'supervisors', uname), { mustChangePassword: false, passwordChangedAt: serverTimestamp() }, { merge: true });
+                mustChange = false;
+                toast('Password saved');
+                enterApp();
+            } catch (e2) {
+                err.textContent = e2.code === 'auth/requires-recent-login' ? 'For security, please log out, sign in again, then change your password.'
+                    : e2.code === 'auth/weak-password' ? 'That password is too weak. Try a longer one.'
+                    : 'Could not save the password. Please try again.';
+            } finally { $('pw-btn').disabled = false; }
+        };
 
         // ---------- data sync ----------
         // "projects" holds public info (shown on the website if showOnWebsite is true).
@@ -375,7 +465,7 @@
                     status: 'Active', showOnWebsite: false
                 });
                 await setDoc(doc(db, 'project_private', id), {
-                    description: $('np-desc').value.trim(), progress: 0, createdBy: user.email, createdAt: serverTimestamp()
+                    description: $('np-desc').value.trim(), progress: 0, createdBy: myName, createdAt: serverTimestamp()
                 });
                 toast('Project created');
                 projects[id] = projects[id] || { id, name, client: $('np-client').value.trim(), status: 'Active', progress: 0 };
@@ -577,7 +667,7 @@
                 projectId: currentId, projectName: p.name, block: block || null, date, progress, health: $('rf-health').value,
                 workDone: work, itemsDone, manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
                 issues: $('rf-issues').value.trim(), nextPlan: $('rf-next').value.trim(),
-                supervisor: user.email, supervisorUid: user.uid, updatedAt: serverTimestamp()
+                supervisor: user.email, supervisorName: myName, supervisorUid: user.uid, updatedAt: serverTimestamp()
             };
             if (isNew) data.createdAt = serverTimestamp();
 
@@ -596,7 +686,7 @@
             } else if (isLatestOverall) {
                 upd.progress = progress;
             }
-            if (isLatestOverall) Object.assign(upd, { health: data.health, lastReportDate: date, lastReportBy: user.email });
+            if (isLatestOverall) Object.assign(upd, { health: data.health, lastReportDate: date, lastReportBy: myName });
 
             $('rf-submit').disabled = true;
             try {
@@ -619,7 +709,7 @@
                         ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
                         ${r.issues ? `<dt>Issues</dt><dd>${esc(r.issues)}</dd>` : ''}
                         ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
-                        <dt>Supervisor</dt><dd>${esc(r.supervisor)}</dd>
+                        <dt>Supervisor</dt><dd>${esc(r.supervisorName || r.supervisor)}</dd>
                     </dl>
                 </div>`).join('') + (history.length > 30 ? `<p class="meta">Showing the latest 30 of ${history.length} reports.</p>` : '');
         }
