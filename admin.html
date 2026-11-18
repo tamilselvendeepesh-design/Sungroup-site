@@ -1145,5 +1145,35 @@
             savePDF(`<h2>Daily Project Reports — ${fmtDate(day)}</h2>` + pdfTable(sortReports(repCache.filter(r => r.date === day))), `Sungroup_Daily_Report_${day}.pdf`);
         };
     </script>
+    <!-- Show/hide password: adds an eye button inside every password box on this page. -->
+    <style>
+        .pw-wrap { position: relative; display: block; }
+        .pw-wrap input { padding-right: 46px !important; }
+        .pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6b7680; padding: 6px 10px; font-size: 15px; line-height: 1; }
+        .pw-eye:hover, .pw-eye:focus-visible { color: #1e73be; }
+    </style>
+    <script>
+        document.querySelectorAll('input[type="password"]').forEach(inp => {
+            const wrap = document.createElement('span');
+            wrap.className = 'pw-wrap';
+            inp.parentNode.insertBefore(wrap, inp);
+            wrap.appendChild(inp);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pw-eye';
+            const set = shown => {
+                inp.type = shown ? 'text' : 'password';
+                btn.innerHTML = `<i class="fas fa-eye${shown ? '-slash' : ''}"></i>`;
+                btn.title = shown ? 'Hide password' : 'Show password';
+                btn.setAttribute('aria-label', btn.title);
+                btn.setAttribute('aria-pressed', String(shown));
+            };
+            set(false);
+            btn.onclick = () => { set(inp.type === 'password'); inp.focus(); };
+            // Hide the password again whenever its form is submitted or reset.
+            if (inp.form) { inp.form.addEventListener('submit', () => set(false)); inp.form.addEventListener('reset', () => set(false)); }
+            wrap.appendChild(btn);
+        });
+    </script>
 </body>
 </html>
