@@ -87,6 +87,12 @@
         .qty-row .q-name { font-size: 14px; }
         .qty-row .pbar { height: 6px; margin-top: 4px; }
         .qty-row input { text-align: right; font-weight: 700; }
+        .stage-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #eef3f8; padding: 4px; border-radius: 8px; margin-top: 4px; }
+        .stage-tab { border: none; background: none; padding: 10px 6px; border-radius: 6px; font-weight: 700; font-size: 14px; color: var(--muted); cursor: pointer; }
+        .stage-tab.active { background: var(--blue); color: #fff; box-shadow: 0 2px 6px rgba(30,115,190,.3); }
+        .stage-count { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--orange); color: #fff; font-size: 11px; line-height: 18px; margin-left: 4px; }
+        .stage-sum { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .stage-sum .cur { color: var(--blue); }
         .qty-row input::placeholder { font-weight: 400; color: #b8c0c8; }
         .qty-row.over input { border-color: var(--bad); background: #fdecea; }
         .q-left { white-space: nowrap; }
@@ -234,7 +240,8 @@
                     </div>
                     <div class="field" id="rf-items-wrap" hidden>
                         <label>Quantity Completed Today</label>
-                        <p class="meta" style="margin-bottom:8px;">Enter only what was completed today. Leave items you didn't work on blank.</p>
+                        <div class="stage-tabs" id="rf-stage-tabs" role="group" aria-label="Stage"></div>
+                        <p class="meta" id="rf-stage-hint" style="margin:8px 0;"></p>
                         <div id="rf-items"></div>
                     </div>
                     <div class="field">
@@ -548,59 +555,94 @@
             renderItems();
         }
 
-        // ---------- per-item quantities ----------
+        // ---------- per-item quantities, tracked by stage: Fit-up -> Full Weld -> Inspection ----------
+        const STAGES = [{ key: 'fitup', label: 'Fit-up' }, { key: 'weld', label: 'Full Weld' }, { key: 'insp', label: 'Inspection' }];
         const itemsOf = b => (b && Array.isArray(b.items)) ? b.items : [];
         const fmtQty = n => (Number(n) || 0).toLocaleString('en-SG', { maximumFractionDigits: 2 });
         const currentBlock = () => blocksOf(projects[currentId] || {}).find(x => x.no === $('rf-block').value);
-        // Quantities done per item for this block across all reports, except the one being edited.
-        function doneBefore(block, excludeId) {
+        // Older reports stored a single quantity per item ("qty"); that counts as fit-up.
+        const stageQty = (e, k) => Number(k === 'fitup' ? (e.fitup ?? e.qty ?? 0) : (e[k] ?? 0)) || 0;
+        const emptyStages = () => ({ fitup: 0, weld: 0, insp: 0 });
+        function sumStages(reports) {
             const t = {};
-            history.filter(r => r.block === block && r._id !== excludeId).forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
+            reports.forEach(r => (r.itemsDone || []).forEach(e => { const s = t[e.code] || (t[e.code] = emptyStages()); STAGES.forEach(st => { s[st.key] += stageQty(e, st.key); }); }));
             return t;
         }
-        const itemsPct = (items, totals) => items.length ? Math.round(items.reduce((s, i) => s + Math.min(1, (totals[i.code] || 0) / (i.qty || 1)), 0) / items.length * 100) : null;
-        function readToday() {
+        // Totals per item and stage for this block across all reports, except the one being edited.
+        function doneBefore(block, excludeId) { return sumStages(history.filter(r => r.block === block && r._id !== excludeId)); }
+        // Block % = average over items of (average of the three stages' completion).
+        const itemsPct = (items, totals) => items.length ? Math.round(items.reduce((s, i) => {
+            const t = totals[i.code] || emptyStages();
+            return s + STAGES.reduce((a, st) => a + Math.min(1, t[st.key] / (i.qty || 1)), 0) / STAGES.length;
+        }, 0) / items.length * 100) : null;
+        const stageLine = e => STAGES.filter(st => stageQty(e, st.key) > 0).map(st => `${st.label} ${fmtQty(stageQty(e, st.key))}`).join(' · ');
+
+        let curStage = 'fitup';
+        let todayVals = { fitup: {}, weld: {}, insp: {} }; // today's entries: stage -> item code -> quantity
+        const resetToday = () => { todayVals = { fitup: {}, weld: {}, insp: {} }; };
+        function totalsWithToday(before) {
             const t = {};
-            document.querySelectorAll('#rf-items input[data-code]').forEach(inp => { const v = Number(inp.value); if (inp.value !== '' && v > 0) t[inp.dataset.code] = v; });
+            Object.keys(before).forEach(c => { t[c] = { ...before[c] }; });
+            STAGES.forEach(st => Object.entries(todayVals[st.key]).forEach(([c, v]) => { (t[c] || (t[c] = emptyStages()))[st.key] += v; }));
             return t;
+        }
+        // A piece can't be welded before fit-up, or inspected before welding.
+        function stageProblem(i, x) {
+            if (x.fitup > i.qty) return `${i.code}. ${i.name}: fit-up (${fmtQty(x.fitup)}) is more than the total ${fmtQty(i.qty)} ${i.uom}.`;
+            if (x.weld > x.fitup) return `${i.code}. ${i.name}: full weld (${fmtQty(x.weld)}) is more than fit-up done (${fmtQty(x.fitup)}).`;
+            if (x.insp > x.weld) return `${i.code}. ${i.name}: inspection (${fmtQty(x.insp)}) is more than full weld done (${fmtQty(x.weld)}).`;
+            return null;
+        }
+        function renderStageTabs() {
+            $('rf-stage-tabs').innerHTML = STAGES.map(st => {
+                const n = Object.keys(todayVals[st.key]).length;
+                return `<button type="button" class="stage-tab${st.key === curStage ? ' active' : ''}" data-stage="${st.key}" aria-pressed="${st.key === curStage}">${st.label}${n ? ` <span class="stage-count">${n}</span>` : ''}</button>`;
+            }).join('');
+            $('rf-stage-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { curStage = b.dataset.stage; renderItems(); });
         }
         function renderItems() {
             const b = currentBlock(), items = itemsOf(b);
             $('rf-items-wrap').hidden = !items.length;
             if (!items.length) { $('rf-items').innerHTML = ''; return; }
-            const keep = readToday(); // keep what the user typed across live refreshes
+            renderStageTabs();
+            const label = STAGES.find(s => s.key === curStage).label;
+            $('rf-stage-hint').textContent = `Enter how many pieces finished ${label} today. Switch stage with the buttons above. Leave items you didn't work on blank.`;
             const before = doneBefore(b.no, myReportId(currentId, $('rf-date').value, b.no));
-            $('rf-items').innerHTML = items.map(i => `
-                <div class="qty-row" data-row="${esc(i.code)}">
-                    <div class="q-name"><strong>${esc(i.code)}.</strong> ${esc(i.name)}
-                        <div class="meta">Done <strong>${fmtQty(before[i.code])}</strong> / ${fmtQty(i.qty)} ${esc(i.uom)} · <span class="q-left">${fmtQty(Math.max(0, i.qty - (before[i.code] || 0)))} left</span></div>
-                        <div class="pbar"><span style="width:${Math.min(100, (before[i.code] || 0) / i.qty * 100)}%"></span></div>
+            $('rf-items').innerHTML = items.map(i => {
+                const t = before[i.code] || emptyStages();
+                return `<div class="qty-row" data-row="${esc(i.code)}">
+                    <div class="q-name"><strong>${esc(i.code)}.</strong> ${esc(i.name)} <span class="meta">· total ${fmtQty(i.qty)} ${esc(i.uom)}</span>
+                        <div class="stage-sum">${STAGES.map(st => `<span class="${st.key === curStage ? 'cur' : ''}">${st.label} <strong>${fmtQty(t[st.key])}</strong></span>`).join('')}</div>
+                        <div class="pbar"><span style="width:${Math.min(100, t[curStage] / i.qty * 100)}%"></span></div>
                     </div>
-                    <input type="number" inputmode="decimal" min="0" step="any" placeholder="0" data-code="${esc(i.code)}" aria-label="Today's quantity for ${esc(i.name)}">
-                </div>`).join('');
+                    <input type="number" inputmode="decimal" min="0" step="any" placeholder="0" data-code="${esc(i.code)}" value="${todayVals[curStage][i.code] ?? ''}" aria-label="${esc(label)} today for ${esc(i.name)}">
+                </div>`;
+            }).join('');
             document.querySelectorAll('#rf-items input[data-code]').forEach(inp => {
-                if (keep[inp.dataset.code] != null) inp.value = keep[inp.dataset.code];
-                inp.oninput = updateItemsProgress;
+                inp.oninput = () => {
+                    const v = Number(inp.value);
+                    if (inp.value !== '' && v > 0) todayVals[curStage][inp.dataset.code] = v; else delete todayVals[curStage][inp.dataset.code];
+                    renderStageTabs(); updateItemsProgress();
+                };
             });
             updateItemsProgress();
         }
         function updateItemsProgress() {
             const b = currentBlock(), items = itemsOf(b); if (!items.length) return;
-            const before = doneBefore(b.no, myReportId(currentId, $('rf-date').value, b.no)), today = readToday();
-            const totals = {}; items.forEach(i => totals[i.code] = (before[i.code] || 0) + (today[i.code] || 0));
-            items.forEach(i => { const row = document.querySelector(`#rf-items [data-row="${CSS.escape(i.code)}"]`); if (row) row.classList.toggle('over', totals[i.code] > i.qty); });
-            setProgress(itemsPct(items, totals));
+            const t = totalsWithToday(doneBefore(b.no, myReportId(currentId, $('rf-date').value, b.no)));
+            items.forEach(i => { const row = document.querySelector(`#rf-items [data-row="${CSS.escape(i.code)}"]`); if (row) row.classList.toggle('over', !!stageProblem(i, t[i.code] || emptyStages())); });
+            setProgress(itemsPct(items, t));
         }
         function fillItems(itemsDone) {
-            const map = {}; (itemsDone || []).forEach(i => map[i.code] = i.qty);
-            document.querySelectorAll('#rf-items input[data-code]').forEach(inp => inp.value = map[inp.dataset.code] ?? '');
-            updateItemsProgress();
+            resetToday();
+            (itemsDone || []).forEach(e => STAGES.forEach(st => { const v = stageQty(e, st.key); if (v > 0) todayVals[st.key][e.code] = v; }));
+            renderItems();
         }
         function onBlockChange(clear = true) {
             const p = projects[currentId] || {};
             const block = $('rf-block').value;
             if (clear && $('rf-notice').hidden === false) ['rf-work', 'rf-manpower', 'rf-hours', 'rf-issues', 'rf-next'].forEach(k => $(k).value = '');
-            $('rf-items').innerHTML = '';
+            $('rf-items').innerHTML = ''; resetToday(); curStage = 'fitup';
             renderScope();
             if (block && !itemsOf(currentBlock()).length) setProgress(pct((p.blockProgress || {})[block]));
             else if (!blocksOf(p).length) setProgress(pct(p.progress));
@@ -670,15 +712,17 @@
             const items = itemsOf(currentBlock());
             let itemsDone = null;
             if (items.length) {
-                const today = readToday(), before = doneBefore(block, id);
+                const totals = totalsWithToday(doneBefore(block, id));
                 for (const i of items) {
-                    if ((before[i.code] || 0) + (today[i.code] || 0) > i.qty) {
-                        toast(`${i.code}. ${i.name}: only ${fmtQty(Math.max(0, i.qty - (before[i.code] || 0)))} ${i.uom} left.`, 'err'); return;
-                    }
+                    const problem = stageProblem(i, totals[i.code] || emptyStages());
+                    if (problem) { toast(problem, 'err'); return; }
                 }
-                itemsDone = items.filter(i => today[i.code]).map(i => ({ code: i.code, name: i.name, uom: i.uom, qty: today[i.code] }));
-                if (!itemsDone.length && !work) { toast('Enter today\'s quantity for at least one item, or describe the work done.', 'err'); return; }
-                const totals = {}; items.forEach(i => totals[i.code] = (before[i.code] || 0) + (today[i.code] || 0));
+                itemsDone = items.filter(i => STAGES.some(st => todayVals[st.key][i.code])).map(i => {
+                    const e = { code: i.code, name: i.name, uom: i.uom };
+                    STAGES.forEach(st => { if (todayVals[st.key][i.code]) e[st.key] = todayVals[st.key][i.code]; });
+                    return e;
+                });
+                if (!itemsDone.length && !work) { toast('Enter today\'s quantity for at least one item and stage, or describe the work done.', 'err'); return; }
                 setProgress(itemsPct(items, totals));
             } else if (!work) { toast('Please describe the work completed today.', 'err'); return; }
             const progress = pct($('rf-progress').value);
@@ -745,7 +789,7 @@
             blocks.forEach(b => {
                 const rs = reports.filter(r => r.block === b.no), items = itemsOf(b);
                 if (items.length) {
-                    const t = {}; rs.forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
+                    const t = sumStages(rs);
                     bp[b.no] = itemsPct(items, t);
                 } else { const l = latest(rs); bp[b.no] = l ? pct(l.progress) : 0; }
             });
@@ -786,7 +830,7 @@
                     <div class="r-head"><strong>${esc(fmtDate(r.date))}${r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
                     <dl>
                         ${r.workDone ? `<dt>Work done</dt><dd>${esc(r.workDone)}</dd>` : ''}
-                        ${(r.itemsDone || []).length ? `<dt>Quantities</dt><dd>${esc(r.itemsDone.map(i => `${i.code}. ${i.name}: ${fmtQty(i.qty)} ${i.uom || ''}`).join('\n'))}</dd>` : ''}
+                        ${(r.itemsDone || []).length ? `<dt>Quantities</dt><dd>${esc(r.itemsDone.map(i => `${i.code}. ${i.name}: ${stageLine(i)}`).join('\n'))}</dd>` : ''}
                         ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
                         ${r.issues ? `<dt>Issues</dt><dd>${esc(r.issues)}</dd>` : ''}
                         ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
