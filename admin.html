@@ -116,6 +116,7 @@
         .rm-head { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; text-align: right; border-bottom: 2px solid var(--border); }
         .stage-chip { display: inline-block; margin: 3px 10px 0 0; color: var(--muted); }
         .stage-chip strong { color: var(--text); }
+        .rework-chip { color: var(--danger); }
         .rm-item input { text-align: right; padding: 7px 9px; }
         .log-change { font-size: 0.8rem; margin: 2px 0; }
         .log-change .old { color: var(--danger); text-decoration: line-through; }
@@ -423,7 +424,19 @@
         const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
         const jsArg = s => esc(JSON.stringify(String(s ?? '')));
         const fmtQty = n => (Number(n) || 0).toLocaleString('en-SG', { maximumFractionDigits: 2 });
-        const qtyLines = r => (r.itemsDone || []).map(i => ({ i, s: stageLine(i) })).filter(x => x.s).map(({ i, s }) => `${i.code}. ${i.name}: ${s}`);
+        const qtyLines = r => (r.itemsDone || []).map(i => ({ i, s: stageLine(i) })).filter(x => x.s).map(({ i, s }) => `${i.code}. ${i.name}: ${s}`)
+            .concat((r.rework || []).map(x => 'Rework · ' + reworkLine(x)));
+        // Rework lines (from 🔧 Rework Reports): block, optional item, quantity and what was wrong / done.
+        const reworkLine = x => `Block ${x.block}${x.code ? ' · ' + x.code + '. ' + (x.name || '') : ''}${x.qty ? ': ' + fmtQty(x.qty) + ' ' + (x.uom || '') : ''}${x.note ? ' — ' + x.note : ''}`.replace(/\s+/g, ' ').trim();
+        // Rework quantity per block and item code, from all rework reports of a project.
+        function reworkTotals(projectId, blockNo) {
+            const t = { _block: 0, _lines: 0 };
+            repCache.filter(r => r.projectId === projectId && r.block === 'REWORK').forEach(r => (r.rework || []).filter(x => x.block === blockNo).forEach(x => {
+                t._lines++;
+                if (x.code) t[x.code] = (t[x.code] || 0) + (Number(x.qty) || 0); else t._block += Number(x.qty) || 0;
+            }));
+            return t;
+        }
         const pct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
         const pbar = v => `<div class="pbar"><span style="width:${pct(v)}%"></span></div>`;
         const healthBadge = h => { if (!h) return '<span class="badge b-muted">No reports</span>'; const c = h === 'On Track' ? 'b-ok' : h === 'At Risk' ? 'b-warn' : 'b-bad'; return `<span class="badge ${c}">${esc(h)}</span>`; };
@@ -440,7 +453,7 @@
         const reportHTML = (r, showProject) => `
             <div class="report">
                 <div class="r-head">
-                    <div><strong>${showProject ? `<a href="#" onclick="viewProject(${jsArg(r.projectId)});return false;" style="color:var(--primary)">${esc(r.projectName || r.projectId)}</a> · ` : ''}${fmtDate(r.date)}</strong>${r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</div>
+                    <div><strong>${showProject ? `<a href="#" onclick="viewProject(${jsArg(r.projectId)});return false;" style="color:var(--primary)">${esc(r.projectName || r.projectId)}</a> · ` : ''}${fmtDate(r.date)}</strong>${r.block === 'REWORK' ? ' <span class="badge b-bad">🔧 Rework Report</span>' : r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</div>
                     <div>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></div>
                 </div>
                 <dl>
@@ -785,8 +798,8 @@
         };
 
         // ---------- Edit / delete reports + change logs ----------
-        const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'manpower', 'hours', 'issues', 'nextPlan'];
-        const LOG_LABELS = { date: 'Date', block: 'Block', progress: 'Completion %', health: 'Status', workDone: 'Work done', itemsDone: 'Quantities', manpower: 'Manpower', hours: 'Hours', issues: 'Issues', nextPlan: 'Next day' };
+        const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'rework', 'manpower', 'hours', 'issues', 'nextPlan'];
+        const LOG_LABELS = { date: 'Date', block: 'Block', progress: 'Completion %', health: 'Status', workDone: 'Work done', itemsDone: 'Quantities', rework: 'Rework', manpower: 'Manpower', hours: 'Hours', issues: 'Issues', nextPlan: 'Next day' };
         const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] ?? null]));
         function fmtDateTime(iso) {
             if (!iso) return '—';
@@ -796,6 +809,8 @@
         const fmtLogValue = (k, v) => {
             if (v === null || v === undefined || v === '') return '—';
             if (k === 'itemsDone') return (v || []).length ? v.map(i => `${i.code}: ${stageLine(i)}`).join('; ') : '—';
+            if (k === 'rework') return (v || []).length ? v.map(reworkLine).join('; ') : '—';
+            if (k === 'block' && v === 'REWORK') return 'Rework Report';
             if (k === 'progress') return pct(v) + '%';
             if (k === 'date') return fmtDate(v);
             const s = String(v); return s.length > 140 ? s.slice(0, 140) + '…' : s;
@@ -1022,13 +1037,14 @@
             document.getElementById('dBlockBody').innerHTML = blocks.length ? blocks.map(b => {
                 const last = reports.find(r => r.block === b.no);
                 const items = Array.isArray(b.items) ? b.items : [];
-                const totals = itemTotals(p.id, b.no);
+                const totals = itemTotals(p.id, b.no), rw = reworkTotals(p.id, b.no);
                 const itemsHTML = items.map(i => {
                     const t = totals[i.code] || emptyStages();
                     const ip = itemsPct([i], { [i.code]: t });
-                    return `<div class="item-line"><span>${esc(i.code)}. ${esc(i.name)} <span class="muted">(${fmtQty(i.qty)} ${esc(i.uom)})</span><br>${STAGES.map(st => `<span class="stage-chip">${st.label} <strong>${fmtQty(t[st.key])}</strong></span>`).join('')}</span><span>${pbar(ip)}<span class="muted">${ip}%</span></span></div>`;
+                    return `<div class="item-line"><span>${esc(i.code)}. ${esc(i.name)} <span class="muted">(${fmtQty(i.qty)} ${esc(i.uom)})</span><br>${STAGES.map(st => `<span class="stage-chip">${st.label} <strong>${fmtQty(t[st.key])}</strong></span>`).join('')}${rw[i.code] ? `<span class="stage-chip rework-chip">🔧 Rework <strong>${fmtQty(rw[i.code])}</strong></span>` : ''}</span><span>${pbar(ip)}<span class="muted">${ip}%</span></span></div>`;
                 }).join('');
-                return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisorName || last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
+                const rwNote = rw._lines ? `<div class="muted" style="margin-top:6px;">🔧 ${rw._lines} rework line${rw._lines > 1 ? 's' : ''} on this block${rw._block ? ` (${fmtQty(rw._block)} not tied to an item)` : ''}</div>` : '';
+                return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}${rwNote}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisorName || last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
             }).join('') : '<tr><td colspan="5" class="muted">No blocks yet. Add the first block above.</td></tr>';
             renderProjectAccess();
         }
@@ -1159,7 +1175,7 @@
         const pdfCell = 'border:1px solid #ddd;padding:6px;vertical-align:top;font-size:11px;white-space:pre-wrap;';
         const pdfTable = list => `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#eee">
             <th style="${pdfCell}">Date</th><th style="${pdfCell}">Project</th><th style="${pdfCell}">Block</th><th style="${pdfCell}">%</th><th style="${pdfCell}">Status</th><th style="${pdfCell}">Work Done</th><th style="${pdfCell}">Manpower</th><th style="${pdfCell}">Issues</th><th style="${pdfCell}">Supervisor</th></tr></thead><tbody>` +
-            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${esc(r.block || '')}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc([r.workDone, ...qtyLines(r)].filter(Boolean).join('\n'))}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisorName || r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
+            list.map(r => `<tr><td style="${pdfCell}">${esc(r.date)}</td><td style="${pdfCell}">${esc(r.projectName)}</td><td style="${pdfCell}">${esc(r.block === 'REWORK' ? 'Rework' : (r.block || ''))}</td><td style="${pdfCell}">${pct(r.progress)}%</td><td style="${pdfCell}">${esc(r.health)}</td><td style="${pdfCell}">${esc([r.workDone, ...qtyLines(r)].filter(Boolean).join('\n'))}</td><td style="${pdfCell}">${esc(r.manpower ?? '')}</td><td style="${pdfCell}">${esc(r.issues)}</td><td style="${pdfCell}">${esc(r.supervisorName || r.supervisor)}</td></tr>`).join('') + '</tbody></table>';
         function savePDF(html, filename) {
             document.getElementById('pdf-content').innerHTML = html;
             const el = document.getElementById('pdf-export-container'); el.style.display = 'block';
