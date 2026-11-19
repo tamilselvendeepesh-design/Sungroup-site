@@ -112,7 +112,10 @@
         /* Edit-report pop-up and change logs */
         .modal { position: fixed; inset: 0; background: rgba(20,30,45,.45); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
         .modal-card { background: #fff; border-radius: 12px; border-top: 4px solid var(--accent); padding: 22px; width: 100%; max-width: 640px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
-        .rm-item { display: grid; grid-template-columns: 1fr 110px; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
+        .rm-item { display: grid; grid-template-columns: 1fr 78px 78px 78px; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
+        .rm-head { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; text-align: right; border-bottom: 2px solid var(--border); }
+        .stage-chip { display: inline-block; margin: 3px 10px 0 0; color: var(--muted); }
+        .stage-chip strong { color: var(--text); }
         .rm-item input { text-align: right; padding: 7px 9px; }
         .log-change { font-size: 0.8rem; margin: 2px 0; }
         .log-change .old { color: var(--danger); text-decoration: line-through; }
@@ -420,7 +423,7 @@
         const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
         const jsArg = s => esc(JSON.stringify(String(s ?? '')));
         const fmtQty = n => (Number(n) || 0).toLocaleString('en-SG', { maximumFractionDigits: 2 });
-        const qtyLines = r => (r.itemsDone || []).filter(i => Number(i.qty) > 0).map(i => `${i.code}. ${i.name}: ${fmtQty(i.qty)} ${i.uom || ''}`.trim());
+        const qtyLines = r => (r.itemsDone || []).map(i => ({ i, s: stageLine(i) })).filter(x => x.s).map(({ i, s }) => `${i.code}. ${i.name}: ${s}`);
         const pct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
         const pbar = v => `<div class="pbar"><span style="width:${pct(v)}%"></span></div>`;
         const healthBadge = h => { if (!h) return '<span class="badge b-muted">No reports</span>'; const c = h === 'On Track' ? 'b-ok' : h === 'At Risk' ? 'b-warn' : 'b-bad'; return `<span class="badge ${c}">${esc(h)}</span>`; };
@@ -792,7 +795,7 @@
         }
         const fmtLogValue = (k, v) => {
             if (v === null || v === undefined || v === '') return '—';
-            if (k === 'itemsDone') return (v || []).length ? v.map(i => `${i.code}: ${fmtQty(i.qty)} ${i.uom || ''}`.trim()).join(', ') : '—';
+            if (k === 'itemsDone') return (v || []).length ? v.map(i => `${i.code}: ${stageLine(i)}`).join('; ') : '—';
             if (k === 'progress') return pct(v) + '%';
             if (k === 'date') return fmtDate(v);
             const s = String(v); return s.length > 140 ? s.slice(0, 140) + '…' : s;
@@ -812,8 +815,7 @@
             blocks.forEach(b => {
                 const rs = reports.filter(r => r.block === b.no), items = Array.isArray(b.items) ? b.items : [];
                 if (items.length) {
-                    const t = {}; rs.forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
-                    bp[b.no] = itemsPct(items, t);
+                    bp[b.no] = itemsPct(items, sumStages(rs));
                 } else { const l = latest(rs); bp[b.no] = l ? pct(l.progress) : 0; }
             });
             const last = latest(reports);
@@ -840,13 +842,19 @@
             $('rm-work').value = r.workDone || ''; $('rm-issues').value = r.issues || ''; $('rm-next').value = r.nextPlan || '';
             $('rm-reason').value = ''; $('rm-error').innerText = '';
             const b = blockOfReport(r), items = b && Array.isArray(b.items) ? b.items : [];
-            const mine = {}; (r.itemsDone || []).forEach(i => mine[i.code] = i.qty);
+            const mine = {}; (r.itemsDone || []).forEach(e => { mine[e.code] = {}; STAGES.forEach(st => { const v = stageQty(e, st.key); if (v) mine[e.code][st.key] = v; }); });
             if (items.length) {
-                const others = {}; repCache.filter(x => x.projectId === r.projectId && x.block === r.block && x._id !== r._id).forEach(x => (x.itemsDone || []).forEach(i => { others[i.code] = (others[i.code] || 0) + (Number(i.qty) || 0); }));
-                $('rm-items').innerHTML = `<label style="margin-top:6px;">Quantities on this report</label>` + items.map(i => `<div class="rm-item"><span><strong>${esc(i.code)}.</strong> ${esc(i.name)} <span class="muted">· others ${fmtQty(others[i.code])} / ${fmtQty(i.qty)} ${esc(i.uom)}</span></span><input type="number" min="0" step="any" data-code="${esc(i.code)}" value="${mine[i.code] ?? ''}" placeholder="0"></div>`).join('');
+                const others = sumStages(repCache.filter(x => x.projectId === r.projectId && x.block === r.block && x._id !== r._id));
+                $('rm-items').innerHTML = `<label style="margin-top:6px;">Quantities on this report</label>
+                    <div class="rm-item rm-head"><span></span>${STAGES.map(st => `<span>${st.label}</span>`).join('')}</div>` +
+                    items.map(i => { const o = others[i.code] || emptyStages(); return `<div class="rm-item"><span><strong>${esc(i.code)}.</strong> ${esc(i.name)}<br><span class="muted">others: ${STAGES.map(st => fmtQty(o[st.key])).join(' / ')} of ${fmtQty(i.qty)} ${esc(i.uom)}</span></span>${STAGES.map(st => `<input type="number" min="0" step="any" data-code="${esc(i.code)}" data-stage="${st.key}" value="${(mine[i.code] || {})[st.key] ?? ''}" placeholder="0" aria-label="${st.label} for ${esc(i.name)}">`).join('')}</div>`; }).join('');
                 $('rm-progress').readOnly = true; $('rm-progress-label').innerText = 'Completion % (from quantities)';
-                const upd = () => { const t = { ...others }; document.querySelectorAll('#rm-items input').forEach(inp => t[inp.dataset.code] = (t[inp.dataset.code] || 0) + (Number(inp.value) || 0)); $('rm-progress').value = itemsPct(items, t); };
-                document.querySelectorAll('#rm-items input').forEach(inp => inp.oninput = upd); upd();
+                const upd = () => {
+                    const t = {}; Object.keys(others).forEach(c => { t[c] = { ...others[c] }; });
+                    document.querySelectorAll('#rm-items input[data-code]').forEach(inp => { (t[inp.dataset.code] || (t[inp.dataset.code] = emptyStages()))[inp.dataset.stage] += Number(inp.value) || 0; });
+                    $('rm-progress').value = itemsPct(items, t);
+                };
+                document.querySelectorAll('#rm-items input[data-code]').forEach(inp => inp.oninput = upd); upd();
             } else {
                 $('rm-items').innerHTML = ''; $('rm-progress').readOnly = false; $('rm-progress-label').innerText = 'Completion %';
             }
@@ -860,10 +868,15 @@
             const b = blockOfReport(r), items = b && Array.isArray(b.items) ? b.items : [];
             let itemsDone = r.itemsDone ?? null;
             if (items.length) {
-                const others = {}; repCache.filter(x => x.projectId === r.projectId && x.block === r.block && x._id !== r._id).forEach(x => (x.itemsDone || []).forEach(i => { others[i.code] = (others[i.code] || 0) + (Number(i.qty) || 0); }));
-                const vals = {}; document.querySelectorAll('#rm-items input').forEach(inp => { const v = Number(inp.value); if (inp.value !== '' && v > 0) vals[inp.dataset.code] = v; });
-                for (const i of items) if ((others[i.code] || 0) + (vals[i.code] || 0) > i.qty) { err.innerText = `${i.code}. ${i.name}: only ${fmtQty(Math.max(0, i.qty - (others[i.code] || 0)))} ${i.uom} available.`; return; }
-                itemsDone = items.filter(i => vals[i.code]).map(i => ({ code: i.code, name: i.name, uom: i.uom, qty: vals[i.code] }));
+                const others = sumStages(repCache.filter(x => x.projectId === r.projectId && x.block === r.block && x._id !== r._id));
+                const vals = {}; // code -> stage -> qty on this report
+                document.querySelectorAll('#rm-items input[data-code]').forEach(inp => { const v = Number(inp.value); if (inp.value !== '' && v > 0) (vals[inp.dataset.code] || (vals[inp.dataset.code] = {}))[inp.dataset.stage] = v; });
+                for (const i of items) {
+                    const o = others[i.code] || emptyStages(), v = vals[i.code] || {};
+                    const problem = stageProblem(i, { fitup: o.fitup + (v.fitup || 0), weld: o.weld + (v.weld || 0), insp: o.insp + (v.insp || 0) });
+                    if (problem) { err.innerText = problem; return; }
+                }
+                itemsDone = items.filter(i => vals[i.code]).map(i => ({ code: i.code, name: i.name, uom: i.uom, ...vals[i.code] }));
             }
             const changes = {
                 health: $('rm-health').value, progress: pct($('rm-progress').value), manpower: num($('rm-manpower').value), hours: num($('rm-hours').value),
@@ -1011,8 +1024,9 @@
                 const items = Array.isArray(b.items) ? b.items : [];
                 const totals = itemTotals(p.id, b.no);
                 const itemsHTML = items.map(i => {
-                    const done = totals[i.code] || 0, ip = i.qty ? Math.min(100, done / i.qty * 100) : 0;
-                    return `<div class="item-line"><span>${esc(i.code)}. ${esc(i.name)} — <strong>${fmtQty(done)} / ${fmtQty(i.qty)} ${esc(i.uom)}</strong></span><span>${pbar(ip)}</span></div>`;
+                    const t = totals[i.code] || emptyStages();
+                    const ip = itemsPct([i], { [i.code]: t });
+                    return `<div class="item-line"><span>${esc(i.code)}. ${esc(i.name)} <span class="muted">(${fmtQty(i.qty)} ${esc(i.uom)})</span><br>${STAGES.map(st => `<span class="stage-chip">${st.label} <strong>${fmtQty(t[st.key])}</strong></span>`).join('')}</span><span>${pbar(ip)}<span class="muted">${ip}%</span></span></div>`;
                 }).join('');
                 return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisorName || last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
             }).join('') : '<tr><td colspan="5" class="muted">No blocks yet. Add the first block above.</td></tr>';
@@ -1021,14 +1035,30 @@
 
         // ---------- Blocks (admin only) ----------
         const blockAvg = (blocks, bp) => blocks.length ? Math.round(blocks.reduce((s, b) => s + pct(bp[b.no]), 0) / blocks.length) : null;
-        // Quantity done per item code for a block, summed across all reports.
-        function itemTotals(projectId, blockNo) {
+        // Work items are tracked in three stages: Fit-up -> Full Weld -> Inspection.
+        const STAGES = [{ key: 'fitup', label: 'Fit-up' }, { key: 'weld', label: 'Full Weld' }, { key: 'insp', label: 'Inspection' }];
+        // Older reports stored a single quantity per item ("qty"); that counts as fit-up.
+        const stageQty = (e, k) => Number(k === 'fitup' ? (e.fitup ?? e.qty ?? 0) : (e[k] ?? 0)) || 0;
+        const emptyStages = () => ({ fitup: 0, weld: 0, insp: 0 });
+        function sumStages(reports) {
             const t = {};
-            repCache.filter(r => r.projectId === projectId && r.block === blockNo).forEach(r => (r.itemsDone || []).forEach(i => { t[i.code] = (t[i.code] || 0) + (Number(i.qty) || 0); }));
+            reports.forEach(r => (r.itemsDone || []).forEach(e => { const s = t[e.code] || (t[e.code] = emptyStages()); STAGES.forEach(st => { s[st.key] += stageQty(e, st.key); }); }));
             return t;
         }
-        // Block % from items: each item counts equally, capped at 100%.
-        const itemsPct = (items, totals) => items.length ? Math.round(items.reduce((s, i) => s + Math.min(1, (totals[i.code] || 0) / (i.qty || 1)), 0) / items.length * 100) : null;
+        const stageLine = e => STAGES.filter(st => stageQty(e, st.key) > 0).map(st => `${st.label} ${fmtQty(stageQty(e, st.key))}`).join(' · ');
+        function stageProblem(i, x) {
+            if (x.fitup > i.qty) return `${i.code}. ${i.name}: fit-up (${fmtQty(x.fitup)}) is more than the total ${fmtQty(i.qty)} ${i.uom}.`;
+            if (x.weld > x.fitup) return `${i.code}. ${i.name}: full weld (${fmtQty(x.weld)}) is more than fit-up done (${fmtQty(x.fitup)}).`;
+            if (x.insp > x.weld) return `${i.code}. ${i.name}: inspection (${fmtQty(x.insp)}) is more than full weld done (${fmtQty(x.weld)}).`;
+            return null;
+        }
+        // Per item and stage, totals for a block across all reports.
+        function itemTotals(projectId, blockNo) { return sumStages(repCache.filter(r => r.projectId === projectId && r.block === blockNo)); }
+        // Block % = average over items of (average of the three stages' completion).
+        const itemsPct = (items, totals) => items.length ? Math.round(items.reduce((s, i) => {
+            const t = totals[i.code] || emptyStages();
+            return s + STAGES.reduce((a, st) => a + Math.min(1, t[st.key] / (i.qty || 1)), 0) / STAGES.length;
+        }, 0) / items.length * 100) : null;
         async function writeBlocks(blocks) {
             const p = projCache[detailId]; if (!p) return;
             const data = { blocks };
