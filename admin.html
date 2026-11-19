@@ -42,7 +42,7 @@
         .page-title p { margin: 2px 0 0; opacity: .85; font-size: 0.9rem; }
         .page-body { padding: 24px 30px 60px; }
 
-        .card { background: var(--surface); padding: 22px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .card { background: var(--surface); padding: 22px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border); overflow-x: auto; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 22px; }
         .stat-card { background: var(--surface); padding: 16px 18px; border-radius: 10px; border: 1px solid var(--border); border-top: 4px solid var(--primary); }
         .stat-card h2 { margin: 0; font-size: 1.7rem; color: var(--text); }
@@ -121,6 +121,7 @@
         .log-change { font-size: 0.8rem; margin: 2px 0; }
         .log-change .old { color: var(--danger); text-decoration: line-through; }
         .log-change .new { color: var(--success); font-weight: 600; }
+        .log-undone td { opacity: .6; }
 
         #pdf-export-container { display: none; background: white; color: black; padding: 40px; }
 
@@ -363,11 +364,11 @@
                 <div class="card-head">
                     <h3>Report Edits &amp; Deletions</h3>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <select id="logAction" onchange="renderLogs()"><option value="">All changes</option><option value="edit">Edits only</option><option value="delete">Deletions only</option></select>
+                        <select id="logAction" onchange="renderLogs()"><option value="">All changes</option><option value="edit">Edits only</option><option value="delete">Deletions only</option><option value="revert">Undos only</option></select>
                         <select id="logProject" onchange="renderLogs()"><option value="">All projects</option></select>
                     </div>
                 </div>
-                <table><thead><tr><th style="width:140px">When</th><th>Who</th><th>Action</th><th>Report</th><th style="width:38%">What Changed</th><th>Reason</th></tr></thead><tbody id="logBody"></tbody></table>
+                <table><thead><tr><th style="width:140px">When</th><th>Who</th><th>Action</th><th>Report</th><th style="width:34%">What Changed</th><th>Reason</th><th style="width:120px"></th></tr></thead><tbody id="logBody"></tbody></table>
             </div>
         </div>
 
@@ -800,7 +801,8 @@
         // ---------- Edit / delete reports + change logs ----------
         const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'rework', 'manpower', 'hours', 'issues', 'nextPlan'];
         const LOG_LABELS = { date: 'Date', block: 'Block', progress: 'Completion %', health: 'Status', workDone: 'Work done', itemsDone: 'Quantities', rework: 'Rework', manpower: 'Manpower', hours: 'Hours', issues: 'Issues', nextPlan: 'Next day' };
-        const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] ?? null]));
+        // Blank text and "nothing" count as the same, so logs only list real changes.
+        const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] === '' ? null : (r[k] ?? null)]));
         function fmtDateTime(iso) {
             if (!iso) return '—';
             const d = new Date(iso);
@@ -819,7 +821,10 @@
             await addDoc(collection(db, 'report_logs'), {
                 action, reportId: r._id, projectId: r.projectId, projectName: r.projectName || '', block: r.block || null, reportDate: r.date,
                 reportBy: r.supervisorName || r.supervisor || '', by: auth.currentUser.email, byEmail: auth.currentUser.email, byUid: auth.currentUser.uid,
-                source: 'Admin panel', at: serverTimestamp(), atIso: new Date().toISOString(), ...extra
+                source: 'Admin panel', at: serverTimestamp(), atIso: new Date().toISOString(),
+                // Full copy of the report as it was, so an admin can undo this change later.
+                snapshot: Object.fromEntries(Object.entries(r).filter(([k, v]) => !['_id', 'createdAt', 'updatedAt'].includes(k) && v !== undefined)),
+                ...extra
             });
         }
         // Rebuild a project's progress summary from its reports (after an edit or delete).
@@ -927,17 +932,66 @@
             projSel.value = names.includes(keep) ? keep : '';
             const rows = logCache.filter(l => (!act || l.action === act) && (!proj || (l.projectName || l.projectId) === proj))
                 .sort((a, b) => String(b.atIso).localeCompare(String(a.atIso)));
+            const undoneBy = {}; logCache.filter(l => l.action === 'revert' && l.revertOf).forEach(l => { undoneBy[l.revertOf] = l; });
+            const badge = l => l.action === 'delete' ? '<span class="badge b-bad">Deleted</span>'
+                : l.action === 'revert' ? `<span class="badge b-ok"><i class="fas fa-undo"></i> Undone</span>` : '<span class="badge b-warn">Edited</span>';
             document.getElementById('logBody').innerHTML = rows.length ? rows.map(l => {
                 const what = l.action === 'delete'
-                    ? `<div class="log-change">Deleted report: ${esc(fmtLogValue('workDone', l.before && l.before.workDone))}${l.before && (l.before.itemsDone || []).length ? '<br>Quantities: ' + esc(fmtLogValue('itemsDone', l.before.itemsDone)) : ''}${l.before ? '<br>Completion: ' + esc(fmtLogValue('progress', l.before.progress)) : ''}</div>`
+                    ? `<div class="log-change">Deleted report: ${esc(fmtLogValue('workDone', l.before && l.before.workDone))}${l.before && (l.before.itemsDone || []).length ? '<br>Quantities: ' + esc(fmtLogValue('itemsDone', l.before.itemsDone)) : ''}${l.before && (l.before.rework || []).length ? '<br>Rework: ' + esc(fmtLogValue('rework', l.before.rework)) : ''}${l.before ? '<br>Completion: ' + esc(fmtLogValue('progress', l.before.progress)) : ''}</div>`
+                    : l.action === 'revert'
+                    ? `<div class="log-change">${l.revertedAction === 'delete' ? 'Restored the deleted report.' : 'Put the report back to how it was before the edit.'}</div>` + (l.changed || []).map(k => `<div class="log-change"><strong>${esc(LOG_LABELS[k] || k)}:</strong> <span class="old">${esc(fmtLogValue(k, l.before && l.before[k]))}</span> → <span class="new">${esc(fmtLogValue(k, l.after && l.after[k]))}</span></div>`).join('')
                     : (l.changed || []).map(k => `<div class="log-change"><strong>${esc(LOG_LABELS[k] || k)}:</strong> <span class="old">${esc(fmtLogValue(k, l.before && l.before[k]))}</span> → <span class="new">${esc(fmtLogValue(k, l.after && l.after[k]))}</span></div>`).join('');
-                return `<tr><td>${fmtDateTime(l.atIso)}</td>
+                const u = undoneBy[l._id];
+                const action = l.action === 'revert' ? '<span class="muted">—</span>'
+                    : u ? `<span class="muted"><i class="fas fa-check"></i> Undone by ${esc(u.by)}<br>${fmtDateTime(u.atIso)}</span>`
+                    : `<button class="btn-edit" onclick="revertLog(${jsArg(l._id)})"><i class="fas fa-undo"></i> ${l.action === 'delete' ? 'Restore' : 'Undo'}</button>`;
+                return `<tr${u ? ' class="log-undone"' : ''}><td>${fmtDateTime(l.atIso)}</td>
                     <td>${esc(l.by)}<br><span class="muted">${esc(l.source || '')}</span></td>
-                    <td>${l.action === 'delete' ? '<span class="badge b-bad">Deleted</span>' : '<span class="badge b-warn">Edited</span>'}</td>
-                    <td><strong>${esc(l.projectName || l.projectId)}</strong><br><span class="muted">${l.block ? 'Block ' + esc(l.block) + ' · ' : ''}${fmtDate(l.reportDate)} · by ${esc(l.reportBy)}</span></td>
+                    <td>${badge(l)}</td>
+                    <td><strong>${esc(l.projectName || l.projectId)}</strong><br><span class="muted">${l.block === 'REWORK' ? 'Rework Report · ' : l.block ? 'Block ' + esc(l.block) + ' · ' : ''}${fmtDate(l.reportDate)} · by ${esc(l.reportBy)}</span></td>
                     <td>${what}</td>
-                    <td>${l.reason ? esc(l.reason) : '<span class="muted">—</span>'}</td></tr>`;
-            }).join('') : '<tr><td colspan="6" class="muted">No report edits or deletions yet.</td></tr>';
+                    <td>${l.reason ? esc(l.reason) : '<span class="muted">—</span>'}</td>
+                    <td>${action}</td></tr>`;
+            }).join('') : '<tr><td colspan="7" class="muted">No report edits or deletions yet.</td></tr>';
+        };
+
+        // Undo an edit (put the changed fields back) or a deletion (restore the report). Admin only.
+        window.revertLog = async (logId) => {
+            const l = logCache.find(x => x._id === logId); if (!l || (l.action !== 'edit' && l.action !== 'delete')) return;
+            if (logCache.some(x => x.action === 'revert' && x.revertOf === logId)) { alert('This change has already been undone.'); return; }
+            const cur = repCache.find(r => r._id === l.reportId);
+            const label = `the ${fmtDate(l.reportDate)} ${l.block === 'REWORK' ? 'rework report' : 'report'}${l.block && l.block !== 'REWORK' ? ' (Block ' + l.block + ')' : ''} by ${l.reportBy}`;
+            const question = l.action === 'delete'
+                ? (cur ? `A report with the same date and block already exists again for ${l.reportBy}. Replace it with the deleted version of ${label}?` : `Restore ${label} exactly as it was before it was deleted?`)
+                : `Undo this edit to ${label}? The changed fields (${(l.changed || []).map(k => LOG_LABELS[k] || k).join(', ')}) go back to their earlier values, replacing any later changes to them.`;
+            const reason = prompt(question + '\n\nReason (optional):', '');
+            if (reason === null) return;
+            const before = l.before || {}, stamp = { revertedBy: auth.currentUser.email, revertedAtIso: new Date().toISOString(), updatedAt: serverTimestamp() };
+            let restored;
+            try {
+                if (l.action === 'edit' && cur) {
+                    const fields = Object.fromEntries((l.changed && l.changed.length ? l.changed : LOG_FIELDS).map(k => [k, before[k] ?? null]));
+                    await setDoc(doc(db, "project_reports", l.reportId), { ...fields, ...stamp }, { merge: true });
+                    restored = { ...cur, ...fields };
+                } else {
+                    // Rebuild the whole report: from the saved copy if there is one, otherwise from the log's own details.
+                    const base = l.snapshot ? { ...l.snapshot } : {
+                        projectId: l.projectId, projectName: l.projectName, block: l.block || null, date: l.reportDate,
+                        supervisorName: l.reportBy, supervisor: l.reportBy, supervisorUid: String(l.reportId).split('__').pop(),
+                        reportType: l.block === 'REWORK' ? 'rework' : 'daily'
+                    };
+                    const data = { ...base, ...before, projectId: l.projectId, ...stamp };
+                    await setDoc(doc(db, "project_reports", l.reportId), data);
+                    restored = { ...data };
+                }
+                restored._id = l.reportId;
+                await recomputeSummary(l.projectId, repCache.filter(r => r.projectId === l.projectId && r._id !== l.reportId).concat([restored]));
+                const b = cur ? pickLog(cur) : null, a = pickLog(restored);
+                await writeLog('revert', { ...restored, date: restored.date || l.reportDate, projectName: restored.projectName || l.projectName, supervisorName: restored.supervisorName || l.reportBy }, {
+                    revertOf: logId, revertedAction: l.action, before: b, after: a,
+                    changed: b ? LOG_FIELDS.filter(k => JSON.stringify(b[k]) !== JSON.stringify(a[k])) : [], reason: reason.trim()
+                });
+            } catch (e) { alert('Could not undo: ' + e.message); }
         };
 
         window.showTab = (id, btn) => {
