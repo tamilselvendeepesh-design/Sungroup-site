@@ -837,12 +837,16 @@
 
         // ---------- change log, delete and recalculation ----------
         const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'rework', 'manpower', 'hours', 'issues', 'nextPlan'];
-        const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] ?? null]));
+        // Blank text and "nothing" count as the same, so logs only list real changes.
+        const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] === '' ? null : (r[k] ?? null)]));
         async function writeLog(action, r, extra) {
             await addDoc(collection(db, 'report_logs'), {
                 action, reportId: r._id, projectId: r.projectId, projectName: r.projectName || '', block: r.block || null, reportDate: r.date,
                 reportBy: r.supervisorName || r.supervisor || '', by: myName, byEmail: user.email, byUid: user.uid,
-                source: 'Supervisor page', at: serverTimestamp(), atIso: new Date().toISOString(), ...extra
+                source: 'Supervisor page', at: serverTimestamp(), atIso: new Date().toISOString(),
+                // Full copy of the report as it was, so an admin can undo this change later.
+                snapshot: Object.fromEntries(Object.entries(r).filter(([k, v]) => !['_id', 'createdAt', 'updatedAt'].includes(k) && v !== undefined)),
+                ...extra
             });
         }
         // Rebuild the project's progress summary from its reports (used after an edit or a delete).
