@@ -87,6 +87,10 @@
         .qty-row .q-name { font-size: 14px; }
         .qty-row .pbar { height: 6px; margin-top: 4px; }
         .qty-row input { text-align: right; font-weight: 700; }
+        .rw-row { display: grid; grid-template-columns: 110px 1fr 80px 1.3fr 36px; gap: 6px; align-items: center; margin-bottom: 6px; }
+        .rw-row select, .rw-row input { padding: 8px; font-size: 14px; }
+        .rw-del { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--bad); cursor: pointer; height: 38px; }
+        @media (max-width: 640px) { .rw-row { grid-template-columns: 1fr 1fr; padding: 8px; border: 1px solid var(--border); border-radius: 8px; } .rw-row .rw-note { grid-column: 1 / -1; } }
         .stage-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #eef3f8; padding: 4px; border-radius: 8px; margin-top: 4px; }
         .stage-tab { border: none; background: none; padding: 10px 6px; border-radius: 6px; font-weight: 700; font-size: 14px; color: var(--muted); cursor: pointer; }
         .stage-tab.active { background: var(--blue); color: #fff; box-shadow: 0 2px 6px rgba(30,115,190,.3); }
@@ -238,13 +242,19 @@
                             </select>
                         </div>
                     </div>
+                    <div class="field" id="rf-rework-wrap" hidden>
+                        <label>Rework Items <span class="req">*</span></label>
+                        <p class="meta" style="margin-bottom:8px;">Record rework found after inspection, on any block. Add one line per item. Rework is kept separate and doesn't change the fit-up, weld or inspection counts.</p>
+                        <div id="rf-rework"></div>
+                        <button type="button" class="btn-sm" id="rf-rework-add" style="margin-top:8px;"><i class="fas fa-plus"></i> Add rework item</button>
+                    </div>
                     <div class="field" id="rf-items-wrap" hidden>
                         <label>Quantity Completed Today</label>
                         <div class="stage-tabs" id="rf-stage-tabs" role="group" aria-label="Stage"></div>
                         <p class="meta" id="rf-stage-hint" style="margin:8px 0;"></p>
                         <div id="rf-items"></div>
                     </div>
-                    <div class="field">
+                    <div class="field" id="rf-progress-wrap">
                         <label for="rf-progress"><span id="rf-progress-label">Overall Completion (%)</span> <span class="req">*</span></label>
                         <div class="range-row">
                             <input type="range" id="rf-progress-range" min="0" max="100" step="1" value="0" aria-label="Completion slider">
@@ -538,13 +548,23 @@
             sel.innerHTML = '<option value="">— Select block —</option>' + blocks.map(b => {
                 const bp = (p.blockProgress || {})[b.no];
                 return `<option value="${esc(b.no)}">${esc(b.no)}${bp != null ? ` (${pct(bp)}%)` : ''}</option>`;
-            }).join('');
-            if (blocks.some(b => b.no === keep)) sel.value = keep;
+            }).join('') + (blocks.length ? `<option value="${REWORK}">🔧 Rework Report (all blocks)</option>` : '');
+            if (blocks.some(b => b.no === keep) || (keep === REWORK && blocks.length)) sel.value = keep;
             renderScope();
         }
         function renderScope() {
             const p = projects[currentId] || {};
             const b = blocksOf(p).find(x => x.no === $('rf-block').value);
+            const rework = isRework();
+            $('rf-rework-wrap').hidden = !rework;
+            $('rf-progress-wrap').hidden = rework;
+            if (rework) {
+                $('rp-scope').hidden = true;
+                $('rf-progress').readOnly = true; $('rf-progress-range').disabled = true;
+                $('rf-work').required = false; $('rf-work-req').hidden = true;
+                renderRework(); renderItems();
+                return;
+            }
             $('rp-scope').hidden = !b;
             if (b) { $('rp-scope-no').textContent = b.no; $('rp-scope-text').textContent = b.desc || (itemsOf(b).length ? '' : 'No description added by admin yet.'); }
             const hasItems = itemsOf(b).length > 0;
@@ -554,6 +574,36 @@
             $('rf-work-req').hidden = hasItems;
             renderItems();
         }
+
+        // ---------- rework report: rework found after inspection, on any block of the project ----------
+        const REWORK = 'REWORK';
+        const isRework = () => $('rf-block').value === REWORK;
+        let reworkRows = [];
+        const newReworkRow = () => { const b = blocksOf(projects[currentId] || {})[0]; return { block: b ? b.no : '', code: '', qty: '', note: '' }; };
+        function renderRework() {
+            const blocks = blocksOf(projects[currentId] || {});
+            if (!reworkRows.length) reworkRows = [newReworkRow()];
+            $('rf-rework').innerHTML = reworkRows.map((r, idx) => {
+                const items = itemsOf(blocks.find(b => b.no === r.block));
+                return `<div class="rw-row" data-i="${idx}">
+                    <select class="rw-block" aria-label="Block">${blocks.map(b => `<option value="${esc(b.no)}" ${b.no === r.block ? 'selected' : ''}>Block ${esc(b.no)}</option>`).join('')}</select>
+                    <select class="rw-item" aria-label="Item"><option value="">Whole block / other</option>${items.map(i => `<option value="${esc(i.code)}" ${i.code === r.code ? 'selected' : ''}>${esc(i.code)}. ${esc(i.name)}</option>`).join('')}</select>
+                    <input type="number" class="rw-qty" min="0" step="any" inputmode="decimal" placeholder="Qty" value="${esc(r.qty ?? '')}" aria-label="Quantity">
+                    <input type="text" class="rw-note" maxlength="300" placeholder="What needs rework / what was done" value="${esc(r.note || '')}" aria-label="Rework details">
+                    <button type="button" class="rw-del" title="Remove line" aria-label="Remove line"><i class="fas fa-times"></i></button>
+                </div>`;
+            }).join('');
+            $('rf-rework').querySelectorAll('.rw-row').forEach(row => {
+                const r = reworkRows[Number(row.dataset.i)];
+                row.querySelector('.rw-block').onchange = e => { r.block = e.target.value; r.code = ''; renderRework(); };
+                row.querySelector('.rw-item').onchange = e => { r.code = e.target.value; };
+                row.querySelector('.rw-qty').oninput = e => { r.qty = e.target.value; };
+                row.querySelector('.rw-note').oninput = e => { r.note = e.target.value; };
+                row.querySelector('.rw-del').onclick = () => { reworkRows.splice(Number(row.dataset.i), 1); renderRework(); };
+            });
+        }
+        $('rf-rework-add').onclick = () => { reworkRows.push(newReworkRow()); renderRework(); };
+        const reworkLine = x => `Block ${x.block}${x.code ? ' · ' + x.code + '. ' + x.name : ''}${x.qty ? ': ' + fmtQty(x.qty) + ' ' + (x.uom || '') : ''}${x.note ? ' — ' + x.note : ''}`.replace(/\s+/g, ' ').trim();
 
         // ---------- per-item quantities, tracked by stage: Fit-up -> Full Weld -> Inspection ----------
         const STAGES = [{ key: 'fitup', label: 'Fit-up' }, { key: 'weld', label: 'Full Weld' }, { key: 'insp', label: 'Inspection' }];
@@ -642,9 +692,10 @@
             const p = projects[currentId] || {};
             const block = $('rf-block').value;
             if (clear && $('rf-notice').hidden === false) ['rf-work', 'rf-manpower', 'rf-hours', 'rf-issues', 'rf-next'].forEach(k => $(k).value = '');
-            $('rf-items').innerHTML = ''; resetToday(); curStage = 'fitup';
+            $('rf-items').innerHTML = ''; resetToday(); curStage = 'fitup'; reworkRows = [];
             renderScope();
-            if (block && !itemsOf(currentBlock()).length) setProgress(pct((p.blockProgress || {})[block]));
+            if (block === REWORK) setProgress(pct(p.progress));
+            else if (block && !itemsOf(currentBlock()).length) setProgress(pct((p.blockProgress || {})[block]));
             else if (!blocksOf(p).length) setProgress(pct(p.progress));
             prefilledKey = null; prefillForDate();
         }
@@ -678,17 +729,19 @@
             prefilledKey = key;
             const n = $('rf-notice');
             if (mine) {
-                n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> You already submitted a report for ${esc(fmtDate(date))}${block ? ' on Block ' + esc(block) : ''}. Submitting again will update it.`;
+                n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> You already submitted ${block === REWORK ? 'a rework report' : 'a report'} for ${esc(fmtDate(date))}${block && block !== REWORK ? ' on Block ' + esc(block) : ''}. Submitting again will update it.`;
                 setProgress(pct(mine.progress)); $('rf-health').value = mine.health || 'On Track';
                 $('rf-work').value = mine.workDone || ''; $('rf-manpower').value = mine.manpower ?? '';
                 $('rf-hours').value = mine.hours ?? ''; $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
                 $('rf-submit').innerHTML = '<i class="fas fa-save"></i> Update Report';
                 $('rf-reason-wrap').hidden = false; $('rf-reason').value = '';
                 renderItems(); fillItems(mine.itemsDone);
+                if (block === REWORK) { reworkRows = (mine.rework || []).map(x => ({ block: x.block, code: x.code || '', qty: x.qty ?? '', note: x.note || '' })); renderRework(); }
             } else {
                 n.hidden = true;
                 $('rf-reason-wrap').hidden = true; $('rf-reason').value = '';
                 renderItems(); fillItems([]);
+                if (block === REWORK) { reworkRows = []; renderRework(); }
                 $('rf-submit').innerHTML = '<i class="fas fa-paper-plane"></i> Submit Report';
             }
         }
@@ -710,8 +763,16 @@
             if (date > localDate()) { toast('Report date cannot be in the future.', 'err'); return; }
             const id = myReportId(currentId, date, block);
             const items = itemsOf(currentBlock());
-            let itemsDone = null;
-            if (items.length) {
+            let itemsDone = null, rework = null;
+            if (block === REWORK) {
+                const allBlocks = blocksOf(p);
+                rework = reworkRows.filter(r => r.block && (Number(r.qty) > 0 || String(r.note || '').trim())).map(r => {
+                    const it = itemsOf(allBlocks.find(b => b.no === r.block)).find(i => i.code === r.code);
+                    return { block: r.block, code: r.code || null, name: it ? it.name : null, uom: it ? it.uom : null, qty: Number(r.qty) > 0 ? Number(r.qty) : null, note: String(r.note || '').trim() };
+                });
+                if (!rework.length && !work) { toast('Add at least one rework line (quantity or details), or describe the rework done.', 'err'); return; }
+                setProgress(pct(p.progress)); // rework doesn't change progress
+            } else if (items.length) {
                 const totals = totalsWithToday(doneBefore(block, id));
                 for (const i of items) {
                     const problem = stageProblem(i, totals[i.code] || emptyStages());
@@ -730,7 +791,7 @@
             const isNew = !history.some(r => r._id === id);
             const data = {
                 projectId: currentId, projectName: p.name, block: block || null, date, progress, health: $('rf-health').value,
-                workDone: work, itemsDone, manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
+                workDone: work, itemsDone, rework, reportType: block === REWORK ? 'rework' : 'daily', manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
                 issues: $('rf-issues').value.trim(), nextPlan: $('rf-next').value.trim(),
                 supervisor: user.email, supervisorName: myName, supervisorUid: user.uid, updatedAt: serverTimestamp()
             };
@@ -739,7 +800,9 @@
             // Summary on the project: per-block % (only from the newest report for that block), overall % and last report.
             const upd = {};
             const isLatestOverall = !p.lastReportDate || date >= p.lastReportDate;
-            if (block) {
+            if (block === REWORK) {
+                // Rework reports don't change block or project progress.
+            } else if (block) {
                 const latestForBlock = history.filter(r => r.block === block && r._id !== id).reduce((m, r) => r.date > m ? r.date : m, '');
                 // Quantity-based blocks are cumulative, so any report (even back-dated) updates the block %.
                 if (items.length || date >= latestForBlock) {
@@ -773,7 +836,7 @@
         };
 
         // ---------- change log, delete and recalculation ----------
-        const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'manpower', 'hours', 'issues', 'nextPlan'];
+        const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'rework', 'manpower', 'hours', 'issues', 'nextPlan'];
         const pickLog = r => Object.fromEntries(LOG_FIELDS.map(k => [k, r[k] ?? null]));
         async function writeLog(action, r, extra) {
             await addDoc(collection(db, 'report_logs'), {
@@ -805,10 +868,10 @@
         }
         window.editMyReport = (id) => {
             const r = history.find(x => x._id === id); if (!r) return;
-            if (r.block && blocksOf(projects[currentId]).some(b => b.no === r.block)) { $('rf-block').value = r.block; onBlockChange(false); }
+            if (r.block && (r.block === REWORK || blocksOf(projects[currentId]).some(b => b.no === r.block))) { $('rf-block').value = r.block; onBlockChange(false); }
             $('rf-date').value = r.date; prefilledKey = null; prefillForDate();
             $('report-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            toast(`Editing your ${fmtDate(r.date)} report${r.block ? ' for Block ' + r.block : ''}`);
+            toast(`Editing your ${fmtDate(r.date)} ${r.block === REWORK ? 'rework report' : 'report' + (r.block ? ' for Block ' + r.block : '')}`);
         };
         window.deleteMyReport = async (id) => {
             const r = history.find(x => x._id === id), p = projects[currentId]; if (!r || !p) return;
@@ -827,9 +890,10 @@
             if (!history.length) { h.innerHTML = '<div class="empty">No reports filed for this project yet.</div>'; return; }
             h.innerHTML = history.slice(0, 30).map(r => `
                 <div class="report">
-                    <div class="r-head"><strong>${esc(fmtDate(r.date))}${r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
+                    <div class="r-head"><strong>${esc(fmtDate(r.date))}${r.block === REWORK ? ` <span class="badge b-bad">🔧 Rework</span>` : r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
                     <dl>
                         ${r.workDone ? `<dt>Work done</dt><dd>${esc(r.workDone)}</dd>` : ''}
+                        ${(r.rework || []).length ? `<dt>Rework</dt><dd>${esc(r.rework.map(reworkLine).join('\n'))}</dd>` : ''}
                         ${(r.itemsDone || []).length ? `<dt>Quantities</dt><dd>${esc(r.itemsDone.map(i => `${i.code}. ${i.name}: ${stageLine(i)}`).join('\n'))}</dd>` : ''}
                         ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
                         ${r.issues ? `<dt>Issues</dt><dd>${esc(r.issues)}</dd>` : ''}
