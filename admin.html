@@ -188,6 +188,14 @@
                 <div class="stat-card" style="border-top-color:var(--accent)"><h2><span id="stat-standby">0</span></h2><p>At HQ</p></div>
                 <div class="stat-card" style="border-top-color:#8e44ad"><h2><span id="stat-eq">0</span></h2><p>Assets</p></div>
                 <div class="stat-card" style="border-top-color:var(--primary-dark)"><h2><span id="stat-avg">0%</span></h2><p>Avg. Project Completion</p></div>
+                <div class="stat-card" style="border-top-color:#16a085"><h2><span id="stat-hours">0</span></h2><p>Hours Worked (active projects)<br><span id="stat-manhours" style="font-weight:400;">0 man-hrs</span></p></div>
+            </div>
+            <div class="card">
+                <div class="card-head">
+                    <h3>Projects Overview</h3>
+                    <select id="dashFilter" onchange="renderOverview()"><option value="Active">Active projects</option><option value="All">All projects</option><option value="Completed">Completed</option></select>
+                </div>
+                <table><thead><tr><th>Project</th><th style="width:20%">Completion</th><th>Status</th><th>Hours Worked</th><th>Reports</th><th>Last Report</th><th></th></tr></thead><tbody id="dashProjBody"></tbody></table>
             </div>
             <div class="card">
                 <h3>Current HQ / Standby</h3>
@@ -218,13 +226,14 @@
                 <div class="stat-card" style="border-top-color:var(--success)"><h2 id="ov-today">0</h2><p>Reported Today</p></div>
                 <div class="stat-card" style="border-top-color:var(--danger)"><h2 id="ov-missing">0</h2><p>No Report Today</p></div>
                 <div class="stat-card" style="border-top-color:var(--accent)"><h2 id="ov-risk">0</h2><p>At Risk / Delayed</p></div>
+                <div class="stat-card" style="border-top-color:#8e44ad"><h2 id="ov-hours">0</h2><p>Hours Worked (active projects)<br><span id="ov-manhours" style="font-weight:400;">0 man-hrs</span></p></div>
             </div>
             <div class="card">
                 <div class="card-head">
                     <h3>All Projects Overview</h3>
                     <select id="ovFilter" onchange="renderOverview()"><option value="Active">Active</option><option value="Completed">Completed</option><option value="All">All</option></select>
                 </div>
-                <table><thead><tr><th>Project</th><th>Client</th><th style="width:22%">Completion</th><th>Status</th><th>Last Report</th><th>Supervisor</th><th></th></tr></thead><tbody id="ovTableBody"></tbody></table>
+                <table><thead><tr><th>Project</th><th>Client</th><th style="width:20%">Completion</th><th>Status</th><th>Hours Worked</th><th>Last Report</th><th>Supervisor</th><th></th></tr></thead><tbody id="ovTableBody"></tbody></table>
             </div>
             <div class="card">
                 <div class="card-head">
@@ -280,6 +289,8 @@
                 <div class="stat-card" style="border-top-color:var(--success)"><h2 id="d-onsite">0</h2><p>On-Site Now</p></div>
                 <div class="stat-card" style="border-top-color:#8e44ad"><h2 id="d-eq">0</h2><p>Assets Deployed</p></div>
                 <div class="stat-card" style="border-top-color:var(--accent)"><h2 id="d-reports">0</h2><p>Reports Filed</p></div>
+                <div class="stat-card" style="border-top-color:#8e44ad"><h2 id="d-hours">0</h2><p>Total Hours Worked</p></div>
+                <div class="stat-card" style="border-top-color:var(--primary-dark)"><h2 id="d-manhours">0</h2><p>Total Man-hours</p></div>
             </div>
             <div class="card"><h3>Manpower</h3><table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="dManBody"></tbody></table></div>
             <div class="card"><h3>Equipment</h3><table><thead><tr><th>Asset</th><th>Serial ID</th></tr></thead><tbody id="dEqBody"></tbody></table></div>
@@ -1018,6 +1029,16 @@
             document.getElementById('viewport').scrollTop = 0;
         };
 
+        // ---------- Hours worked ----------
+        // Total hours = sum of "Working hours" on reports; man-hours = working hours x manpower on each report.
+        function hoursOf(reports) {
+            let hours = 0, manHours = 0, n = 0;
+            reports.forEach(r => { const h = Number(r.hours) || 0; if (h > 0) { hours += h; manHours += h * (Number(r.manpower) || 0); n++; } });
+            return { hours, manHours, n };
+        }
+        const fmtHrs = n => (Math.round(n * 10) / 10).toLocaleString('en-SG', { maximumFractionDigits: 1 });
+        const hoursCell = t => t.n ? `<strong>${fmtHrs(t.hours)}</strong> hrs<br><span class="muted">${fmtHrs(t.manHours)} man-hrs</span>` : '<span class="muted">—</span>';
+
         // ---------- Project Reports: overall view ----------
         window.renderOverview = () => {
             const today = localDate();
@@ -1043,10 +1064,34 @@
                 <td>${esc(p.client)}</td>
                 <td>${pbar(p.progress)}<span class="muted">${pct(p.progress)}%</span></td>
                 <td>${p.status === 'Completed' ? '<span class="badge b-muted">Completed</span>' : healthBadge(p.health)}</td>
+                <td>${hoursCell(hoursOf(repCache.filter(r => r.projectId === p.id)))}</td>
                 <td>${lastCell(p)}</td>
                 <td>${esc(p.lastReportBy || '—')}</td>
                 <td><button class="btn-view" onclick="viewProject(${jsArg(p.id)})">View</button></td>
-            </tr>`).join('') : '<tr><td colspan="7" class="muted">No projects.</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="8" class="muted">No projects.</td></tr>';
+            const allHrs = hoursOf(repCache.filter(r => active.some(p => p.id === r.projectId)));
+            document.getElementById('ov-hours').innerText = fmtHrs(allHrs.hours);
+            document.getElementById('ov-manhours').innerText = fmtHrs(allHrs.manHours) + ' man-hrs';
+            document.getElementById('stat-hours').innerText = fmtHrs(allHrs.hours);
+            document.getElementById('stat-manhours').innerText = fmtHrs(allHrs.manHours) + ' man-hrs';
+
+            // Dashboard: one row per project with completion, status, hours worked and reports.
+            const df = document.getElementById('dashFilter').value;
+            const dashRows = all.filter(p => df === 'All' || p.status === df)
+                .sort((a, b) => (a.status === 'Completed') - (b.status === 'Completed') || String(a.name).localeCompare(String(b.name)));
+            document.getElementById('dashProjBody').innerHTML = dashRows.length ? dashRows.map(p => {
+                const reps = repCache.filter(r => r.projectId === p.id);
+                const nBlocks = Array.isArray(p.blocks) ? p.blocks.length : 0;
+                return `<tr>
+                    <td><strong>${esc(p.name)}</strong><br><span class="muted">${esc(p.client || '')}${nBlocks ? ` · ${nBlocks} block${nBlocks > 1 ? 's' : ''}` : ''}</span></td>
+                    <td>${pbar(p.progress)}<span class="muted">${pct(p.progress)}%</span></td>
+                    <td>${p.status === 'Completed' ? '<span class="badge b-muted">Completed</span>' : healthBadge(p.health)}<br>${inspectionBadge(p)}</td>
+                    <td>${hoursCell(hoursOf(reps))}</td>
+                    <td>${reps.length}</td>
+                    <td>${lastCell(p)}</td>
+                    <td><button class="btn-view" onclick="viewProject(${jsArg(p.id)})">View</button></td>
+                </tr>`;
+            }).join('') : `<tr><td colspan="7" class="muted">No ${df === 'All' ? '' : df.toLowerCase() + ' '}projects.</td></tr>`;
 
             const day = dateInput.value;
             const dayReports = sortReports(repCache.filter(r => r.date === day));
@@ -1082,6 +1127,10 @@
             document.getElementById('d-onsite').innerText = staff.filter(m => m.status === 'On-Site').length;
             document.getElementById('d-eq').innerText = eq.length;
             document.getElementById('d-reports').innerText = reports.length;
+            const ph = hoursOf(reports);
+            document.getElementById('d-hours').innerText = fmtHrs(ph.hours);
+            document.getElementById('d-manhours').innerText = fmtHrs(ph.manHours);
+            if (ph.n) document.getElementById('d-last').innerText += ` · ⏱ ${fmtHrs(ph.hours)} hrs worked (${fmtHrs(ph.manHours)} man-hrs)`;
             document.getElementById('dManBody').innerHTML = staff.length ? staff.map(m => `<tr><td>${esc(m.name)}</td><td>${esc(m.status)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No staff assigned.</td></tr>';
             document.getElementById('dEqBody').innerHTML = eq.length ? eq.map(e => `<tr><td>${esc(e.name)}</td><td>${esc(e.id)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No equipment deployed.</td></tr>';
             document.getElementById('dAttBody').innerHTML = att.length ? att.map(l => `<tr><td>${esc(l.date)}</td><td>${esc(l.name)}</td><td>${esc(l.status)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">No attendance records.</td></tr>';
@@ -1098,7 +1147,7 @@
                     return `<div class="item-line"><span>${esc(i.code)}. ${esc(i.name)} <span class="muted">(${fmtQty(i.qty)} ${esc(i.uom)})</span><br>${STAGES.map(st => `<span class="stage-chip">${st.label} <strong>${fmtQty(t[st.key])}</strong></span>`).join('')}${rw[i.code] ? `<span class="stage-chip rework-chip">🔧 Rework <strong>${fmtQty(rw[i.code])}</strong></span>` : ''}</span><span>${pbar(ip)}<span class="muted">${ip}%</span></span></div>`;
                 }).join('');
                 const rwNote = rw._lines ? `<div class="muted" style="margin-top:6px;">🔧 ${rw._lines} rework line${rw._lines > 1 ? 's' : ''} on this block${rw._block ? ` (${fmtQty(rw._block)} not tied to an item)` : ''}</div>` : '';
-                return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}${rwNote}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisorName || last.supervisor) + '</span>' : '<span class="muted">Never</span>'}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
+                return `<tr><td><strong>${esc(b.no)}</strong></td><td><div style="white-space:pre-wrap">${esc(b.desc)}</div>${itemsHTML}${rwNote}</td><td>${pbar(bp[b.no])}<span class="muted">${pct(bp[b.no])}%</span></td><td>${last ? fmtDate(last.date) + '<br><span class="muted">' + esc(last.supervisorName || last.supervisor) + '</span>' : '<span class="muted">Never</span>'}${(() => { const bh = hoursOf(reports.filter(r => r.block === b.no)); return bh.n ? `<br><span class="muted"><i class="far fa-clock"></i> ${fmtHrs(bh.hours)} hrs · ${fmtHrs(bh.manHours)} man-hrs</span>` : ''; })()}</td><td><button class="btn-edit" onclick="editBlock(${jsArg(b.no)})">Edit</button> <button class="btn-del" onclick="deleteBlock(${jsArg(b.no)})">X</button></td></tr>`;
             }).join('') : '<tr><td colspan="5" class="muted">No blocks yet. Add the first block above.</td></tr>';
             renderProjectAccess();
         }
@@ -1238,7 +1287,8 @@
         window.exportProjectPDF = () => {
             const p = projCache[detailId]; if (!p) return;
             const reports = sortReports(repCache.filter(r => r.projectId === p.id));
-            savePDF(`<h2>${esc(p.name)} — Daily Work Reports</h2><p>Client: ${esc(p.client || '—')} · Completion: ${pct(p.progress)}% · Generated ${fmtDate(localDate())}</p>` + pdfTable(reports), `${p.name.replace(/[^\w-]+/g, '_')}_Reports.pdf`);
+            const ph = hoursOf(reports);
+            savePDF(`<h2>${esc(p.name)} — Daily Work Reports</h2><p>Client: ${esc(p.client || '—')} · Completion: ${pct(p.progress)}% · Hours worked: ${fmtHrs(ph.hours)} (${fmtHrs(ph.manHours)} man-hours) · Generated ${fmtDate(localDate())}</p>` + pdfTable(reports), `${p.name.replace(/[^\w-]+/g, '_')}_Reports.pdf`);
         };
         window.exportDailyPDF = () => {
             const day = document.getElementById('ovDate').value || localDate();
