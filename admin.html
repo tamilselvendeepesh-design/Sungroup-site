@@ -387,7 +387,7 @@
                 <div><label>Status</label><select id="rm-health"><option>On Track</option><option>At Risk</option><option>Delayed</option></select></div>
                 <div><label id="rm-progress-label">Completion %</label><input type="number" id="rm-progress" min="0" max="100"></div>
                 <div><label>Manpower</label><input type="number" id="rm-manpower" min="0"></div>
-                <div><label>Hours</label><input type="number" id="rm-hours" min="0" step="0.5"></div>
+                <div><label>Hours</label><input type="number" id="rm-hours" min="0" max="24" step="0.1" inputmode="decimal"></div>
             </div>
             <div id="rm-items"></div>
             <label>Work Done</label><textarea id="rm-work" rows="3" maxlength="5000"></textarea>
