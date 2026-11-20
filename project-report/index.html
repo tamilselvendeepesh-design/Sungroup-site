@@ -109,6 +109,7 @@
         .report dl { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; }
         .report dt { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; padding-top: 2px; }
         .report dd { white-space: pre-wrap; word-break: break-word; }
+        .hours-sum { background: #eaf3fb; border-left: 4px solid var(--blue); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 14px; }
         .r-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
         .btn-sm { background: #fff; border: 1px solid var(--blue); color: var(--blue); border-radius: 5px; padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
         .btn-sm:hover { background: #eaf3fb; }
@@ -892,7 +893,11 @@
         function renderHistory() {
             const h = $('rp-history');
             if (!history.length) { h.innerHTML = '<div class="empty">No reports filed for this project yet.</div>'; return; }
-            h.innerHTML = history.slice(0, 30).map(r => `
+            // Hours worked on this project: sum of working hours, and man-hours (hours x manpower) per report.
+            let hrs = 0, manHrs = 0;
+            history.forEach(r => { const x = Number(r.hours) || 0; hrs += x; manHrs += x * (Number(r.manpower) || 0); });
+            const f1 = n => (Math.round(n * 10) / 10).toLocaleString('en-SG', { maximumFractionDigits: 1 });
+            h.innerHTML = `<div class="hours-sum"><i class="far fa-clock"></i> Total worked on this project: <strong>${f1(hrs)} hrs</strong> · <strong>${f1(manHrs)} man-hours</strong> <span class="meta">(${history.length} report${history.length > 1 ? 's' : ''})</span></div>` + history.slice(0, 30).map(r => `
                 <div class="report">
                     <div class="r-head"><strong>${esc(fmtDate(r.date))}${r.block === REWORK ? ` <span class="badge b-bad">🔧 Rework</span>` : r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
                     <dl>
