@@ -3,134 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us | Sungroup Engineering</title>
+    <title>Contact Us | Sun Group Engineering</title>
+    <meta name="description" content="Contact Sun Group Engineering at 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607. Tel +65 6250 8450.">
+    <meta property="og:title" content="Contact Us | Sun Group Engineering">
+    <meta property="og:description" content="Contact Sun Group Engineering at 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607. Tel +65 6250 8450.">
+    <meta property="og:image" content="https://www.sungroupengg.com/hero.jpg">
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
-        .contact-form-card { background: white; padding: 35px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); color: #333; }
-        
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #1e73be; font-size: 0.9rem; }
-        
-        input, textarea { 
-            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; 
-            box-sizing: border-box; font-family: inherit; font-size: 1rem;
-        }
-        
-        input:focus, textarea:focus { border-color: #1e73be; outline: none; background: #fcfdfe; }
-        
-        .submit-btn { 
-            background: #1e73be; color: white; border: none; padding: 15px 30px; 
-            border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; 
-            transition: 0.3s; font-size: 1rem; margin-top: 10px;
-        }
-        .submit-btn:hover { background: #155a96; }
-        .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
-
-        #sent-status { display: none; background: #d4edda; color: #155724; padding: 15px; border-radius: 4px; margin-bottom: 20px; text-align: center; font-weight: bold; border: 1px solid #c3e6cb; }
-
-        @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr; } }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
-    <nav>
-        <div class="container nav-flex">
-            <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about-company.html">About Us</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="projects.html">Projects</a></li>
-                <li><a href="careers.html">Careers</a></li>
-                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
-            </ul>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+        <div class="container header-row">
+            <a class="brand" href="index.html" aria-label="Sun Group Engineering home"><img src="logo.png" alt="Sun Group Engineering" width="210" height="46"></a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+            <nav id="site-nav" class="site-nav" aria-label="Main">
+                <a href="index.html">Home</a>
+                <a href="about-company.html">About Us</a>
+                <a href="services.html">Services</a>
+                <a href="projects.html">Projects</a>
+                <a href="careers.html">Careers</a>
+                <a href="contact.html" aria-current="page" class="nav-cta">Contact Us</a>
+            </nav>
         </div>
-    </nav>
+    </header>
 
-    <main>
-        <header class="hero">
-            <div class="container hero-content">
-                <h2>Contact Us</h2>
-                <p>Reliable engineering solutions for Marine, LNG, and Offshore markets.</p>
-            </div>
-        </header>
-
-        <section class="section-padding">
+    <main id="main">
+        <section class="hero page-hero">
             <div class="container">
-                <div class="contact-grid">
-                    <div class="partner-card">
-                        <h3 class="partner-title">Get In Touch</h3>
-                        <p style="margin-bottom: 20px;">Contact us today to discuss your project requirements or to learn more about our specialized engineering services.</p>
-                        <p><i class="fas fa-map-marker-alt" style="color:#1e73be; width: 25px;"></i> 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
-                        <p><i class="fas fa-envelope" style="color:#1e73be; width: 25px;"></i> info@sungroupengg.com </p>
-                        <p><i class="fas fa-phone" style="color:#1e73be; width: 25px;"></i> +65 6250 8450</p>
-                    </div>
+                <div class="hero-content">
+                    <p class="breadcrumb"><a href="index.html">Home</a> / Contact Us</p>
+                    <h1>Contact Us</h1>
+                    <p>Discuss your project requirements or learn more about our engineering services.</p>
+                </div>
+            </div>
+        </section>
 
-                    <div class="contact-form-card">
-                        <div id="sent-status">✅ Thank you! Your inquiry has been sent. Our team will respond shortly.</div>
-                        <form id="contactForm">
-                            <div class="form-group">
-                                <label>Full Name</label>
-                                <input type="text" id="cName" placeholder="Full Name" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Email Address</label>
-                                <input type="email" id="cEmail" placeholder="email@company.com" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Phone Number</label>
-                                <input type="text" id="cPhone" placeholder="+65 XXXX XXXX" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Company Name</label>
-                                <input type="text" id="cCompany" placeholder="Your Company Name">
-                            </div>
-                            <div class="form-group">
-                                <label>Subject</label>
-                                <input type="text" id="cSub" placeholder="How can we help?" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Message</label>
-                                <textarea id="cMsg" rows="4" placeholder="Briefly describe your requirements..." required></textarea>
-                            </div>
-                            <button type="submit" class="submit-btn" id="submitBtn">Send Message</button>
-                        </form>
+        <section class="section">
+            <div class="container two-col">
+                <div class="reveal">
+                    <span class="eyebrow">Get in touch</span>
+                    <h2>We'd like to hear about your project</h2>
+                    <p class="lead" style="margin:14px 0 28px;">Call, email or send the form and our team will get back to you.</p>
+                    <div class="contact-cards">
+                        <div class="contact-card"><div class="icon-badge"><i class="fas fa-phone"></i></div><div><h3>Phone</h3><a href="tel:+6562508450">+65 6250 8450</a></div></div>
+                        <div class="contact-card"><div class="icon-badge orange"><i class="fas fa-envelope"></i></div><div><h3>Email</h3><a href="mailto:info@sungroupengg.com">info@sungroupengg.com</a></div></div>
+                        <div class="contact-card"><div class="icon-badge"><i class="fas fa-location-dot"></i></div><div><h3>Office</h3><p>5 Soon Lee Street, #06-41 Pioneer Point<br>Singapore 627607</p><a class="link-arrow" style="margin-top:8px; font-size:.92rem; color:var(--blue);" href="https://www.google.com/maps/search/?api=1&amp;query=5+Soon+Lee+Street+Pioneer+Point+Singapore+627607" target="_blank" rel="noopener">Open in Google Maps <i class="fas fa-arrow-up-right-from-square"></i></a></div></div>
                     </div>
+                </div>
+
+                <div class="form-card reveal">
+                    <div class="success-box" id="sent-status" role="status">
+                        <i class="fas fa-circle-check"></i>
+                        <h3>Message sent</h3>
+                        <p class="muted">Thank you. Our team will respond shortly.</p>
+                    </div>
+                    <form id="contactForm">
+                        <h2>Send us a message</h2>
+                        <div class="form-row">
+                            <div class="field">
+                                <label for="cName">Full name</label>
+                                <input type="text" id="cName" autocomplete="name" placeholder="Full name" required>
+                            </div>
+                            <div class="field">
+                                <label for="cCompany">Company <span class="opt">(optional)</span></label>
+                                <input type="text" id="cCompany" autocomplete="organization" placeholder="Company name">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="field">
+                                <label for="cEmail">Email address</label>
+                                <input type="email" id="cEmail" autocomplete="email" placeholder="email@company.com" required>
+                            </div>
+                            <div class="field">
+                                <label for="cPhone">Phone number</label>
+                                <input type="tel" id="cPhone" autocomplete="tel" placeholder="+65 XXXX XXXX" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="cSub">Subject</label>
+                            <input type="text" id="cSub" placeholder="How can we help?" required>
+                        </div>
+                        <div class="field">
+                            <label for="cMsg">Message</label>
+                            <textarea id="cMsg" rows="5" placeholder="Briefly describe your requirements (vessel, scope, timeline)…" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-blue btn-block" id="submitBtn">Send Message <i class="fas fa-paper-plane"></i></button>
+                        <div class="form-error" id="form-error" role="alert">Could not send your message. Please check your internet connection or call us on +65 6250 8450.</div>
+                    </form>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div>
+                <a href="index.html" class="footer-logo"><img src="logo.png" alt="Sun Group Engineering" width="174" height="38"></a>
+                <p>Reliable and cost-effective engineering services for the Marine, LNG and Offshore markets since 2006.</p>
+            </div>
+            <div>
+                <h4>Company</h4>
+                <ul class="footer-links">
+                    <li><a href="about-company.html">About Us</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="projects.html">Projects</a></li>
+                    <li><a href="careers.html">Careers</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Get in touch</h4>
+                <ul class="footer-contact">
+                    <li><i class="fas fa-location-dot"></i><a href="https://www.google.com/maps/search/?api=1&amp;query=5+Soon+Lee+Street+Pioneer+Point+Singapore+627607" target="_blank" rel="noopener">5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</a></li>
+                    <li><i class="fas fa-phone"></i><a href="tel:+6562508450">+65 6250 8450</a></li>
+                    <li><i class="fas fa-envelope"></i><a href="mailto:info@sungroupengg.com">info@sungroupengg.com</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="container footer-bottom">
+            <span>&copy; <span data-year>2026</span> Sun Group Engineering Pte Ltd. All rights reserved.</span>
+            <span>Marine · LNG · Offshore</span>
         </div>
     </footer>
 
+    <script src="site.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", 
-            authDomain: "sungroup-crm.firebaseapp.com", 
-            projectId: "sungroup-crm", 
-            storageBucket: "sungroup-crm.firebasestorage.app", 
-            messagingSenderId: "982155471354", 
-            appId: "1:982155471354:web:c4b61192d247c9739edc43" 
-        };
-
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp({
+            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g",
+            authDomain: "sungroup-crm.firebaseapp.com",
+            projectId: "sungroup-crm",
+            storageBucket: "sungroup-crm.firebasestorage.app",
+            messagingSenderId: "982155471354",
+            appId: "1:982155471354:web:c4b61192d247c9739edc43"
+        });
         const db = getFirestore(app);
 
         document.getElementById('contactForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            btn.innerText = "Sending...";
-            btn.disabled = true;
-
+            const btn = document.getElementById('submitBtn'), err = document.getElementById('form-error');
+            btn.disabled = true; btn.innerHTML = 'Sending… <i class="fas fa-spinner fa-spin"></i>'; err.style.display = 'none';
             try {
                 await addDoc(collection(db, "leads"), {
                     type: "General Inquiry",
@@ -142,15 +162,12 @@
                     date: new Date().toLocaleDateString(),
                     timestamp: new Date().toISOString()
                 });
-
                 document.getElementById('contactForm').style.display = 'none';
                 document.getElementById('sent-status').style.display = 'block';
-                window.scrollTo(0,0);
             } catch (error) {
                 console.error("Submission error: ", error);
-                alert("Connection error. Please check your internet or try again later.");
-                btn.innerText = "Send Message";
-                btn.disabled = false;
+                err.style.display = 'block';
+                btn.disabled = false; btn.innerHTML = 'Send Message <i class="fas fa-paper-plane"></i>';
             }
         };
     </script>

@@ -2,50 +2,175 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Services | Sungroup Engineering</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services | Sun Group Engineering</title>
+    <meta name="description" content="Power &amp; control system design, construction &amp; maintenance, and testing &amp; commissioning for marine, LNG and offshore projects in Singapore.">
+    <meta property="og:title" content="Services | Sun Group Engineering">
+    <meta property="og:description" content="Power &amp; control system design, construction &amp; maintenance, and testing &amp; commissioning for marine, LNG and offshore projects in Singapore.">
+    <meta property="og:image" content="https://www.sungroupengg.com/hero.jpg">
     <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
-    <nav>
-        <div class="container nav-flex">
-            <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about-company.html">About Us</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="projects.html">Projects</a></li>
-                <li><a href="careers.html">Careers</a></li>
-                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
-            </ul>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+        <div class="container header-row">
+            <a class="brand" href="index.html" aria-label="Sun Group Engineering home"><img src="logo.png" alt="Sun Group Engineering" width="210" height="46"></a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+            <nav id="site-nav" class="site-nav" aria-label="Main">
+                <a href="index.html">Home</a>
+                <a href="about-company.html">About Us</a>
+                <a href="services.html" aria-current="page">Services</a>
+                <a href="projects.html">Projects</a>
+                <a href="careers.html">Careers</a>
+                <a href="contact.html" class="nav-cta">Contact Us</a>
+            </nav>
         </div>
-    </nav>
-    <main>
-        <div class="page-header"><div class="container"><h1>Technical Services</h1></div></div>
-        <div class="container section-padding">
-            <div id="electrical" class="service-block">
-                <h2>Power & Control System Design</h2>
-                <p>Turnkey design, build and installation packages for replacement and modification of switchboards, starters, and distribution systems using AutoCAD.</p>
+    </header>
+
+    <main id="main">
+        <section class="hero page-hero">
+            <div class="container">
+                <div class="hero-content">
+                    <p class="breadcrumb"><a href="index.html">Home</a> / Services</p>
+                    <h1>Technical Services</h1>
+                    <p>Power &amp; control, construction and commissioning for the Marine, LNG and Offshore industries.</p>
+                </div>
             </div>
-            <div id="construction" class="service-block" style="margin-top:40px;">
-                <h2>Construction & Maintenance</h2>
-                <p>Mechanical erection, inspections, adjustments, and repairs of static/rotating equipment. DCS/PLC implementation and steel/piping works.</p>
+        </section>
+
+        <section class="section-sm bg-soft">
+            <div class="container">
+                <nav class="subnav" aria-label="Services on this page">
+                    <a href="#electrical"><i class="fas fa-bolt"></i> Power &amp; Control</a>
+                    <a href="#construction"><i class="fas fa-helmet-safety"></i> Construction &amp; Maintenance</a>
+                    <a href="#testing"><i class="fas fa-gauge-high"></i> Testing &amp; Commissioning</a>
+                </nav>
             </div>
-            <div id="testing" class="service-block" style="margin-top:40px;">
-                <h2>Testing & Commissioning</h2>
-                <ul>
-                    <li>Insulation Resistance & Earth Testing</li>
-                    <li>High Voltage Equipment Testing</li>
-                    <li>Load tests of power generating systems</li>
-                    <li>Calibration of breakers, meters, and relays</li>
+        </section>
+
+        <div class="container">
+            <section class="service-row reveal" id="electrical">
+                <div>
+                    <span class="service-num">01</span>
+                    <h2>Power &amp; Control System Design</h2>
+                    <p class="lead">Turnkey design, build and installation packages for the replacement and modification of electrical systems on board.</p>
+                </div>
+                <div class="service-panel">
+                    <h3>What we deliver</h3>
+                    <ul class="check-list">
+                        <li>Turnkey design, build and installation packages</li>
+                        <li>Replacement and modification of switchboards</li>
+                        <li>Starters and distribution systems</li>
+                        <li>Control system design and installation</li>
+                        <li>Design drawings produced in AutoCAD</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="service-row reveal" id="construction">
+                <div>
+                    <span class="service-num">02</span>
+                    <h2>Construction &amp; Maintenance</h2>
+                    <p class="lead">Managing complex projects from site preparation through to start-up, with mechanical, electrical and structural teams.</p>
+                </div>
+                <div class="service-panel">
+                    <h3>What we deliver</h3>
+                    <ul class="check-list">
+                        <li>Mechanical erection</li>
+                        <li>Inspections, adjustments and repairs of static and rotating equipment</li>
+                        <li>DCS / PLC implementation</li>
+                        <li>Steel and piping works</li>
+                        <li>Cable trays, supports and cable installation</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="service-row reveal" id="testing">
+                <div>
+                    <span class="service-num">03</span>
+                    <h2>Testing &amp; Commissioning</h2>
+                    <p class="lead">Specialised testing to prove your systems are safe, compliant and ready for service.</p>
+                </div>
+                <div class="service-panel">
+                    <h3>What we deliver</h3>
+                    <ul class="check-list">
+                        <li>Insulation resistance &amp; earth testing</li>
+                        <li>High voltage equipment testing</li>
+                        <li>Load tests of power generating systems</li>
+                        <li>Calibration of breakers, meters and relays</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <section class="section bg-soft">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Industries</span>
+                    <h2>Where we work</h2>
+                    <p>From newbuilds to conversions and upgrades in Singapore's shipyards.</p>
+                </div>
+                <div class="chips reveal">
+                    <span class="chip"><i class="fas fa-ship"></i> Marine &amp; shipbuilding</span>
+                    <span class="chip"><i class="fas fa-fire-flame-simple"></i> LNG carriers &amp; FLNG</span>
+                    <span class="chip"><i class="fas fa-oil-well"></i> Offshore rigs</span>
+                    <span class="chip"><i class="fas fa-industry"></i> FPSO &amp; FSRU</span>
+                    <span class="chip"><i class="fas fa-route"></i> Pipe-laying vessels</span>
+                    <span class="chip"><i class="fas fa-plug"></i> E-houses</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container">
+                <div class="cta-band reveal">
+                    <div>
+                        <h2>Need a quote?</h2>
+                        <p>Send us your scope and drawings. We'll come back with a proposal that fits your schedule.</p>
+                    </div>
+                    <a href="contact.html" class="btn btn-primary">Request a Quote <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div>
+                <a href="index.html" class="footer-logo"><img src="logo.png" alt="Sun Group Engineering" width="174" height="38"></a>
+                <p>Reliable and cost-effective engineering services for the Marine, LNG and Offshore markets since 2006.</p>
+            </div>
+            <div>
+                <h4>Company</h4>
+                <ul class="footer-links">
+                    <li><a href="about-company.html">About Us</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="projects.html">Projects</a></li>
+                    <li><a href="careers.html">Careers</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Get in touch</h4>
+                <ul class="footer-contact">
+                    <li><i class="fas fa-location-dot"></i><a href="https://www.google.com/maps/search/?api=1&amp;query=5+Soon+Lee+Street+Pioneer+Point+Singapore+627607" target="_blank" rel="noopener">5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</a></li>
+                    <li><i class="fas fa-phone"></i><a href="tel:+6562508450">+65 6250 8450</a></li>
+                    <li><i class="fas fa-envelope"></i><a href="mailto:info@sungroupengg.com">info@sungroupengg.com</a></li>
                 </ul>
             </div>
         </div>
-    </main>
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+        <div class="container footer-bottom">
+            <span>&copy; <span data-year>2026</span> Sun Group Engineering Pte Ltd. All rights reserved.</span>
+            <span>Marine · LNG · Offshore</span>
         </div>
     </footer>
+
+    <script src="site.js"></script>
 </body>
 </html>

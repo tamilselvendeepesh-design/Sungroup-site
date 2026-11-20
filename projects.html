@@ -3,176 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Our Projects | Sungroup Engineering</title>
+    <title>Projects | Sun Group Engineering</title>
+    <meta name="description" content="Our portfolio of marine and offshore engineering projects for Singapore's leading shipyards.">
+    <meta property="og:title" content="Projects | Sun Group Engineering">
+    <meta property="og:description" content="Our portfolio of marine and offshore engineering projects for Singapore's leading shipyards.">
+    <meta property="og:image" content="https://www.sungroupengg.com/hero.jpg">
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
-        }
-        .project-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-            border-top: 4px solid #1e73be;
-        }
-        .project-card:hover {
-            transform: translateY(-5px);
-        }
-        .project-info {
-            padding: 25px;
-            color: #333;
-        }
-        .project-info h4 {
-            color: #1e73be;
-            margin: 0 0 15px 0;
-            font-size: 1.25rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .project-details {
-            font-size: 0.9rem;
-            line-height: 1.8;
-            color: #555;
-        }
-        .project-details i {
-            color: #1e73be;
-            width: 20px;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 15px;
-        }
-        .status-active { background: #e1f5fe; color: #0288d1; }
-        .status-completed { background: #e8f5e9; color: #2e7d32; }
-
-        #loading-projects {
-            text-align: center;
-            padding: 80px 0;
-            color: #1e73be;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
-    <nav>
-        <div class="container nav-flex">
-            <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about-company.html">About Us</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="projects.html" class="active">Projects</a></li>
-                <li><a href="careers.html">Careers</a></li>
-                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
-            </ul>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+        <div class="container header-row">
+            <a class="brand" href="index.html" aria-label="Sun Group Engineering home"><img src="logo.png" alt="Sun Group Engineering" width="210" height="46"></a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+            <nav id="site-nav" class="site-nav" aria-label="Main">
+                <a href="index.html">Home</a>
+                <a href="about-company.html">About Us</a>
+                <a href="services.html">Services</a>
+                <a href="projects.html" aria-current="page">Projects</a>
+                <a href="careers.html">Careers</a>
+                <a href="contact.html" class="nav-cta">Contact Us</a>
+            </nav>
         </div>
-    </nav>
+    </header>
 
-    <main>
-        <header class="hero">
-            <div class="container hero-content">
-                <h2>Project Portfolio</h2>
-                <p>Delivering high-quality Marine & Offshore engineering solutions since 2006.</p>
-            </div>
-        </header>
-
-        <section class="section-padding">
+    <main id="main">
+        <section class="hero page-hero">
             <div class="container">
-                <div id="loading-projects">
-                    <i class="fas fa-ship fa-spin fa-3x"></i>
-                    <p style="margin-top:15px; font-weight:bold;">Accessing Project Database...</p>
+                <div class="hero-content">
+                    <p class="breadcrumb"><a href="index.html">Home</a> / Projects</p>
+                    <h1>Project Portfolio</h1>
+                    <p>Marine and offshore engineering work delivered for Singapore's leading shipyards since 2006.</p>
                 </div>
-                
-                <div class="projects-grid" id="projectsContainer">
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container">
+                <div class="toolbar">
+                    <div class="filters" role="group" aria-label="Filter projects">
+                        <button type="button" class="filter-btn" data-filter="all" aria-pressed="true">All <span class="count" id="c-all"></span></button>
+                        <button type="button" class="filter-btn" data-filter="active" aria-pressed="false">Ongoing <span class="count" id="c-active"></span></button>
+                        <button type="button" class="filter-btn" data-filter="completed" aria-pressed="false">Completed <span class="count" id="c-completed"></span></button>
                     </div>
+                    <label class="search-box"><i class="fas fa-magnifying-glass"></i><input type="search" id="search" placeholder="Search by vessel or client" aria-label="Search projects by vessel or client"></label>
+                </div>
+                <div class="grid grid-3" id="projectsContainer" aria-live="polite">
+                    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-sm bg-soft">
+            <div class="container">
+                <div class="cta-band reveal">
+                    <div>
+                        <h2>Your vessel could be next</h2>
+                        <p>Talk to us about electrical, construction or commissioning work on your next project.</p>
+                    </div>
+                    <a href="contact.html" class="btn btn-primary">Contact Us <i class="fas fa-arrow-right"></i></a>
+                </div>
             </div>
         </section>
     </main>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div>
+                <a href="index.html" class="footer-logo"><img src="logo.png" alt="Sun Group Engineering" width="174" height="38"></a>
+                <p>Reliable and cost-effective engineering services for the Marine, LNG and Offshore markets since 2006.</p>
+            </div>
+            <div>
+                <h4>Company</h4>
+                <ul class="footer-links">
+                    <li><a href="about-company.html">About Us</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="projects.html">Projects</a></li>
+                    <li><a href="careers.html">Careers</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Get in touch</h4>
+                <ul class="footer-contact">
+                    <li><i class="fas fa-location-dot"></i><a href="https://www.google.com/maps/search/?api=1&amp;query=5+Soon+Lee+Street+Pioneer+Point+Singapore+627607" target="_blank" rel="noopener">5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</a></li>
+                    <li><i class="fas fa-phone"></i><a href="tel:+6562508450">+65 6250 8450</a></li>
+                    <li><i class="fas fa-envelope"></i><a href="mailto:info@sungroupengg.com">info@sungroupengg.com</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="container footer-bottom">
+            <span>&copy; <span data-year>2026</span> Sun Group Engineering Pte Ltd. All rights reserved.</span>
+            <span>Marine · LNG · Offshore</span>
         </div>
     </footer>
 
+    <script src="site.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", 
-            authDomain: "sungroup-crm.firebaseapp.com", 
-            projectId: "sungroup-crm" 
-        };
-
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp({ apiKey: "AIzaSyCkND2Ip7G09rELaU-S9c0LXk1ffrFSc4g", authDomain: "sungroup-crm.firebaseapp.com", projectId: "sungroup-crm" });
         const db = getFirestore(app);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const box = document.getElementById('projectsContainer');
+        let projects = [], filter = 'all';
 
-        async function loadProjects() {
-            const container = document.getElementById('projectsContainer');
-            const loader = document.getElementById('loading-projects');
-            
-            try {
-                // Fetch only projects marked for the public website (internal ones stay hidden)
-                const querySnapshot = await getDocs(query(collection(db, "projects"), where("showOnWebsite", "==", true)));
-                
-                loader.style.display = 'none';
-                container.innerHTML = '';
-
-                if (querySnapshot.empty) {
-                    container.innerHTML = `
-                        <div style="text-align:center; grid-column: 1/-1; padding: 40px;">
-                            <i class="fas fa-folder-open fa-3x" style="color:#ccc; margin-bottom:15px;"></i>
-                            <p>No projects are currently listed in our public portfolio.</p>
-                        </div>`;
-                    return;
-                }
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const projectName = doc.id; // Using Document ID as Title per Admin Logic
-                    
-                    // Determine status class
-                    const statusClass = data.status === 'Completed' ? 'status-completed' : 'status-active';
-
-                    const card = `
-                        <div class="project-card">
-                            <div class="project-info">
-                                <span class="status-badge ${statusClass}">${data.status || 'Live'}</span>
-                                <h4>${projectName}</h4>
-                                <div class="project-details">
-                                    <p><i class="fas fa-user-tie"></i> <strong>Client:</strong> ${data.client || 'Direct'}</p>
-                                    <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> ${data.loc || 'Singapore'}</p>
-                                </div>
-                                <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                                <small style="color:#888;">Ref: SG-${projectName.substring(0,3).toUpperCase()}</small>
-                            </div>
-                        </div>
-                    `;
-                    container.innerHTML += card;
-                });
-            } catch (error) {
-                console.error("Firebase Error:", error);
-                loader.innerHTML = `
-                    <div style="color:red; padding:20px;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>Unable to load projects. Please refresh the page.</p>
-                    </div>`;
-            }
+        function render() {
+            const q = document.getElementById('search').value.trim().toLowerCase();
+            const shown = projects.filter(p => (filter === 'all' || (filter === 'completed') === p.done)
+                && (!q || `${p.name} ${p.client}`.toLowerCase().includes(q)));
+            box.innerHTML = shown.length ? shown.map(p => `
+                <article class="project-card ${p.done ? '' : 'is-active'}">
+                    <span class="status ${p.done ? 'status-completed' : 'status-active'}">${p.done ? 'Completed' : 'Ongoing'}</span>
+                    <h3>${esc(p.name)}</h3>
+                    <div class="project-meta">
+                        ${p.client ? `<span><i class="fas fa-building"></i> ${esc(p.client)}</span>` : ''}
+                        ${p.location ? `<span><i class="fas fa-location-dot"></i> ${esc(p.location)}</span>` : ''}
+                    </div>
+                </article>`).join('')
+                : `<div class="state-box"><i class="fas fa-folder-open"></i>${projects.length ? 'No projects match your search.' : 'No projects are currently listed in our public portfolio.'}</div>`;
         }
 
-        loadProjects();
+        document.querySelectorAll('.filter-btn').forEach(b => b.onclick = () => {
+            filter = b.dataset.filter;
+            document.querySelectorAll('.filter-btn').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+            render();
+        });
+        document.getElementById('search').oninput = render;
+
+        try {
+            // Only projects an admin has approved for the website (passed inspection).
+            const snap = await getDocs(query(collection(db, 'projects'), where('showOnWebsite', '==', true)));
+            projects = snap.docs.map(d => {
+                const x = d.data();
+                return { name: x.name || d.id, client: x.client || '', location: x.location || x.loc || '', done: x.status === 'Completed' };
+            }).sort((a, b) => a.done - b.done || a.name.localeCompare(b.name));
+            document.getElementById('c-all').textContent = projects.length;
+            document.getElementById('c-active').textContent = projects.filter(p => !p.done).length;
+            document.getElementById('c-completed').textContent = projects.filter(p => p.done).length;
+            // Hide a filter that would show nothing.
+            document.querySelector('[data-filter="active"]').hidden = !projects.some(p => !p.done);
+            document.querySelector('[data-filter="completed"]').hidden = !projects.some(p => p.done);
+            render();
+        } catch (error) {
+            console.error('Projects error:', error);
+            box.innerHTML = '<div class="state-box"><i class="fas fa-triangle-exclamation"></i>Unable to load projects. Please refresh the page.</div>';
+        }
     </script>
 </body>
 </html>

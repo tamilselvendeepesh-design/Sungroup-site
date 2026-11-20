@@ -2,38 +2,172 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>About Us | Sungroup Engineering</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us | Sun Group Engineering</title>
+    <meta name="description" content="Sun Group Engineering Pte Ltd — a Singapore marine, LNG and offshore engineering company providing reliable, cost-effective services since 2006.">
+    <meta property="og:title" content="About Us | Sun Group Engineering">
+    <meta property="og:description" content="Sun Group Engineering Pte Ltd — a Singapore marine, LNG and offshore engineering company providing reliable, cost-effective services since 2006.">
+    <meta property="og:image" content="https://www.sungroupengg.com/hero.jpg">
     <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
-    <nav>
-        <div class="container nav-flex">
-            <div class="logo"><a href="index.html"><img src="logo.png" alt="Sungroup" style="height:60px;"></a></div>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about-company.html">About Us</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="projects.html">Projects</a></li>
-                <li><a href="careers.html">Careers</a></li>
-                <li><a href="contact.html" class="nav-contact-btn">Contact Us</a></li>
-            </ul>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+        <div class="container header-row">
+            <a class="brand" href="index.html" aria-label="Sun Group Engineering home"><img src="logo.png" alt="Sun Group Engineering" width="210" height="46"></a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+            <nav id="site-nav" class="site-nav" aria-label="Main">
+                <a href="index.html">Home</a>
+                <a href="about-company.html" aria-current="page">About Us</a>
+                <a href="services.html">Services</a>
+                <a href="projects.html">Projects</a>
+                <a href="careers.html">Careers</a>
+                <a href="contact.html" class="nav-cta">Contact Us</a>
+            </nav>
         </div>
-    </nav>
-    <main>
-        <div class="page-header"><div class="container"><h1>About Our Company</h1></div></div>
-        <div class="container section-padding">
-            <p style="font-size:1.2rem; margin-bottom:20px;">Sun Group Engineering Pte Ltd is a privately owned company located at 5 Soon Lee Street, #06-41 Pioneer Point, Singapore.</p>
-            <div class="highlight-box">
-                <p>We commenced operations in 2006 with a goal to provide world class services that are both reliable and cost effective, and to supply quality products in compliance with the rules of Classification Societies (IACS) and international standards.</p>
-                <p style="margin-top:15px;">Our leadership and engineers bring a wealth of experience in the marine, LNG, and offshore markets, having previously worked for well-known international service providers.</p>
+    </header>
+
+    <main id="main">
+        <section class="hero page-hero">
+            <div class="container">
+                <div class="hero-content">
+                    <p class="breadcrumb"><a href="index.html">Home</a> / About Us</p>
+                    <h1>About Sun Group Engineering</h1>
+                    <p>A Singapore engineering company serving the Marine, LNG and Offshore markets since 2006.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container split">
+                <div class="reveal">
+                    <span class="eyebrow">Our story</span>
+                    <h2>Reliable, cost-effective engineering since 2006</h2>
+                    <p class="lead">Sun Group Engineering Pte Ltd is a privately owned company located at 5 Soon Lee Street, #06-41 Pioneer Point, Singapore.</p>
+                    <p>We commenced operations in 2006 with a goal to provide world-class services that are both reliable and cost effective, and to supply quality products in compliance with the rules of Classification Societies (IACS) and international standards.</p>
+                    <p>Our leadership and engineers bring a wealth of experience in the marine, LNG and offshore markets, having previously worked for well-known international service providers.</p>
+                </div>
+                <div class="media-card reveal" role="img" aria-label="Vessel and tug in harbour">
+                    <div class="badge-float"><strong>Since 2006</strong><span>Based at Pioneer Point, Singapore</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section bg-soft">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Why work with us</span>
+                    <h2>What sets us apart</h2>
+                </div>
+                <div class="grid grid-3">
+                    <article class="card reveal">
+                        <div class="icon-badge"><i class="fas fa-certificate"></i></div>
+                        <h3>Quality to class rules</h3>
+                        <p>Work and products supplied in compliance with Classification Society (IACS) rules and international standards.</p>
+                    </article>
+                    <article class="card reveal">
+                        <div class="icon-badge orange"><i class="fas fa-user-gear"></i></div>
+                        <h3>Industry experience</h3>
+                        <p>Engineers and leaders who previously worked for well-known international service providers.</p>
+                    </article>
+                    <article class="card reveal">
+                        <div class="icon-badge"><i class="fas fa-scale-balanced"></i></div>
+                        <h3>Reliable &amp; cost-effective</h3>
+                        <p>World-class service delivered at a cost that makes sense for your project.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Capabilities</span>
+                    <h2>One partner from design to commissioning</h2>
+                </div>
+                <div class="grid grid-3">
+                    <a class="card reveal" href="services.html#electrical" style="text-decoration:none;">
+                        <div class="icon-badge"><i class="fas fa-bolt"></i></div>
+                        <h3>Power &amp; Control System Design</h3>
+                        <p>Switchboards, starters and distribution systems — designed, built and installed.</p>
+                    </a>
+                    <a class="card reveal" href="services.html#construction" style="text-decoration:none;">
+                        <div class="icon-badge orange"><i class="fas fa-helmet-safety"></i></div>
+                        <h3>Major Construction</h3>
+                        <p>Mechanical erection, equipment repairs, DCS/PLC, steel and piping works.</p>
+                    </a>
+                    <a class="card reveal" href="services.html#testing" style="text-decoration:none;">
+                        <div class="icon-badge"><i class="fas fa-gauge-high"></i></div>
+                        <h3>Testing &amp; Commissioning</h3>
+                        <p>IR, earth and HV testing, load tests and calibration.</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-sm bg-soft">
+            <div class="container">
+                <div class="partner reveal">
+                    <div class="icon-badge orange"><i class="fas fa-people-arrows"></i></div>
+                    <div>
+                        <span class="eyebrow">Associate company</span>
+                        <h3>Jaya Hitech Engineering</h3>
+                        <p>More than 15 years of experience in services for marine shipbuilding and major upgrading construction works.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container">
+                <div class="cta-band reveal">
+                    <div>
+                        <h2>Let's work together</h2>
+                        <p>Talk to us about your next newbuild, conversion or upgrade.</p>
+                    </div>
+                    <a href="contact.html" class="btn btn-primary">Contact Us <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div>
+                <a href="index.html" class="footer-logo"><img src="logo.png" alt="Sun Group Engineering" width="174" height="38"></a>
+                <p>Reliable and cost-effective engineering services for the Marine, LNG and Offshore markets since 2006.</p>
+            </div>
+            <div>
+                <h4>Company</h4>
+                <ul class="footer-links">
+                    <li><a href="about-company.html">About Us</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="projects.html">Projects</a></li>
+                    <li><a href="careers.html">Careers</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Get in touch</h4>
+                <ul class="footer-contact">
+                    <li><i class="fas fa-location-dot"></i><a href="https://www.google.com/maps/search/?api=1&amp;query=5+Soon+Lee+Street+Pioneer+Point+Singapore+627607" target="_blank" rel="noopener">5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</a></li>
+                    <li><i class="fas fa-phone"></i><a href="tel:+6562508450">+65 6250 8450</a></li>
+                    <li><i class="fas fa-envelope"></i><a href="mailto:info@sungroupengg.com">info@sungroupengg.com</a></li>
+                </ul>
             </div>
         </div>
-    </main>
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Sungroup Engineering Pte Ltd | 5 Soon Lee Street, #06-41 Pioneer Point, Singapore 627607</p>
+        <div class="container footer-bottom">
+            <span>&copy; <span data-year>2026</span> Sun Group Engineering Pte Ltd. All rights reserved.</span>
+            <span>Marine · LNG · Offshore</span>
         </div>
     </footer>
+
+    <script src="site.js"></script>
 </body>
 </html>
