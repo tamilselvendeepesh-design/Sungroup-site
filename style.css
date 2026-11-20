@@ -283,3 +283,6 @@ textarea { resize: vertical; min-height: 130px; }
 .btn-wa { display: inline-flex !important; align-items: center; gap: 8px; margin-top: 10px; background: #25d366; color: #fff !important; padding: 8px 16px; border-radius: 999px; font-size: 0.92rem; font-weight: 700; text-decoration: none; }
 .btn-wa:hover { background: #1ebe5b; }
 .footer-contact .fa-whatsapp { color: #25d366; }
+
+/* long email addresses wrap on small screens */
+.contact-card > div, .footer-contact li > span, .footer-contact li > a { min-width: 0; overflow-wrap: anywhere; }
