@@ -264,7 +264,7 @@
                     <div class="field"><label for="rf-work">Work Completed Today <span class="req" id="rf-work-req">*</span></label><textarea id="rf-work" required maxlength="5000" placeholder="e.g. Cable pulling for MSB-2 done (120m). Terminations 60% on DB-4…"></textarea></div>
                     <div class="grid-2">
                         <div class="field"><label for="rf-manpower">Manpower On Site</label><input type="number" id="rf-manpower" min="0" step="1" placeholder="0"></div>
-                        <div class="field"><label for="rf-hours">Working Hours</label><input type="number" id="rf-hours" min="0" step="0.5" placeholder="e.g. 9"></div>
+                        <div class="field"><label for="rf-hours">Working Hours</label><input type="number" id="rf-hours" min="0" max="24" step="0.1" inputmode="decimal" placeholder="e.g. 10.5"></div>
                     </div>
                     <div class="field"><label for="rf-issues">Issues / Delays / Safety</label><textarea id="rf-issues" maxlength="3000" placeholder="Anything blocking progress, material shortages, safety observations…"></textarea></div>
                     <div class="field"><label for="rf-next">Plan for Next Day</label><textarea id="rf-next" maxlength="3000"></textarea></div>
