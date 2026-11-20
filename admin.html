@@ -86,6 +86,8 @@
         .b-warn { background: #fdf1d8; color: var(--warn); }
         .b-bad { background: #fbe4e2; color: var(--danger); }
         .b-muted { background: #eef1f4; color: var(--muted); }
+        .b-holiday { background: #fff4e5; color: #b35c00; }
+        tr.att-holiday td { background: #fffaf2; }
         .stale { color: var(--danger); font-weight: 600; }
         .muted { color: var(--muted); font-size: 0.8rem; }
         .report { border-left: 3px solid var(--primary); background: #f8fafc; padding: 12px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.86rem; }
@@ -172,6 +174,7 @@
 
     <div id="batch-bar">
         <span style="font-weight:bold; white-space:nowrap;"><span id="batch-count">0</span> Selected</span>
+        <input type="date" id="batchDate" title="Attendance date" aria-label="Attendance date" style="max-width:160px; margin:0;">
         <select id="batchProj" class="proj-select-list" style="max-width:200px;"></select>
         <select id="batchStatus" style="max-width:150px;"><option>On-Site</option><option>Standby</option><option>MC</option></select>
         <button onclick="applyBatch()" class="btn-main" style="background:var(--success); width:auto; padding:10px 25px;">Deploy Selected</button>
@@ -346,7 +349,7 @@
                 <button onclick="generateFilteredPDF('attendance')" class="btn-main">Download PDF</button>
             </div>
             <div class="card" style="border:1px solid var(--danger)"><button onclick="resetAttendance()" class="btn-del" style="width:100%">RESET ALL ATTENDANCE RECORDS</button></div>
-            <div class="card"><table><thead><tr><th>Date</th><th>Name</th><th>Status</th><th>Actions</th></tr></thead><tbody id="attendTableBody"></tbody></table></div>
+            <div class="card"><h3>Attendance — last 60 days <span class="muted">(a day with nobody marked counts as a holiday)</span></h3><table><thead><tr><th>Date</th><th>Name</th><th>Project</th><th>Status</th><th>Actions</th></tr></thead><tbody id="attendTableBody"></tbody></table></div>
         </div>
 
         <!-- SUPERVISOR ACCOUNTS -->
@@ -432,6 +435,8 @@
         let detailId = null;
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const localDate = (d = new Date()) => { const z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+        // Batch attendance date: today by default, any past day allowed.
+        { const bd = document.getElementById('batchDate'); bd.value = bd.max = localDate(); bd.onfocus = () => { bd.max = localDate(); }; }
         const fmtDate = s => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }); };
         const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
         const jsArg = s => esc(JSON.stringify(String(s ?? '')));
@@ -593,9 +598,7 @@
             });
 
             onSnapshot(query(collection(db, "attendance_logs"), orderBy("date", "desc")), snap => {
-                attCache = snap.docs.map(d => d.data()); renderDetail();
-                const b = document.getElementById('attendTableBody'); b.innerHTML = '';
-                snap.forEach(d => { const l = d.data(); b.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.status}</td><td><button onclick="window.adjustLog('${d.id}')" class="btn-edit">Edit</button><button onclick="window.kill('attendance_logs','${d.id}')" class="btn-del">X</button></td></tr>`; });
+                attCache = snap.docs.map(d => ({ ...d.data(), _id: d.id })); renderDetail(); renderAttendance();
             });
 
             onSnapshot(collection(db, "leads"), snap => {
@@ -622,18 +625,49 @@
             document.getElementById('batch-count').innerText = checked.length;
         };
 
+        // ---------- Attendance ----------
+        // A day on which nobody at all has attendance counts as a holiday.
+        const projIdOf = name => { const p = Object.values(projCache).find(x => x.name === name); return p ? p.id : null; };
+        const attRecord = (name, status, date, project) => ({
+            name, status, date, project: project || null, projectId: project ? projIdOf(project) : null,
+            markedBy: auth.currentUser.email, markedByUid: auth.currentUser.uid, source: 'Admin panel', updatedAt: serverTimestamp()
+        });
+        const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return localDate(d); };
+        // Every day from "from" to "to" (newest first), each with its attendance records; empty list = holiday.
+        function attendanceDays(logs, from, to) {
+            const byDay = {}; logs.forEach(l => (byDay[l.date] || (byDay[l.date] = [])).push(l));
+            const out = [];
+            for (let d = to; d >= from && out.length < 400; d = addDays(d, -1)) out.push({ date: d, logs: byDay[d] || [] });
+            return out;
+        }
+        const statusOrder = { 'On-Site': 0, 'Standby': 1, 'MC': 2 };
+        function renderAttendance() {
+            const b = document.getElementById('attendTableBody'); if (!b) return;
+            const today = localDate();
+            const oldest = attCache.reduce((m, l) => l.date && l.date < m ? l.date : m, today);
+            const from = oldest < addDays(today, -60) ? addDays(today, -60) : oldest; // last 60 days at most
+            const days = attendanceDays(attCache.filter(l => l.date >= from && l.date <= today), from, today);
+            b.innerHTML = days.map(({ date, logs }) => {
+                if (!logs.length) return `<tr class="att-holiday"><td>${esc(fmtDate(date))}</td><td colspan="4"><span class="badge b-holiday">🏖 Holiday</span> <span class="muted">${date === today ? 'No attendance marked yet today — counts as a holiday if nobody is marked.' : 'Nobody was marked present.'}</span></td></tr>`;
+                return logs.slice().sort((x, y) => (statusOrder[x.status] ?? 9) - (statusOrder[y.status] ?? 9) || String(x.name).localeCompare(String(y.name))).map(l =>
+                    `<tr><td>${esc(fmtDate(l.date))}</td><td>${esc(l.name)}</td><td>${esc(l.project || '—')}</td><td>${esc(l.status)}${l.markedBy ? `<br><span class="muted" style="font-size:.75rem">by ${esc(l.markedBy)}</span>` : ''}</td><td><button onclick="window.adjustLog(${jsArg(l._id)})" class="btn-edit">Edit</button><button onclick="window.kill('attendance_logs',${jsArg(l._id)})" class="btn-del">X</button></td></tr>`).join('');
+            }).join('') || '<tr><td colspan="5" class="muted">No attendance records.</td></tr>';
+        }
+
         window.applyBatch = async () => {
             const proj = document.getElementById('batchProj').value;
             const stat = document.getElementById('batchStatus').value;
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDate();
+            const date = document.getElementById('batchDate').value || today;
+            if (date > today) { alert('Attendance date cannot be in the future.'); return; }
+            const checked = [...document.querySelectorAll('.batch-check:checked')].map(ck => ck.value);
+            if (date !== today && !confirm(`Mark ${checked.length} staff as ${stat} at ${proj} for ${fmtDate(date)}?\n\nTheir current assignment will not change (only today's attendance does that).`)) return;
             const batch = writeBatch(db);
-            
-            document.querySelectorAll('.batch-check:checked').forEach(ck => {
-                const name = ck.value;
-                batch.set(doc(db, "manpower", name), { assignedTo: proj, status: stat }, { merge: true });
-                batch.set(doc(db, "attendance_logs", `${name}_${today}`), { name, status: stat, date: today }, { merge: true });
+            checked.forEach(name => {
+                // Only today's attendance changes where the staff member is currently deployed.
+                if (date === today) batch.set(doc(db, "manpower", name), { assignedTo: proj, status: stat }, { merge: true });
+                batch.set(doc(db, "attendance_logs", `${name}_${date}`), attRecord(name, stat, date, proj), { merge: true });
             });
-            
             await batch.commit();
             window.clearSelection();
         };
@@ -661,9 +695,9 @@
 
         window.saveManpower = async () => {
             const n = document.getElementById('mName').value, s = document.getElementById('mStatus').value, p = document.getElementById('mAssign').value, id = document.getElementById('editManId').value || n;
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDate();
             await setDoc(doc(db, "manpower", id), { name: n, status: s, assignedTo: p }, { merge: true });
-            await setDoc(doc(db, "attendance_logs", `${n}_${today}`), { name: n, status: s, date: today }, { merge: true });
+            await setDoc(doc(db, "attendance_logs", `${n}_${today}`), attRecord(n, s, today, p), { merge: true });
             ['mName','editManId'].forEach(k=>document.getElementById(k).value='');
         };
 
@@ -796,13 +830,18 @@
         window.generateFilteredPDF = async (type) => {
             const cont = document.getElementById('pdf-content'); cont.innerHTML = '';
             const from = document.getElementById('attFrom').value, to = document.getElementById('attTo').value, proj = document.getElementById('attProjFilter').value;
-            let html = `<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#eee"><th>Date</th><th>Name</th><th>Status</th></tr></thead><tbody>`;
+            const td = 'style="border:1px solid #ddd;padding:8px"';
+            let html = `<h2>Attendance${proj && proj !== 'HQ' ? ' — ' + esc(proj) : ''}</h2><p>${from ? esc(fmtDate(from)) : 'Start'} to ${esc(fmtDate(to || localDate()))} · A day with nobody marked counts as a holiday.</p><table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#eee"><th>Date</th><th>Name</th><th>Project</th><th>Status</th></tr></thead><tbody>`;
             const snap = await getDocs(query(collection(db, "attendance_logs"), orderBy("date", "asc")));
-            snap.forEach(d => {
-                const l = d.data();
-                if (activeStaff[l.name] && (!from || l.date >= from) && (!to || l.date <= to) && (proj === 'HQ' || activeStaff[l.name] === proj)) {
-                    html += `<tr><td style="border:1px solid #ddd;padding:8px">${l.date}</td><td style="border:1px solid #ddd;padding:8px">${l.name}</td><td style="border:1px solid #ddd;padding:8px">${l.status}</td></tr>`;
-                }
+            const all = snap.docs.map(d => d.data());
+            const end = to || localDate();
+            const start = from || all.reduce((m, l) => l.date && l.date < m ? l.date : m, end);
+            // Holidays are company-wide: nobody at all was marked that day.
+            attendanceDays(all.filter(l => l.date >= start && l.date <= end), start, end).reverse().forEach(({ date, logs }) => {
+                if (!logs.length) { html += `<tr style="background:#fff4e5"><td ${td}>${esc(fmtDate(date))}</td><td ${td} colspan="3"><strong>Holiday</strong></td></tr>`; return; }
+                logs.filter(l => proj === 'HQ' || (l.project || activeStaff[l.name]) === proj).forEach(l => {
+                    html += `<tr><td ${td}>${esc(fmtDate(l.date))}</td><td ${td}>${esc(l.name)}</td><td ${td}>${esc(l.project || activeStaff[l.name] || '—')}</td><td ${td}>${esc(l.status)}</td></tr>`;
+                });
             });
             cont.innerHTML = html + `</tbody></table>`;
             const el = document.getElementById('pdf-export-container'); el.style.display = 'block';
@@ -1121,7 +1160,7 @@
             const eq = eqCache.filter(e => e.project === p.name);
             const reports = sortReports(repCache.filter(r => r.projectId === p.id));
             const names = new Set(staff.map(m => m.name));
-            const att = attCache.filter(l => names.has(l.name)).slice(0, 30);
+            const att = attCache.filter(l => l.project ? l.project === p.name : names.has(l.name)).slice(0, 30);
 
             document.getElementById('d-staff').innerText = staff.length;
             document.getElementById('d-onsite').innerText = staff.filter(m => m.status === 'On-Site').length;
