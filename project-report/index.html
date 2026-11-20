@@ -321,7 +321,7 @@
         // Admins can still sign in with their full email address.
         const STAFF_DOMAIN = 'staff.sungroupengg.com';
         const usernameOf = u => (u && u.email && u.email.toLowerCase().endsWith('@' + STAFF_DOMAIN)) ? u.email.toLowerCase().split('@')[0] : null;
-        let myName = '', mustChange = false, synced = false;
+        let myName = '', mustChange = false, synced = false, amAdmin = false;
 
         function showScreen(s) {
             $('login-view').hidden = s !== 'login';
@@ -336,7 +336,11 @@
             if (unsubHistory) { unsubHistory(); unsubHistory = null; }
             if (!u) { showScreen('login'); return; }
             const uname = usernameOf(u);
-            myName = u.email; mustChange = false;
+            myName = u.email; mustChange = false; amAdmin = false;
+            if (!uname) {
+                // Office admins (listed in "admins") can edit or delete anyone's report.
+                try { amAdmin = (await getDoc(doc(db, 'admins', String(u.email || '').toLowerCase()))).exists(); } catch (e) { amAdmin = false; }
+            }
             if (uname) {
                 let snap = null;
                 try { snap = await getDoc(doc(db, 'supervisors', uname)); } catch (e) { /* treated as removed */ }
@@ -545,7 +549,7 @@
             const blocks = blocksOf(p);
             const sel = $('rf-block'), keep = sel.value;
             $('rp-block-wrap').hidden = !blocks.length;
-            sel.required = blocks.length > 0;
+            sel.required = false; // checked on submit instead, so older reports with no block can still be edited
             sel.innerHTML = '<option value="">— Select block —</option>' + blocks.map(b => {
                 const bp = (p.blockProgress || {})[b.no];
                 return `<option value="${esc(b.no)}">${esc(b.no)}${bp != null ? ` (${pct(bp)}%)` : ''}</option>`;
@@ -658,7 +662,7 @@
             renderStageTabs();
             const label = STAGES.find(s => s.key === curStage).label;
             $('rf-stage-hint').textContent = `Enter how many pieces finished ${label} today. Switch stage with the buttons above. Leave items you didn't work on blank.`;
-            const before = doneBefore(b.no, myReportId(currentId, $('rf-date').value, b.no));
+            const before = doneBefore(b.no, formReportId($('rf-date').value, b.no));
             $('rf-items').innerHTML = items.map(i => {
                 const t = before[i.code] || emptyStages();
                 return `<div class="qty-row" data-row="${esc(i.code)}">
@@ -680,7 +684,7 @@
         }
         function updateItemsProgress() {
             const b = currentBlock(), items = itemsOf(b); if (!items.length) return;
-            const t = totalsWithToday(doneBefore(b.no, myReportId(currentId, $('rf-date').value, b.no)));
+            const t = totalsWithToday(doneBefore(b.no, formReportId($('rf-date').value, b.no)));
             items.forEach(i => { const row = document.querySelector(`#rf-items [data-row="${CSS.escape(i.code)}"]`); if (row) row.classList.toggle('over', !!stageProblem(i, t[i.code] || emptyStages())); });
             setProgress(itemsPct(items, t));
         }
@@ -720,17 +724,23 @@
 
         const blockKey = b => String(b).replace(/\//g, '-');
         const myReportId = (pid, date, block) => block ? `${pid}__${date}__${blockKey(block)}__${user.uid}` : `${pid}__${date}__${user.uid}`;
+        // An admin editing someone else's report: the form saves back to that report while its date and block stay the same.
+        let editOther = null;
+        const isEditOther = (date, block) => !!editOther && editOther.projectId === currentId && editOther.date === date && (editOther.block || '') === (block || '');
+        const formReportId = (date, block) => isEditOther(date, block) ? editOther._id : myReportId(currentId, date, block);
         let prefilledKey = null; // avoid overwriting what the user is typing on live updates
         function prefillForDate() {
             if (!currentId || !user) return;
             const date = $('rf-date').value, block = $('rf-block').value;
-            const mine = history.find(r => r._id === myReportId(currentId, date, block));
+            const mine = history.find(r => r._id === formReportId(date, block));
             const key = mine ? mine._id : `none:${date}:${block}`;
             if (key === prefilledKey) return;
             prefilledKey = key;
             const n = $('rf-notice');
             if (mine) {
-                n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> You already submitted ${block === REWORK ? 'a rework report' : 'a report'} for ${esc(fmtDate(date))}${block && block !== REWORK ? ' on Block ' + esc(block) : ''}. Submitting again will update it.`;
+                const kind = block === REWORK ? 'rework report' : 'report';
+                const whose = mine.supervisorUid === user.uid ? `You already submitted a ${kind}` : `You are editing ${esc(mine.supervisorName || mine.supervisor || 'another supervisor')}'s ${kind}`;
+                n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> ${whose} for ${esc(fmtDate(date))}${block && block !== REWORK ? ' on Block ' + esc(block) : ''}. Submitting again will update it.`;
                 setProgress(pct(mine.progress)); $('rf-health').value = mine.health || 'On Track';
                 $('rf-work').value = mine.workDone || ''; $('rf-manpower').value = mine.manpower ?? '';
                 $('rf-hours').value = mine.hours ?? ''; $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
@@ -759,10 +769,12 @@
             const block = $('rf-block').value;
             const date = $('rf-date').value;
             let work = $('rf-work').value.trim();
-            if (blocks.length && !block) { toast('Please select the block number.', 'err'); $('rf-block').focus(); return; }
+            // A report filed before the project had blocks can still be updated without picking one.
+            if (blocks.length && !block && !history.some(r => r._id === formReportId(date, ''))) { toast('Please select the block number.', 'err'); $('rf-block').focus(); return; }
             if (!date) { toast('Please fill in the report date.', 'err'); return; }
             if (date > localDate()) { toast('Report date cannot be in the future.', 'err'); return; }
-            const id = myReportId(currentId, date, block);
+            const id = formReportId(date, block);
+            const owner = isEditOther(date, block) ? editOther : null;
             const items = itemsOf(currentBlock());
             let itemsDone = null, rework = null;
             if (block === REWORK) {
@@ -794,7 +806,9 @@
                 projectId: currentId, projectName: p.name, block: block || null, date, progress, health: $('rf-health').value,
                 workDone: work, itemsDone, rework, reportType: block === REWORK ? 'rework' : 'daily', manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
                 issues: $('rf-issues').value.trim(), nextPlan: $('rf-next').value.trim(),
-                supervisor: user.email, supervisorName: myName, supervisorUid: user.uid, updatedAt: serverTimestamp()
+                // Keep the original supervisor when an admin edits someone else's report.
+                supervisor: owner ? (owner.supervisor ?? null) : user.email, supervisorName: owner ? (owner.supervisorName ?? null) : myName,
+                supervisorUid: owner ? owner.supervisorUid : user.uid, updatedAt: serverTimestamp()
             };
             if (isNew) data.createdAt = serverTimestamp();
 
@@ -815,7 +829,7 @@
             } else if (isLatestOverall) {
                 upd.progress = progress;
             }
-            if (isLatestOverall) Object.assign(upd, { health: data.health, lastReportDate: date, lastReportBy: myName });
+            if (isLatestOverall) Object.assign(upd, { health: data.health, lastReportDate: date, lastReportBy: data.supervisorName || data.supervisor || myName });
 
             $('rf-submit').disabled = true;
             try {
@@ -831,6 +845,7 @@
                     await setDoc(doc(db, 'project_private', currentId), upd, { merge: true });
                 }
                 $('rf-reason').value = '';
+                if (owner) { editOther = null; prefilledKey = null; }
                 toast(isNew ? 'Report submitted' : 'Report updated');
             } catch (err) { toast('Could not save report: ' + err.message, 'err'); }
             finally { $('rf-submit').disabled = false; }
@@ -873,14 +888,19 @@
         }
         window.editMyReport = (id) => {
             const r = history.find(x => x._id === id); if (!r) return;
+            const mineR = r.supervisorUid === user.uid;
+            if (!mineR && !amAdmin) return;
+            editOther = mineR ? null : r;
             if (r.block && (r.block === REWORK || blocksOf(projects[currentId]).some(b => b.no === r.block))) { $('rf-block').value = r.block; onBlockChange(false); }
+            else if (!r.block) { $('rf-block').value = ''; onBlockChange(false); }
             $('rf-date').value = r.date; prefilledKey = null; prefillForDate();
             $('report-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            toast(`Editing your ${fmtDate(r.date)} ${r.block === REWORK ? 'rework report' : 'report' + (r.block ? ' for Block ' + r.block : '')}`);
+            toast(`Editing ${mineR ? 'your' : esc(r.supervisorName || r.supervisor || '') + '\'s'} ${fmtDate(r.date)} ${r.block === REWORK ? 'rework report' : 'report' + (r.block ? ' for Block ' + r.block : '')}`);
         };
         window.deleteMyReport = async (id) => {
             const r = history.find(x => x._id === id), p = projects[currentId]; if (!r || !p) return;
-            const reason = prompt(`Delete your report for ${fmtDate(r.date)}${r.block ? ' (Block ' + r.block + ')' : ''}? This cannot be undone.\n\nReason (optional):`, '');
+            if (r.supervisorUid !== user.uid && !amAdmin) return;
+            const reason = prompt(`Delete ${r.supervisorUid === user.uid ? 'your' : (r.supervisorName || r.supervisor || 'this') + '\'s'} report for ${fmtDate(r.date)}${r.block ? ' (Block ' + r.block + ')' : ''}? This cannot be undone.\n\nReason (optional):`, '');
             if (reason === null) return;
             try {
                 await deleteDoc(doc(db, 'project_reports', id));
@@ -909,7 +929,7 @@
                         ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
                         <dt>Supervisor</dt><dd>${esc(r.supervisorName || r.supervisor)}</dd>
                     </dl>
-                    ${r.supervisorUid === user.uid ? `<div class="r-actions">
+                    ${r.supervisorUid === user.uid || amAdmin ? `<div class="r-actions">
                         <button type="button" class="btn-sm" onclick="editMyReport(${jsArg(r._id)})"><i class="fas fa-pen"></i> Edit</button>
                         <button type="button" class="btn-sm danger" onclick="deleteMyReport(${jsArg(r._id)})"><i class="fas fa-trash"></i> Delete</button>
                     </div>` : ''}
