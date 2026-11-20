@@ -274,3 +274,12 @@ textarea { resize: vertical; min-height: 130px; }
 .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
 .js .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .js .reveal { opacity: 1; transform: none; transition: none; } }
+
+/* ---------- WhatsApp ---------- */
+.wa-float { position: fixed; right: 20px; bottom: 20px; z-index: 90; width: 58px; height: 58px; border-radius: 50%; background: #25d366; color: #fff; display: grid; place-items: center; font-size: 30px; text-decoration: none; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22); transition: transform .2s, box-shadow .2s; }
+.wa-float:hover { transform: scale(1.07); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28); color: #fff; }
+.site-footer .wa-float:hover { color: #fff; }
+@media (max-width: 560px) { .wa-float { right: 16px; bottom: 16px; width: 54px; height: 54px; font-size: 28px; } }
+.btn-wa { display: inline-flex !important; align-items: center; gap: 8px; margin-top: 10px; background: #25d366; color: #fff !important; padding: 8px 16px; border-radius: 999px; font-size: 0.92rem; font-weight: 700; text-decoration: none; }
+.btn-wa:hover { background: #1ebe5b; }
+.footer-contact .fa-whatsapp { color: #25d366; }
