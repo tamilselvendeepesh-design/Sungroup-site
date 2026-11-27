@@ -305,10 +305,6 @@
                         </div>
                     </div>
                     <div class="field"><label for="rf-work">Work Completed Today <span class="req" id="rf-work-req">*</span></label><textarea id="rf-work" required maxlength="5000" placeholder="e.g. Cable pulling for MSB-2 done (120m). Terminations 60% on DB-4…"></textarea></div>
-                    <div class="grid-2">
-                        <div class="field"><label for="rf-manpower">Manpower On Site</label><input type="number" id="rf-manpower" min="0" step="1" placeholder="0"></div>
-                        <div class="field"><label for="rf-hours">Working Hours</label><input type="number" id="rf-hours" min="0" max="24" step="0.1" inputmode="decimal" placeholder="e.g. 10.5"></div>
-                    </div>
                     <div class="field"><label for="rf-issues">Issues / Delays / Safety</label><textarea id="rf-issues" maxlength="3000" placeholder="Anything blocking progress, material shortages, safety observations…"></textarea></div>
                     <div class="field"><label for="rf-next">Plan for Next Day</label><textarea id="rf-next" maxlength="3000"></textarea></div>
                     <div class="field" id="rf-reason-wrap" hidden><label for="rf-reason">Reason for Change <span class="meta" style="text-transform:none; font-weight:400;">(optional, saved in the change log)</span></label><input id="rf-reason" maxlength="300" placeholder="e.g. Wrong quantity entered"></div>
@@ -574,7 +570,7 @@
             setProgress(pct(p.progress));
             $('rf-health').value = p.health || 'On Track';
             onBlockChange(false);
-            history = []; prefilledKey = null; renderHistory();
+            history = []; projAtt = []; prefilledKey = null; renderHistory();
             unsubHistory = onSnapshot(query(collection(db, 'project_reports'), where('projectId', '==', id)), snap => {
                 history = snap.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a, b) => b.date.localeCompare(a.date) || String(a.block || '').localeCompare(String(b.block || ''), undefined, { numeric: true }));
                 renderHistory();
@@ -598,7 +594,7 @@
             return Math.max(0, Math.round((d / 60 - (Number(brk) || 0)) * 10) / 10);
         }
         const fmtHrs = n => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('en-SG', { maximumFractionDigits: 1 });
-        let attUnsubs = [], attDayUnsub = null, attStaff = [], attDay = [], attPicks = {}, attDayLoaded = false;
+        let attUnsubs = [], attDayUnsub = null, attStaff = [], attDay = [], attPicks = {}, attDayLoaded = false, projAtt = [];
         // Default timing per project, remembered on this device.
         const defKey = () => 'attDefaults:' + currentId;
         function attDefaults() {
@@ -626,6 +622,11 @@
             attUnsubs.push(onSnapshot(query(collection(db, 'manpower'), where('assignedTo', '==', p.name)), snap => {
                 attStaff = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAttendance();
             }, () => { attStaff = []; renderAttendance(); }));
+            // All attendance at this project: man-hours in the report history come from here.
+            projAtt = [];
+            attUnsubs.push(onSnapshot(query(collection(db, 'attendance_logs'), where('project', '==', p.name)), snap => {
+                projAtt = snap.docs.map(d => d.data()); renderHistory();
+            }, () => { projAtt = []; renderHistory(); }));
             watchAttendanceDay();
         }
         function watchAttendanceDay() {
@@ -923,7 +924,7 @@
         function onBlockChange(clear = true) {
             const p = projects[currentId] || {};
             const block = $('rf-block').value;
-            if (clear && $('rf-notice').hidden === false) ['rf-work', 'rf-manpower', 'rf-hours', 'rf-issues', 'rf-next'].forEach(k => $(k).value = '');
+            if (clear && $('rf-notice').hidden === false) ['rf-work', 'rf-issues', 'rf-next'].forEach(k => $(k).value = '');
             $('rf-items').innerHTML = ''; resetToday(); curStage = 'fitup'; reworkRows = [];
             renderScope();
             if (block === REWORK) setProgress(pct(p.progress));
@@ -969,8 +970,8 @@
                 const whose = mine.supervisorUid === user.uid ? `You already submitted a ${kind}` : `You are editing ${esc(mine.supervisorName || mine.supervisor || 'another supervisor')}'s ${kind}`;
                 n.hidden = false; n.innerHTML = `<i class="fas fa-info-circle"></i> ${whose} for ${esc(fmtDate(date))}${block && block !== REWORK ? ' on Block ' + esc(block) : ''}. Submitting again will update it.`;
                 setProgress(pct(mine.progress)); $('rf-health').value = mine.health || 'On Track';
-                $('rf-work').value = mine.workDone || ''; $('rf-manpower').value = mine.manpower ?? '';
-                $('rf-hours').value = mine.hours ?? ''; $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
+                $('rf-work').value = mine.workDone || '';
+                $('rf-issues').value = mine.issues || ''; $('rf-next').value = mine.nextPlan || '';
                 $('rf-submit').innerHTML = '<i class="fas fa-save"></i> Update Report';
                 $('rf-reason-wrap').hidden = false; $('rf-reason').value = '';
                 renderItems(); fillItems(mine.itemsDone);
@@ -985,7 +986,7 @@
         }
         $('rf-date').onchange = () => {
             const had = $('rf-notice').hidden === false;
-            if (had) { ['rf-work', 'rf-manpower', 'rf-hours', 'rf-issues', 'rf-next'].forEach(k => $(k).value = ''); }
+            if (had) { ['rf-work', 'rf-issues', 'rf-next'].forEach(k => $(k).value = ''); }
             prefillForDate();
         };
 
@@ -1031,7 +1032,7 @@
             const isNew = !history.some(r => r._id === id);
             const data = {
                 projectId: currentId, projectName: p.name, block: block || null, date, progress, health: $('rf-health').value,
-                workDone: work, itemsDone, rework, reportType: block === REWORK ? 'rework' : 'daily', manpower: num($('rf-manpower').value), hours: num($('rf-hours').value),
+                workDone: work, itemsDone, rework, reportType: block === REWORK ? 'rework' : 'daily',
                 issues: $('rf-issues').value.trim(), nextPlan: $('rf-next').value.trim(),
                 // Keep the original supervisor when an admin edits someone else's report.
                 supervisor: owner ? (owner.supervisor ?? null) : user.email, supervisorName: owner ? (owner.supervisorName ?? null) : myName,
@@ -1139,19 +1140,26 @@
 
         function renderHistory() {
             const h = $('rp-history');
-            if (!history.length) { h.innerHTML = '<div class="empty">No reports filed for this project yet.</div>'; return; }
-            // Hours worked on this project: sum of working hours, and man-hours (hours x manpower) per report.
-            let hrs = 0, manHrs = 0;
-            history.forEach(r => { const x = Number(r.hours) || 0; hrs += x; manHrs += x * (Number(r.manpower) || 0); });
             const f1 = n => (Math.round(n * 10) / 10).toLocaleString('en-SG', { maximumFractionDigits: 1 });
-            h.innerHTML = `<div class="hours-sum"><i class="far fa-clock"></i> Total worked on this project: <strong>${f1(hrs)} hrs</strong> · <strong>${f1(manHrs)} man-hours</strong> <span class="meta">(${history.length} report${history.length > 1 ? 's' : ''})</span></div>` + history.slice(0, 30).map(r => `
+            // Man-hours come from the attendance time sheet (W.hrs of everyone marked at this project).
+            const worked = projAtt.filter(l => (Number(l.hours) || 0) > 0);
+            const manHrs = worked.reduce((s, l) => s + (Number(l.hours) || 0), 0), days = new Set(worked.map(l => l.date)).size;
+            const sum = `<div class="hours-sum"><i class="far fa-clock"></i> Total on this project (from attendance): <strong>${f1(manHrs)} man-hours</strong> · ${worked.length} man-days over ${days} day${days === 1 ? '' : 's'}</div>`;
+            if (!history.length) { h.innerHTML = (worked.length ? sum : '') + '<div class="empty">No reports filed for this project yet.</div>'; return; }
+            // Crew for a report's date at this project, from attendance (older reports may have it typed in).
+            const crew = r => {
+                const day = worked.filter(l => l.date === r.date);
+                if (day.length) return `${day.length} worker${day.length > 1 ? 's' : ''} · ${f1(day.reduce((s, l) => s + (Number(l.hours) || 0), 0))} man-hrs`;
+                return r.manpower != null ? `${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''} (entered on report)` : '';
+            };
+            h.innerHTML = sum + history.slice(0, 30).map(r => `
                 <div class="report">
                     <div class="r-head"><strong>${esc(fmtDate(r.date))}${r.block === REWORK ? ` <span class="badge b-bad">🔧 Rework</span>` : r.block ? ` <span class="badge b-warn">Block ${esc(r.block)}</span>` : ''}</strong><span>${healthBadge(r.health)} <span class="badge b-muted">${pct(r.progress)}%</span></span></div>
                     <dl>
                         ${r.workDone ? `<dt>Work done</dt><dd>${esc(r.workDone)}</dd>` : ''}
                         ${(r.rework || []).length ? `<dt>Rework</dt><dd>${esc(r.rework.map(reworkLine).join('\n'))}</dd>` : ''}
                         ${(r.itemsDone || []).length ? `<dt>Quantities</dt><dd>${esc(r.itemsDone.map(i => `${i.code}. ${i.name}: ${stageLine(i)}`).join('\n'))}</dd>` : ''}
-                        ${r.manpower != null ? `<dt>Manpower</dt><dd>${esc(r.manpower)}${r.hours != null ? ' · ' + esc(r.hours) + ' hrs' : ''}</dd>` : ''}
+                        ${crew(r) ? `<dt>Manpower</dt><dd>${crew(r)}</dd>` : ''}
                         ${r.issues ? `<dt>Issues</dt><dd>${esc(r.issues)}</dd>` : ''}
                         ${r.nextPlan ? `<dt>Next day</dt><dd>${esc(r.nextPlan)}</dd>` : ''}
                         <dt>Supervisor</dt><dd>${esc(r.supervisorName || r.supervisor)}</dd>
