@@ -129,6 +129,17 @@
         .att-opt.on[data-s="MC"] { background: var(--bad); border-color: var(--bad); color: #fff; }
         .notice.att-holiday { background: #fff4e5; border-color: #f0a123; color: #8a4b00; }
         .att-opt.on[data-s="OFF"] { background: #6b7680; border-color: #6b7680; color: #fff; }
+        .att-steps { display: grid; grid-template-columns: 1fr 1.4fr 0.8fr; gap: 12px; }
+        @media (max-width: 640px) { .att-steps { grid-template-columns: 1fr; } }
+        .att-steps .field { margin: 0; }
+        .step-no { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 11px; margin-right: 4px; }
+        .att-step3 { margin: 18px 0 4px; font-size: 16px; display: flex; align-items: center; gap: 4px; }
+        .att-defaults select, .att-times select { width: auto; max-width: 100%; padding: 6px 8px; font-size: 14px; }
+        .att-filter { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+        .att-filter input[type="search"] { flex: 1 1 220px; }
+        .att-row.att-taken { opacity: .6; }
+        .att-row.att-taken .meta { color: var(--bad); }
+        .att-link-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
         .att-defaults { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: #f4f7f9; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 12px; font-size: 13px; }
         .att-def-label { font-weight: 700; color: var(--text); }
         .att-defaults label, .att-times label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; margin: 0; }
@@ -204,9 +215,45 @@
                 <div class="toolbar">
                     <input type="search" id="search" placeholder="Search projects…">
                     <label class="chk"><input type="checkbox" id="show-completed"> Show completed</label>
+                    <button class="btn btn-primary" id="att-open-btn"><i class="fas fa-user-clock"></i> Daily Attendance</button>
                     <button class="btn btn-accent" id="new-proj-btn"><i class="fas fa-plus"></i> New Project</button>
                 </div>
                 <div class="proj-grid" id="proj-grid"></div>
+            </section>
+
+            <!-- DAILY ATTENDANCE: location -> project -> manpower -->
+            <section id="view-att" hidden>
+                <button class="btn-link" data-back style="margin-bottom:10px;"><i class="fas fa-arrow-left"></i> Back to projects</button>
+                <div class="card">
+                    <div class="att-steps">
+                        <div class="field"><label for="att-loc"><span class="step-no">1</span> Location</label><select id="att-loc"></select></div>
+                        <div class="field"><label for="att-proj"><span class="step-no">2</span> Project</label><select id="att-proj"></select></div>
+                        <div class="field"><label for="att-date">Date</label><input type="date" id="att-date"></div>
+                    </div>
+                    <p class="meta" id="att-pick-hint" style="margin-top:6px;">Choose a location and one of your projects. The office sets each project's location and which projects you can see.</p>
+                    <div id="att-body" hidden>
+                        <h3 class="att-step3"><span class="step-no">3</span> Manpower</h3>
+                        <div class="att-defaults" id="att-def-ruled">
+                            <span class="att-def-label">Default working time <span class="meta" id="att-day-type"></span></span>
+                            <select id="att-def-shift"></select>
+                        </div>
+                        <div class="att-defaults" id="att-def-custom" hidden>
+                            <span class="att-def-label">Default timing</span>
+                            <label>In <input type="time" id="att-def-in" value="08:00"></label>
+                            <label>Out <input type="time" id="att-def-out" value="17:00"></label>
+                            <label>Break <input type="number" id="att-def-brk" min="0" max="5" step="0.25" value="1" inputmode="decimal"> h</label>
+                            <span class="meta" id="att-def-hrs"></span>
+                        </div>
+                        <div class="att-filter">
+                            <input type="search" id="att-search" placeholder="Search manpower…" aria-label="Search manpower">
+                            <label class="chk"><input type="checkbox" id="att-only"> Only show this project</label>
+                        </div>
+                        <p class="meta" id="att-sum" style="margin:8px 0;"></p>
+                        <div class="notice att-holiday" id="att-holiday" hidden></div>
+                        <div id="att-list"></div>
+                        <button type="button" class="btn btn-primary btn-block" id="att-save" style="margin-top:12px;"><i class="fas fa-save"></i> Save Attendance</button>
+                    </div>
+                </div>
             </section>
 
             <!-- NEW PROJECT -->
@@ -217,7 +264,8 @@
                     <div class="grid-2">
                         <div class="field"><label for="np-name">Project Name <span class="req">*</span></label><input id="np-name" required maxlength="120"></div>
                         <div class="field"><label for="np-client">Client</label><input id="np-client" maxlength="120"></div>
-                        <div class="field"><label for="np-location">Site / Location</label><input id="np-location" maxlength="160"></div>
+                        <div class="field"><label for="np-site">Location <span class="req">*</span></label><select id="np-site" required><option value="">Choose location…</option><option>Seatrium TBY</option><option>Seatrium PY</option><option>Pacific</option><option>West</option><option>Supply</option><option>Office</option></select></div>
+                        <div class="field"><label for="np-location">Site details <span class="meta" style="text-transform:none; font-weight:400;">(optional)</span></label><input id="np-location" maxlength="160" placeholder="e.g. Tuas Boulevard Yard, Dock 3"></div>
                         <div class="field"><label for="np-start">Start Date</label><input type="date" id="np-start"></div>
                         <div class="field"><label for="np-target">Target Completion</label><input type="date" id="np-target"></div>
                     </div>
@@ -253,25 +301,9 @@
                     <p class="meta" style="margin-top:6px;"><strong id="rp-progress">0%</strong> complete · <span id="rp-last"></span></p>
                 </div>
 
-                <div class="card" id="att-card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
-                        <h2 style="margin:0;"><i class="fas fa-user-clock" style="color:var(--blue)"></i> Attendance &amp; Timesheet</h2>
-                        <div class="field" style="margin:0; min-width:170px;"><label for="att-date">Date</label><input type="date" id="att-date"></div>
-                    </div>
-                    <div class="att-defaults">
-                        <span class="att-def-label">Default timing</span>
-                        <label>In <input type="time" id="att-def-in" value="08:00"></label>
-                        <label>Out <input type="time" id="att-def-out" value="17:00"></label>
-                        <label>Break <input type="number" id="att-def-brk" min="0" max="5" step="0.25" value="1" inputmode="decimal"> h</label>
-                        <span class="meta" id="att-def-hrs"></span>
-                    </div>
-                    <p class="meta" id="att-sum" style="margin:8px 0;"></p>
-                    <div class="notice att-holiday" id="att-holiday" hidden></div>
-                    <div id="att-list"></div>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-                        <button type="button" class="btn-sm" id="att-all"><i class="fas fa-check-double"></i> Mark all On-Site</button>
-                        <button type="button" class="btn btn-primary" id="att-save" style="flex:1; min-width:180px;"><i class="fas fa-save"></i> Save Attendance</button>
-                    </div>
+                <div class="card att-link-card">
+                    <div><strong><i class="fas fa-user-clock" style="color:var(--blue)"></i> Attendance for this project</strong><p class="meta" style="margin:2px 0 0;">Pick who worked here today and their working time.</p></div>
+                    <button type="button" class="btn btn-primary" id="rp-att-btn"><i class="fas fa-users"></i> Mark Attendance</button>
                 </div>
 
                 <form class="card" id="report-form">
@@ -372,7 +404,7 @@
             user = u;
             unsubs.forEach(f => f()); unsubs = []; synced = false;
             if (unsubHistory) { unsubHistory(); unsubHistory = null; }
-            stopAttendance();
+            stopAttendance(); stopAttView();
             if (!u) { showScreen('login'); return; }
             const uname = usernameOf(u);
             myName = u.email; mustChange = false; amAdmin = false;
@@ -462,6 +494,7 @@
             projects = {};
             Object.entries(projRaw).forEach(([id, p]) => { const m = { ...(privRaw[id] || {}), ...p, id }; if (canSee(m)) projects[id] = m; });
             renderProjects();
+            if (!$('view-att').hidden) renderSiteOptions();
             if (currentId) {
                 if (!projects[currentId]) { toast('You no longer have access to that project.', 'err'); showView('home'); }
                 else renderProjectHeader();
@@ -490,13 +523,16 @@
 
         // ---------- views ----------
         function showView(v) {
-            ['home', 'new', 'report'].forEach(n => $('view-' + n).hidden = n !== v);
+            ['home', 'new', 'report', 'att'].forEach(n => $('view-' + n).hidden = n !== v);
             if (v !== 'report') { currentId = null; if (unsubHistory) { unsubHistory(); unsubHistory = null; } stopAttendance(); }
+            if (v !== 'att') stopAttView();
             if (v === 'home') { $('view-title').textContent = 'Project Work Reports'; $('view-sub').textContent = "Select a project to file today's work completion report."; }
             if (v === 'new') { $('view-title').textContent = 'New Project'; $('view-sub').textContent = 'Register a new project so reports can be filed against it.'; }
             window.scrollTo(0, 0);
         }
         document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => showView('home'));
+        $('att-open-btn').onclick = () => openAttendance();
+        $('rp-att-btn').onclick = () => openAttendance(currentId);
         $('new-proj-btn').onclick = () => { $('new-form').reset(); $('np-error').textContent = ''; showView('new'); };
         $('search').oninput = renderProjects;
         $('show-completed').onchange = renderProjects;
@@ -540,7 +576,7 @@
                 const location = $('np-location').value.trim();
                 // Supervisor-created projects stay off the public website until an admin turns them on.
                 await setDoc(doc(db, 'projects', id), {
-                    name, client: $('np-client').value.trim(), location, loc: location,
+                    name, client: $('np-client').value.trim(), location, loc: location, site: $('np-site').value || null,
                     startDate: $('np-start').value, targetDate: $('np-target').value,
                     status: 'Active', showOnWebsite: false, inspection: 'Pending', createdByUid: user.uid
                 });
@@ -580,192 +616,241 @@
             startAttendance();
         }
 
-        // ---------- attendance & timesheet ----------
-        // Staff deployed to this project (set by the office in Manpower) are marked per day with
-        // a status, time in / time out and working hours (W.hrs) — this builds the daily timesheet.
-        // A day on which nobody at all worked counts as a holiday.
-        const ATT_STATUSES = ['On-Site', 'Standby', 'MC', 'OFF'];
-        const TIMED = s => s === 'On-Site' || s === 'Standby';   // statuses that need IN / OUT times
+        // ---------- daily attendance: 1. Location -> 2. Project -> 3. Manpower ----------
+        // The office keeps the manpower list (Manpower hub) and sets each project's location.
+        // Supervisors pick who worked on their project each day. A person already taken by another
+        // project that day is locked for everyone else. Seatrium TBY / PY use fixed working times.
+        const SITES = ['Seatrium TBY', 'Seatrium PY', 'Pacific', 'West', 'Supply', 'Office'];
+        const RULED = s => s === 'Seatrium TBY' || s === 'Seatrium PY';
+        // [in, out, W.hrs, basic, OT] per day type, from the company's working-hour rules.
+        const SHIFTS = {
+            wk:  [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:45', 10.5, 8, 2.5], ['08:00', '21:15', 13.5, 8, 5.5]],
+            fri: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:30', 10.5, 8, 2.5], ['08:00', '21:00', 13.5, 8, 5.5]],
+            sat: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 10.6, 4, 6.6], ['08:00', '18:30', 12.5, 4, 8.5], ['08:00', '21:00', 16.6, 4, 12.6]],
+            sun: [['08:00', '12:30', 9, 0, 9], ['08:00', '17:15', 16.6, 0, 16.6], ['08:00', '18:30', 19, 0, 19], ['08:00', '21:00', 24, 0, 24]]
+        };
+        const DAY_LABEL = { wk: 'Mon–Thu', fri: 'Friday', sat: 'Saturday', sun: 'Sunday (all OT)' };
+        const dayType = iso => { const d = new Date(iso + 'T00:00:00').getDay(); return d === 0 ? 'sun' : d === 6 ? 'sat' : d === 5 ? 'fri' : 'wk'; };
+        const shiftsFor = (site, date) => RULED(site) ? SHIFTS[dayType(date)].map(([timeIn, timeOut, hours, basic, ot]) => ({ key: timeIn + '-' + timeOut, timeIn, timeOut, hours, basic, ot })) : [];
+        const shiftLabel = s => `${s.timeIn}–${s.timeOut} · ${fmtHrs(s.hours)} hrs${s.basic && s.ot ? ` (${fmtHrs(s.basic)} basic + ${fmtHrs(s.ot)} OT)` : !s.basic && s.ot ? ' (all OT)' : ''}`;
+        const ATT_STATUSES = ['On-Site', 'MC', 'OFF'];
+        const TIMED = s => s === 'On-Site' || s === 'Standby';
         const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
-        // Hours between IN and OUT (past midnight counts as the next day), minus the break.
         function calcHours(tin, tout, brk) {
             const a = toMin(tin), b = toMin(tout); if (a === null || b === null) return null;
             let d = b - a; if (d <= 0) d += 1440;
             return Math.max(0, Math.round((d / 60 - (Number(brk) || 0)) * 10) / 10);
         }
         const fmtHrs = n => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('en-SG', { maximumFractionDigits: 1 });
-        let attUnsubs = [], attDayUnsub = null, attStaff = [], attDay = [], attPicks = {}, attDayLoaded = false, projAtt = [];
-        // Default timing per project, remembered on this device.
-        const defKey = () => 'attDefaults:' + currentId;
-        function attDefaults() {
-            let d = null; try { d = JSON.parse(localStorage.getItem(defKey())); } catch (e) { /* storage unavailable */ }
-            return { timeIn: (d && d.timeIn) || '08:00', timeOut: (d && d.timeOut) || '17:00', brk: d && d.brk != null ? d.brk : 1 };
-        }
-        function saveDefaults() {
-            const d = { timeIn: $('att-def-in').value, timeOut: $('att-def-out').value, brk: Number($('att-def-brk').value) || 0 };
-            try { localStorage.setItem(defKey(), JSON.stringify(d)); } catch (e) { /* storage unavailable */ }
-            const h = calcHours(d.timeIn, d.timeOut, d.brk);
-            $('att-def-hrs').textContent = h === null ? '' : `= ${fmtHrs(h)} W.hrs`;
-            return d;
-        }
-        ['att-def-in', 'att-def-out', 'att-def-brk'].forEach(id => $(id).addEventListener('input', saveDefaults));
-        function stopAttendance() {
-            attUnsubs.forEach(f => f()); attUnsubs = [];
-            if (attDayUnsub) { attDayUnsub(); attDayUnsub = null; }
-        }
+
+        // Report history uses all attendance at the open project (man-hours).
+        let projAtt = [], projAttUnsub = null;
+        function stopAttendance() { if (projAttUnsub) { projAttUnsub(); projAttUnsub = null; } }
         function startAttendance() {
             stopAttendance();
             const p = projects[currentId]; if (!p) return;
-            attStaff = []; attDay = []; attPicks = {};
-            $('att-date').value = $('att-date').max = localDate();
-            const d = attDefaults(); $('att-def-in').value = d.timeIn; $('att-def-out').value = d.timeOut; $('att-def-brk').value = d.brk; saveDefaults();
-            attUnsubs.push(onSnapshot(query(collection(db, 'manpower'), where('assignedTo', '==', p.name)), snap => {
-                attStaff = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAttendance();
-            }, () => { attStaff = []; renderAttendance(); }));
-            // All attendance at this project: man-hours in the report history come from here.
             projAtt = [];
-            attUnsubs.push(onSnapshot(query(collection(db, 'attendance_logs'), where('project', '==', p.name)), snap => {
+            projAttUnsub = onSnapshot(query(collection(db, 'attendance_logs'), where('project', '==', p.name)), snap => {
                 projAtt = snap.docs.map(d => d.data()); renderHistory();
-            }, () => { projAtt = []; renderHistory(); }));
-            watchAttendanceDay();
+            }, () => { projAtt = []; renderHistory(); });
         }
-        function watchAttendanceDay() {
-            if (attDayUnsub) { attDayUnsub(); attDayUnsub = null; }
-            attDay = []; attPicks = {}; attDayLoaded = false; renderAttendance();
-            attDayUnsub = onSnapshot(query(collection(db, 'attendance_logs'), where('date', '==', $('att-date').value)), snap => {
-                attDay = snap.docs.map(d => ({ _id: d.id, ...d.data() })); attDayLoaded = true; renderAttendance();
-            }, err => { attDayLoaded = true; $('att-sum').textContent = 'Could not load attendance: ' + err.message; });
+
+        // Attendance screen state
+        let av = { site: '', pid: '', staff: [], day: [], picks: {}, loaded: false, unsubs: [], dayUnsub: null };
+        const remember = (k, v) => { try { localStorage.setItem('att:' + k, v); } catch (e) { /* storage unavailable */ } };
+        const recall = k => { try { return localStorage.getItem('att:' + k) || ''; } catch (e) { return ''; } };
+        function stopAttView() {
+            av.unsubs.forEach(f => f()); av.unsubs = [];
+            if (av.dayUnsub) { av.dayUnsub(); av.dayUnsub = null; }
         }
+        const activeProjects = () => Object.values(projects).filter(p => p.status !== 'Completed');
+        window.openAttendance = (pid) => {
+            const pre = pid && projects[pid];
+            av.site = pre ? (pre.site || '') : recall('site');
+            av.pid = pre ? pid : recall('pid');
+            showView('att');
+            $('view-title').textContent = 'Daily Attendance';
+            $('view-sub').textContent = 'Choose the location, the project, then the manpower who worked there.';
+            $('att-date').value = $('att-date').max = localDate();
+            stopAttView();
+            av.staff = []; av.picks = {};
+            av.unsubs.push(onSnapshot(collection(db, 'manpower'), snap => {
+                av.staff = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+                renderAttView();
+            }, () => { av.staff = []; renderAttView(); }));
+            watchDay();
+            renderSiteOptions();
+        };
+        function watchDay() {
+            if (av.dayUnsub) { av.dayUnsub(); av.dayUnsub = null; }
+            av.day = []; av.picks = {}; av.loaded = false; renderAttView();
+            av.dayUnsub = onSnapshot(query(collection(db, 'attendance_logs'), where('date', '==', $('att-date').value)), snap => {
+                av.day = snap.docs.map(d => ({ _id: d.id, ...d.data() })); av.loaded = true; renderAttView();
+            }, err => { av.loaded = true; $('att-sum').textContent = 'Could not load attendance: ' + err.message; });
+        }
+        // Step 1: locations (with how many of your projects are at each).
+        function renderSiteOptions() {
+            const list = activeProjects();
+            const count = s => list.filter(p => (p.site || '') === s).length;
+            const unset = count('');
+            $('att-loc').innerHTML = '<option value="">Choose location…</option>' + SITES.map(s => `<option value="${esc(s)}">${esc(s)} (${count(s)})</option>`).join('')
+                + (unset ? `<option value="__none">Location not set (${unset})</option>` : '');
+            const want = av.site === '' && av.pid && projects[av.pid] && !projects[av.pid].site ? '__none' : av.site;
+            $('att-loc').value = [...$('att-loc').options].some(o => o.value === want) ? want : '';
+            renderProjOptions();
+        }
+        // Step 2: projects at that location the supervisor is allowed to see.
+        function renderProjOptions() {
+            const v = $('att-loc').value, site = v === '__none' ? '' : v;
+            const list = v ? activeProjects().filter(p => (p.site || '') === site).sort((a, b) => String(a.name).localeCompare(String(b.name))) : [];
+            $('att-proj').innerHTML = (v ? (list.length ? '<option value="">Choose project…</option>' : '<option value="">No projects at this location</option>') : '<option value="">Choose a location first</option>')
+                + list.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+            $('att-proj').disabled = !list.length;
+            $('att-proj').value = list.some(p => p.id === av.pid) ? av.pid : (list.length === 1 ? list[0].id : '');
+            av.site = site; av.pid = $('att-proj').value;
+            renderAttView();
+        }
+        $('att-loc').onchange = () => {
+            if (Object.keys(av.picks).length && !confirm('Discard unsaved attendance?')) { renderSiteOptions(); return; }
+            av.picks = {}; av.pid = ''; remember('site', $('att-loc').value === '__none' ? '' : $('att-loc').value); renderProjOptions();
+        };
+        $('att-proj').onchange = () => {
+            if (Object.keys(av.picks).length && !confirm('Discard unsaved attendance?')) { $('att-proj').value = av.pid; return; }
+            av.picks = {}; av.pid = $('att-proj').value; remember('pid', av.pid); renderAttView();
+        };
         $('att-date').onchange = () => {
-            if (Object.keys(attPicks).length && !confirm('You have unsaved attendance changes. Switch date and discard them?')) return;
+            if (Object.keys(av.picks).length && !confirm('You have unsaved attendance changes. Switch date and discard them?')) return;
             if ($('att-date').value > localDate()) $('att-date').value = localDate();
-            watchAttendanceDay();
+            watchDay();
         };
-        const attRecordOf = name => attDay.find(l => l.name === name);
-        const savedHere = name => { const r = attRecordOf(name), p = projects[currentId]; return r && p && r.project === p.name ? r : null; };
-        // What the row shows now: unsaved edits, else the saved record at this project, else nothing.
-        function rowValue(name) {
-            if (name in attPicks) return attPicks[name];
-            const r = savedHere(name);
-            return r ? { status: r.status, timeIn: r.timeIn || '', timeOut: r.timeOut || '', hours: r.hours ?? null, manual: false } : null;
-        }
-        const sameAsSaved = (name, v) => {
-            const r = savedHere(name);
-            if (!v) return !r;
-            return !!r && r.status === v.status && (r.timeIn || '') === (v.timeIn || '') && (r.timeOut || '') === (v.timeOut || '') && Number(r.hours || 0) === Number(v.hours || 0);
-        };
-        function setPick(name, v) { if (sameAsSaved(name, v)) delete attPicks[name]; else attPicks[name] = v; }
-        // Status chosen for a person: fill in the default times for working statuses.
-        function withStatus(name, status) {
-            const cur = rowValue(name), d = saveDefaults();
-            if (!status) return null;
-            if (TIMED(status)) {
-                const tin = (cur && cur.timeIn) || d.timeIn, tout = (cur && cur.timeOut) || d.timeOut;
-                const hours = cur && cur.manual && TIMED(cur.status) ? cur.hours : calcHours(tin, tout, d.brk);
-                return { status, timeIn: tin, timeOut: tout, hours, manual: !!(cur && cur.manual && TIMED(cur.status)) };
+        $('att-search').oninput = () => renderAttView();
+        $('att-only').onchange = () => renderAttView();
+        // Default working time for new On-Site entries.
+        function defaultEntry() {
+            const date = $('att-date').value, shifts = shiftsFor(av.site, date);
+            if (shifts.length) {
+                const s = shifts.find(x => x.key === $('att-def-shift').value) || shifts[2] || shifts[0];
+                return { status: 'On-Site', shift: s.key, timeIn: s.timeIn, timeOut: s.timeOut, hours: s.hours, basic: s.basic, ot: s.ot };
             }
-            return { status, timeIn: '', timeOut: '', hours: status === 'MC' ? ((cur && cur.status === 'MC' ? cur.hours : 0) || 0) : 0, manual: false };
+            const tin = $('att-def-in').value || '08:00', tout = $('att-def-out').value || '17:00';
+            return { status: 'On-Site', shift: null, timeIn: tin, timeOut: tout, hours: calcHours(tin, tout, $('att-def-brk').value), basic: null, ot: null, manual: false };
         }
-        function updateSummary() {
-            const p = projects[currentId]; if (!p) return;
-            const names = attNames(p), counts = {}; let unmarked = 0, hrs = 0;
-            names.forEach(n => { const v = rowValue(n); if (v && v.status) { counts[v.status] = (counts[v.status] || 0) + 1; hrs += Number(v.hours) || 0; } else unmarked++; });
-            $('att-sum').textContent = `${fmtDate($('att-date').value)} · ` + (ATT_STATUSES.filter(s => counts[s]).map(s => `${counts[s]} ${s}`).join(' · ') || 'nobody marked')
-                + (unmarked ? ` · ${unmarked} not marked` : '') + ` · ${fmtHrs(hrs)} W.hrs` + (Object.keys(attPicks).length ? ' · unsaved changes' : '');
+        ['att-def-in', 'att-def-out', 'att-def-brk'].forEach(id => $(id).addEventListener('input', () => {
+            const h = calcHours($('att-def-in').value, $('att-def-out').value, $('att-def-brk').value);
+            $('att-def-hrs').textContent = h === null ? '' : `= ${fmtHrs(h)} W.hrs`;
+        }));
+        $('att-def-shift').onchange = () => remember('shift:' + dayType($('att-date').value), $('att-def-shift').value);
+
+        const recOf = name => av.day.find(l => l.name === name);
+        const isHere = r => !!r && ((r.projectId && r.projectId === av.pid) || (!r.projectId && projects[av.pid] && r.project === projects[av.pid].name));
+        function valueOf(name) {
+            if (name in av.picks) return av.picks[name];
+            const r = recOf(name);
+            return isHere(r) ? { status: r.status, shift: r.shift || null, timeIn: r.timeIn || '', timeOut: r.timeOut || '', hours: r.hours ?? 0, basic: r.basicHours ?? null, ot: r.otHours ?? null, manual: true } : null;
         }
-        // People deployed here now, plus anyone already marked at this project on that day.
-        const attNames = p => [...new Set([...attStaff.map(m => m.name), ...attDay.filter(l => l.project === p.name).map(l => l.name)])].sort((a, b) => String(a).localeCompare(String(b)));
-        function renderAttendance() {
-            const p = projects[currentId]; if (!p) return;
-            const date = $('att-date').value;
-            const names = attNames(p);
+        function setPick(name, v) {
+            const r = recOf(name), saved = isHere(r) ? r : null;
+            const same = v ? (saved && saved.status === v.status && (saved.timeIn || '') === (v.timeIn || '') && (saved.timeOut || '') === (v.timeOut || '') && Number(saved.hours || 0) === Number(v.hours || 0)) : !saved;
+            if (same) delete av.picks[name]; else av.picks[name] = v;
+        }
+        function renderAttView() {
+            if ($('view-att').hidden) return;
+            const p = projects[av.pid], date = $('att-date').value, shifts = shiftsFor(av.site, date);
+            $('att-body').hidden = !p;
+            $('att-pick-hint').hidden = !!p;
+            if (!p) return;
+            // Working-time controls: dropdown for Seatrium, in/out for other locations.
+            $('att-def-ruled').hidden = !shifts.length; $('att-def-custom').hidden = !!shifts.length;
+            if (shifts.length) {
+                const keep = $('att-def-shift').value || recall('shift:' + dayType(date));
+                $('att-def-shift').innerHTML = shifts.map(s => `<option value="${s.key}">${esc(shiftLabel(s))}</option>`).join('');
+                $('att-def-shift').value = shifts.some(s => s.key === keep) ? keep : shifts[2].key;
+                $('att-day-type').textContent = DAY_LABEL[dayType(date)] + ' hours';
+            }
             const hol = $('att-holiday');
-            const worked = attDay.some(l => TIMED(l.status));
-            if (attDayLoaded && !worked) {
+            if (av.loaded && !av.day.some(l => TIMED(l.status))) {
                 hol.hidden = false;
                 hol.innerHTML = date === localDate()
                     ? `<i class="fas fa-umbrella-beach"></i> Nobody is marked as working today yet. If nobody works, today counts as a <strong>holiday</strong>.`
-                    : `<i class="fas fa-umbrella-beach"></i> <strong>${esc(fmtDate(date))} is a holiday</strong> — nobody worked. Marking anyone On-Site or Standby makes it a working day.`;
+                    : `<i class="fas fa-umbrella-beach"></i> <strong>${esc(fmtDate(date))} is a holiday</strong> — nobody worked.`;
             } else hol.hidden = true;
-            if (!names.length) {
-                $('att-list').innerHTML = '<div class="empty">No staff are deployed to this project. The office assigns staff in the admin panel (Manpower).</div>';
-                $('att-sum').textContent = ''; $('att-save').disabled = true; $('att-all').disabled = true; return;
-            }
-            $('att-save').disabled = false; $('att-all').disabled = false;
-            $('att-list').innerHTML = names.map(name => {
-                const rec = attRecordOf(name);
-                const elsewhere = rec && rec.project && rec.project !== p.name;
-                const v = rowValue(name), cur = v ? v.status : null;
-                const note = elsewhere ? `Marked ${esc(rec.status)} at ${esc(rec.project)}${rec.markedBy ? ' by ' + esc(rec.markedBy) : ''}`
-                    : rec ? `Marked by ${esc(rec.markedBy || 'office')}` : 'Not marked';
-                const times = cur && (TIMED(cur) || cur === 'MC') ? `<div class="att-times">
-                        ${TIMED(cur) ? `<label>In <input type="time" data-f="timeIn" data-name="${esc(name)}" value="${esc(v.timeIn)}" aria-label="Time in for ${esc(name)}"></label>
-                        <label>Out <input type="time" data-f="timeOut" data-name="${esc(name)}" value="${esc(v.timeOut)}" aria-label="Time out for ${esc(name)}"></label>` : ''}
-                        <label>W.hrs <input type="number" min="0" max="24" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}" aria-label="Working hours for ${esc(name)}"></label>
-                    </div>` : '';
-                return `<div class="att-row${name in attPicks ? ' changed' : ''}" data-row="${esc(name)}">
-                    <div class="att-who"><strong>${esc(name)}</strong><span class="meta">${note}</span></div>
-                    <div class="att-opts" role="group" aria-label="Attendance for ${esc(name)}">${ATT_STATUSES.map(s =>
-                        `<button type="button" class="att-opt${cur === s ? ' on' : ''}" data-s="${s}" data-name="${esc(name)}" aria-pressed="${cur === s}">${s}</button>`).join('')}</div>
+            const q = $('att-search').value.trim().toLowerCase(), only = $('att-only').checked;
+            let here = 0, taken = 0, hrs = 0;
+            av.staff.forEach(m => { const v = valueOf(m.name), r = recOf(m.name); if (v) { here++; hrs += Number(v.hours) || 0; } else if (r && !isHere(r)) taken++; });
+            const rows = av.staff.filter(m => (!q || String(m.name).toLowerCase().includes(q)) && (!only || valueOf(m.name)));
+            $('att-list').innerHTML = rows.length ? rows.map(m => {
+                const name = m.name, r = recOf(name), v = valueOf(name);
+                if (r && !isHere(r)) {
+                    return `<div class="att-row att-taken"><div class="att-who"><strong>${esc(name)}</strong><span class="meta"><i class="fas fa-lock"></i> Taken — ${esc(r.status)} at ${esc(r.project || 'another project')}${r.markedBy ? ' (by ' + esc(r.markedBy) + ')' : ''}</span></div></div>`;
+                }
+                const cur = v ? v.status : null;
+                let times = '';
+                if (cur === 'On-Site' && shifts.length) {
+                    times = `<div class="att-times"><label>Working time <select data-f="shift" data-name="${esc(name)}">${shifts.map(s => `<option value="${s.key}"${v.shift === s.key ? ' selected' : ''}>${esc(shiftLabel(s))}</option>`).join('')}${v.shift && !shifts.some(s => s.key === v.shift) ? `<option value="${esc(v.shift)}" selected>${esc(v.timeIn + '–' + v.timeOut + ' · ' + fmtHrs(v.hours) + ' hrs')}</option>` : ''}${!v.shift && v.timeIn ? `<option value="" selected>${esc(v.timeIn + '–' + v.timeOut + ' · ' + fmtHrs(v.hours) + ' hrs')}</option>` : ''}</select></label></div>`;
+                } else if (cur === 'On-Site') {
+                    times = `<div class="att-times"><label>In <input type="time" data-f="timeIn" data-name="${esc(name)}" value="${esc(v.timeIn)}"></label><label>Out <input type="time" data-f="timeOut" data-name="${esc(name)}" value="${esc(v.timeOut)}"></label><label>W.hrs <input type="number" min="0" max="24" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}"></label></div>`;
+                } else if (cur === 'MC') {
+                    times = `<div class="att-times"><label>W.hrs <input type="number" min="0" max="24" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}"></label></div>`;
+                }
+                return `<div class="att-row${name in av.picks ? ' changed' : ''}" data-row="${esc(name)}">
+                    <div class="att-who"><strong>${esc(name)}</strong><span class="meta">${v && !(name in av.picks) ? 'Marked by ' + esc((r && r.markedBy) || 'office') : v ? 'Not saved yet' : 'Available'}</span></div>
+                    <div class="att-opts" role="group" aria-label="Attendance for ${esc(name)}">${ATT_STATUSES.map(s => `<button type="button" class="att-opt${cur === s ? ' on' : ''}" data-s="${s}" data-name="${esc(name)}" aria-pressed="${cur === s}">${s}</button>`).join('')}</div>
                     ${times}
                 </div>`;
-            }).join('');
-            updateSummary();
+            }).join('') : `<div class="empty">${av.staff.length ? 'No manpower matches.' : 'No manpower on the list yet. The office adds staff in the admin panel (Manpower).'}</div>`;
+            $('att-sum').textContent = `${fmtDate(date)} · ${here} at this project · ${fmtHrs(hrs)} W.hrs · ${taken} taken by other projects` + (Object.keys(av.picks).length ? ' · unsaved changes' : '');
             $('att-list').querySelectorAll('.att-opt').forEach(b => b.onclick = () => {
-                const name = b.dataset.name, v = rowValue(name);
+                const name = b.dataset.name, v = valueOf(name);
                 const next = v && v.status === b.dataset.s ? null : b.dataset.s; // tap again to clear
-                setPick(name, withStatus(name, next));
-                renderAttendance();
+                let val = null;
+                if (next === 'On-Site') val = v && v.status === 'On-Site' ? v : defaultEntry();
+                else if (next) val = { status: next, shift: null, timeIn: '', timeOut: '', hours: next === 'MC' ? 8 : 0, basic: null, ot: null };
+                setPick(name, val); renderAttView();
             });
-            // Typing times or hours updates in place (no re-render, so the cursor stays put).
+            $('att-list').querySelectorAll('select[data-f="shift"]').forEach(sel => sel.onchange = () => {
+                const s = shifts.find(x => x.key === sel.value); if (!s) return;
+                setPick(sel.dataset.name, { status: 'On-Site', shift: s.key, timeIn: s.timeIn, timeOut: s.timeOut, hours: s.hours, basic: s.basic, ot: s.ot });
+                renderAttView();
+            });
             $('att-list').querySelectorAll('.att-times input').forEach(inp => inp.oninput = () => {
-                const name = inp.dataset.name, v = { ...(rowValue(name) || withStatus(name, 'On-Site')) };
-                const row = inp.closest('.att-row');
+                const name = inp.dataset.name, v = { ...(valueOf(name) || defaultEntry()) };
                 if (inp.dataset.f === 'hours') { v.hours = inp.value === '' ? null : Number(inp.value); v.manual = true; }
-                else {
-                    v[inp.dataset.f] = inp.value;
-                    if (!v.manual) { v.hours = calcHours(v.timeIn, v.timeOut, saveDefaults().brk); const h = row.querySelector('[data-f="hours"]'); if (h) h.value = v.hours ?? ''; }
-                }
+                else { v[inp.dataset.f] = inp.value; if (!v.manual) { v.hours = calcHours(v.timeIn, v.timeOut, $('att-def-brk').value); const h = inp.closest('.att-row').querySelector('[data-f="hours"]'); if (h) h.value = v.hours ?? ''; } }
                 setPick(name, v);
-                row.classList.toggle('changed', name in attPicks);
-                updateSummary();
+                inp.closest('.att-row').classList.toggle('changed', name in av.picks);
             });
         }
-        $('att-all').onclick = () => {
-            const p = projects[currentId]; if (!p) return;
-            const d = saveDefaults(), h = calcHours(d.timeIn, d.timeOut, d.brk);
-            attStaff.forEach(m => setPick(m.name, { status: 'On-Site', timeIn: d.timeIn, timeOut: d.timeOut, hours: h, manual: false }));
-            renderAttendance();
-        };
         $('att-save').onclick = async () => {
-            const p = projects[currentId]; if (!p) return;
+            const p = projects[av.pid]; if (!p) return;
             const date = $('att-date').value;
             if (!date || date > localDate()) { toast('Pick today or a past date.', 'err'); return; }
-            const changes = Object.entries(attPicks);
+            const changes = Object.entries(av.picks);
             if (!changes.length) { toast('No attendance changes to save.'); return; }
             for (const [name, v] of changes) {
-                if (v && TIMED(v.status) && (toMin(v.timeIn) === null || toMin(v.timeOut) === null)) { toast(`${name}: enter both time in and time out.`, 'err'); return; }
-                if (v && (v.hours != null) && (isNaN(v.hours) || v.hours < 0 || v.hours > 24)) { toast(`${name}: working hours must be between 0 and 24.`, 'err'); return; }
+                const r = recOf(name);
+                if (r && !isHere(r)) { toast(`${name} is already taken by ${r.project || 'another project'} on ${fmtDate(date)}.`, 'err'); return; }
+                if (v && TIMED(v.status) && (toMin(v.timeIn) === null || toMin(v.timeOut) === null)) { toast(`${name}: choose the working time.`, 'err'); return; }
+                if (v && v.hours != null && (isNaN(v.hours) || v.hours < 0 || v.hours > 24)) { toast(`${name}: working hours must be between 0 and 24.`, 'err'); return; }
             }
-            const moving = changes.filter(([n, v]) => v && attRecordOf(n) && attRecordOf(n).project && attRecordOf(n).project !== p.name).map(([n]) => n);
-            if (moving.length && !confirm(`${moving.join(', ')} ${moving.length > 1 ? 'are' : 'is'} already marked at another project on ${fmtDate(date)}. Mark them at ${p.name} instead?`)) return;
             $('att-save').disabled = true;
             try {
                 for (const [name, v] of changes) {
                     const ref = doc(db, 'attendance_logs', `${name}_${date}`);
-                    const staff = attStaff.find(m => m.name === name);
                     if (v && v.status) await setDoc(ref, {
-                        name, status: v.status, date, project: p.name, projectId: currentId,
+                        name, status: v.status, date, project: p.name, projectId: p.id,
                         timeIn: TIMED(v.status) ? v.timeIn : null, timeOut: TIMED(v.status) ? v.timeOut : null,
-                        hours: Math.round((Number(v.hours) || 0) * 10) / 10, location: (staff && staff.location) || null,
+                        hours: Math.round((Number(v.hours) || 0) * 10) / 10,
+                        basicHours: v.basic ?? null, otHours: v.ot ?? null, shift: v.shift || null,
+                        location: p.site || null,
                         markedBy: myName, markedByUid: user.uid, source: 'Supervisor page', updatedAt: serverTimestamp()
                     });
-                    else if (savedHere(name)) await deleteDoc(ref);
+                    else if (isHere(recOf(name))) await deleteDoc(ref);
                 }
-                attPicks = {}; renderAttendance();
-                toast(`Timesheet saved for ${fmtDate(date)}`);
-            } catch (err) { toast('Could not save attendance: ' + err.message, 'err'); }
-            finally { $('att-save').disabled = false; }
+                av.picks = {}; renderAttView();
+                toast(`Attendance saved for ${fmtDate(date)}`);
+            } catch (err) {
+                toast(/permission/i.test(err.message) ? 'Could not save: someone in your list was just taken by another project. Refresh and try again.' : 'Could not save attendance: ' + err.message, 'err');
+            } finally { $('att-save').disabled = false; }
         };
 
         // ---------- blocks (list and work descriptions are set by admins) ----------
