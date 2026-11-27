@@ -138,6 +138,7 @@
         .ts-table td:nth-child(1), .ts-table td:nth-child(2), .ts-table td:nth-child(3) { text-align: center; color: #6b7680; }
         .ts-table .ts-off { color: #9aa5b1; }
         .ts-table tr.ts-gap td { background: #f4f7f9; padding: 3px; border-left: 0; border-right: 0; }
+        .ts-table tr.ts-hl td { background: #fff1d6; color: #8a5a00; font-weight: 800; text-align: center; letter-spacing: .08em; padding: 5px; }
         .ts-table tfoot td { background: #f4f7f9; }
         .ts-table .btn-edit { padding: 4px 10px; font-size: 0.75rem; }
         .leave-box { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: #fff7e6; border: 1px solid #f3d9a4; }
@@ -817,7 +818,7 @@
         });
         const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return localDate(d); };
         const longDate = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        const timingOf = r => r.status === 'OFF' || !r.rec ? 'OFF' : TIMED(r.status) ? (r.timeIn && r.timeOut ? `${r.timeIn}-${r.timeOut}` : '') : r.status;
+        const timingOf = r => r.away ? 'HOME LEAVE' : r.status === 'OFF' || !r.rec ? 'OFF' : TIMED(r.status) ? (r.timeIn && r.timeOut ? `${r.timeIn}-${r.timeOut}` : '') : r.status;
         // Every day from "from" to "to" (newest first), each with its attendance records.
         function attendanceDays(logs, from, to) {
             const byDay = {}; logs.forEach(l => (byDay[l.date] || (byDay[l.date] = [])).push(l));
@@ -829,7 +830,8 @@
 
         // ----- daily manpower time sheet (same layout as the paper sheet) -----
         const LOC_ORDER = ['SEATRIUM TBY', 'SEATRIUM PY', 'PACIFIC', 'WEST', 'SUPPLY', 'DRIVER', 'MANAGER/DRIVER', 'OFFICE'];
-        const locRank = l => { const i = LOC_ORDER.indexOf(l); return i >= 0 ? i : (l ? 50 : 99); };
+        const HL = 'HOME LEAVE';
+        const locRank = l => { const i = LOC_ORDER.indexOf(l); return l === HL ? 100 : i >= 0 ? i : (l ? 50 : 99); };
         function timesheetFor(date) {
             const recs = attCache.filter(l => l.date === date);
             const byName = new Map(recs.map(l => [l.name, l]));
@@ -839,6 +841,10 @@
             const rows = [...people.values()].map(m => {
                 const l = byName.get(m.name) || null;
                 const assigned = m.assignedTo && m.assignedTo !== 'HQ' ? m.assignedTo : '';
+                // Home Leave (set in Manpower Hub, or "HOME LEAVE" on imported sheets): listed separately at the end, 0 hrs.
+                if (leaveOn(m, date) || (l && String(l.location || '').toUpperCase() === HL)) {
+                    return { name: m.name, fin: finCache[m._id || m.name] || '', location: HL, project: '', status: 'Home Leave', away: true, timeIn: '', timeOut: '', hours: 0, basic: '', ot: '', rec: l };
+                }
                 return {
                     name: m.name, fin: finCache[m._id || m.name] || '', location: String((l && l.location) || m.location || '').toUpperCase(),
                     project: l ? (l.project && l.project !== 'HQ' ? l.project : '') : assigned,
@@ -882,7 +888,7 @@
                 ${ts.holiday ? ' <span class="badge b-holiday">🏖 Holiday — nobody worked</span>' : ''}</p>
                 <table class="ts-table"><thead><tr><th>SGE/NO</th><th>T NO</th><th>COMP</th><th>FIN No</th><th>Name</th><th>Location</th><th>Project Name</th><th>IN-OUT</th><th>W.hrs</th><th></th></tr></thead><tbody>
                 ${ts.rows.map(r => {
-                    const gap = prev !== null && r.location !== prev ? '<tr class="ts-gap"><td colspan="10"></td></tr>' : ''; prev = r.location;
+                    const gap = r.away && prev !== HL ? '<tr class="ts-gap ts-hl"><td colspan="10">HOME LEAVE</td></tr>' : prev !== null && r.location !== prev ? '<tr class="ts-gap"><td colspan="10"></td></tr>' : ''; prev = r.location;
                     const off = !TIMED(r.status);
                     return `${gap}<tr><td>${r.no}</td><td>${r.tno}</td><td>SGE</td><td>${esc(r.fin)}</td><td>${esc(r.name)}</td><td>${esc(r.location)}</td><td>${esc(r.project)}</td>
                         <td class="${off ? 'ts-off' : ''}">${esc(timingOf(r))}</td><td style="text-align:right;">${hrs1(r.hours)}</td>
@@ -909,7 +915,7 @@
             const pages = days.map(date => {
                 const ts = timesheetFor(date); let prev = null;
                 const body = ts.rows.map(r => {
-                    const gap = prev !== null && r.location !== prev ? `<tr><td colspan="9" ${cell('height:15px;')}></td></tr>` : ''; prev = r.location;
+                    const gap = r.away && prev !== HL ? `<tr><td colspan="9" ${cell('text-align:center; font-weight:700; font-size:11px; background:#eee;')}>HOME LEAVE</td></tr>` : prev !== null && r.location !== prev ? `<tr><td colspan="9" ${cell('height:15px;')}></td></tr>` : ''; prev = r.location;
                     const off = !TIMED(r.status);
                     return `${gap}<tr><td ${cell('text-align:center;')}>${r.no}</td><td ${cell('text-align:center;')}>${r.tno}</td><td ${cell('text-align:center;')}>SGE</td><td ${cell()}>${esc(r.fin)}</td><td ${cell()}>${esc(r.name)}</td><td ${cell('text-align:center;')}>${esc(r.location)}</td><td ${cell('text-align:center;')}>${esc(shortProject(r.project))}</td><td ${cell('text-align:center;' + (off ? ' color:#999;' : ''))}>${esc(timingOf(r))}</td><td ${cell('text-align:center;')}>${hrs1(r.hours)}</td></tr>`;
                 }).join('');
@@ -942,7 +948,7 @@
             const lines = [['Date', 'SGE/NO', 'T NO', 'COMP', 'FIN No', 'Name', 'Location', 'Project Name', 'Status', 'Time In', 'Time Out', 'IN-OUT', 'W.hrs', 'Basic hrs', 'OT hrs'].join(',')];
             days.forEach(date => {
                 const ts = timesheetFor(date);
-                ts.rows.forEach(r => lines.push([date, r.no, r.tno, 'SGE', r.fin, r.name, r.location, r.project, r.rec ? r.status : 'OFF', r.timeIn, r.timeOut, timingOf(r), hrs1(r.hours), r.basic === '' ? '' : hrs1(r.basic), r.ot === '' ? '' : hrs1(r.ot)].map(q).join(',')));
+                ts.rows.forEach(r => lines.push([date, r.no, r.tno, 'SGE', r.fin, r.name, r.location, r.project, r.away ? 'Home Leave' : r.rec ? r.status : 'OFF', r.timeIn, r.timeOut, timingOf(r), hrs1(r.hours), r.basic === '' ? '' : hrs1(r.basic), r.ot === '' ? '' : hrs1(r.ot)].map(q).join(',')));
                 lines.push([date, '', '', '', '', '', '', '', '', '', '', 'Total', hrs1(ts.total), '', ''].map(q).join(','));
             });
             const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
