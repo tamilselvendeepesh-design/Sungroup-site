@@ -621,18 +621,32 @@
         // Supervisors pick who worked on their project each day. A person already taken by another
         // project that day is locked for everyone else. Seatrium TBY / PY use fixed working times.
         const SITES = ['Seatrium TBY', 'Seatrium PY', 'Pacific', 'West', 'Supply', 'Office'];
-        const RULED = s => s === 'Seatrium TBY' || s === 'Seatrium PY';
-        // [in, out, W.hrs, basic, OT] per day type, from the company's working-hour rules.
-        const SHIFTS = {
-            wk:  [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:45', 10.5, 8, 2.5], ['08:00', '21:15', 13.5, 8, 5.5]],
-            fri: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:30', 10.5, 8, 2.5], ['08:00', '21:00', 13.5, 8, 5.5]],
-            sat: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 10.6, 4, 6.6], ['08:00', '18:30', 12.5, 4, 8.5], ['08:00', '21:00', 16.6, 4, 12.6]],
-            sun: [['08:00', '12:30', 9, 0, 9], ['08:00', '17:15', 16.6, 0, 16.6], ['08:00', '18:30', 19, 0, 19], ['08:00', '21:00', 24, 0, 24]]
+        // Working-hour rules by location: [in, out, W.hrs, basic, OT] for each day type.
+        // Seatrium TBY / PY: Mon–Thu and Friday differ. Pacific: Mon–Fri are the same. Sunday is all OT.
+        // Out times earlier than the in time run past midnight (e.g. 08:00–02:00 next day).
+        const PACIFIC_OUT = ['12:00', '17:00', '19:00', '21:00', '22:00', '23:00', '00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00'];
+        const pacificDay = (hours, basicOf) => PACIFIC_OUT.map((out, i) => { const b = basicOf(i, hours[i]); return ['08:00', out, hours[i], b, Math.round((hours[i] - b) * 10) / 10]; });
+        const PACIFIC_WEEKDAY = pacificDay([4, 8, 11, 14, 15.5, 17, 18.5, 20.5, 22.5, 24.5, 26.5, 28.5, 30.5, 32.5, 34.5], (i, h) => Math.min(h, 8));
+        const SHIFT_RULES = {
+            seatrium: {
+                wk:  [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:45', 10.5, 8, 2.5], ['08:00', '21:15', 13.5, 8, 5.5]],
+                fri: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:30', 10.5, 8, 2.5], ['08:00', '21:00', 13.5, 8, 5.5]],
+                sat: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 10.6, 4, 6.6], ['08:00', '18:30', 12.5, 4, 8.5], ['08:00', '21:00', 16.6, 4, 12.6]],
+                sun: [['08:00', '12:30', 9, 0, 9], ['08:00', '17:15', 16.6, 0, 16.6], ['08:00', '18:30', 19, 0, 19], ['08:00', '21:00', 24, 0, 24]]
+            },
+            pacific: {
+                wk: PACIFIC_WEEKDAY,
+                fri: PACIFIC_WEEKDAY,
+                sat: pacificDay([4, 10, 13, 16, 17.5, 19, 20.5, 22.5, 24.5, 26.5, 28.5, 30.5, 32.5, 34.5, 36.5], () => 4),
+                sun: pacificDay([8, 16, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46], () => 0)
+            }
         };
-        const DAY_LABEL = { wk: 'Mon–Thu', fri: 'Friday', sat: 'Saturday', sun: 'Sunday (all OT)' };
+        const ruleGroup = s => s === 'Seatrium TBY' || s === 'Seatrium PY' ? 'seatrium' : s === 'Pacific' ? 'pacific' : null;
+        const RULED = s => !!ruleGroup(s);
         const dayType = iso => { const d = new Date(iso + 'T00:00:00').getDay(); return d === 0 ? 'sun' : d === 6 ? 'sat' : d === 5 ? 'fri' : 'wk'; };
-        const shiftsFor = (site, date) => RULED(site) ? SHIFTS[dayType(date)].map(([timeIn, timeOut, hours, basic, ot]) => ({ key: timeIn + '-' + timeOut, timeIn, timeOut, hours, basic, ot })) : [];
-        const shiftLabel = s => `${s.timeIn}–${s.timeOut} · ${fmtHrs(s.hours)} hrs${s.basic && s.ot ? ` (${fmtHrs(s.basic)} basic + ${fmtHrs(s.ot)} OT)` : !s.basic && s.ot ? ' (all OT)' : ''}`;
+        const dayLabel = (site, iso) => { const t = dayType(iso); return t === 'sun' ? 'Sunday (all OT)' : t === 'sat' ? 'Saturday' : ruleGroup(site) === 'pacific' ? 'Mon–Fri' : t === 'fri' ? 'Friday' : 'Mon–Thu'; };
+        const shiftsFor = (site, date) => { const g = ruleGroup(site); return g ? SHIFT_RULES[g][dayType(date)].map(([timeIn, timeOut, hours, basic, ot]) => ({ key: timeIn + '-' + timeOut, timeIn, timeOut, hours, basic, ot, nextDay: timeOut <= timeIn })) : []; };
+        const shiftLabel = s => `${s.timeIn}–${s.timeOut}${s.nextDay ? " (next day)" : ""} · ${fmtHrs(s.hours)} hrs${s.basic && s.ot ? ` (${fmtHrs(s.basic)} basic + ${fmtHrs(s.ot)} OT)` : !s.basic && s.ot ? ' (all OT)' : ''}`;
         const ATT_STATUSES = ['On-Site', 'MC', 'OFF'];
         const TIMED = s => s === 'On-Site' || s === 'Standby';
         const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
@@ -765,7 +779,7 @@
                 const keep = $('att-def-shift').value || recall('shift:' + dayType(date));
                 $('att-def-shift').innerHTML = shifts.map(s => `<option value="${s.key}">${esc(shiftLabel(s))}</option>`).join('');
                 $('att-def-shift').value = shifts.some(s => s.key === keep) ? keep : shifts[2].key;
-                $('att-day-type').textContent = DAY_LABEL[dayType(date)] + ' hours';
+                $('att-day-type').textContent = dayLabel(av.site, date) + ' hours';
             }
             const hol = $('att-holiday');
             if (av.loaded && !av.day.some(l => TIMED(l.status))) {
@@ -788,9 +802,9 @@
                 if (cur === 'On-Site' && shifts.length) {
                     times = `<div class="att-times"><label>Working time <select data-f="shift" data-name="${esc(name)}">${shifts.map(s => `<option value="${s.key}"${v.shift === s.key ? ' selected' : ''}>${esc(shiftLabel(s))}</option>`).join('')}${v.shift && !shifts.some(s => s.key === v.shift) ? `<option value="${esc(v.shift)}" selected>${esc(v.timeIn + '–' + v.timeOut + ' · ' + fmtHrs(v.hours) + ' hrs')}</option>` : ''}${!v.shift && v.timeIn ? `<option value="" selected>${esc(v.timeIn + '–' + v.timeOut + ' · ' + fmtHrs(v.hours) + ' hrs')}</option>` : ''}</select></label></div>`;
                 } else if (cur === 'On-Site') {
-                    times = `<div class="att-times"><label>In <input type="time" data-f="timeIn" data-name="${esc(name)}" value="${esc(v.timeIn)}"></label><label>Out <input type="time" data-f="timeOut" data-name="${esc(name)}" value="${esc(v.timeOut)}"></label><label>W.hrs <input type="number" min="0" max="24" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}"></label></div>`;
+                    times = `<div class="att-times"><label>In <input type="time" data-f="timeIn" data-name="${esc(name)}" value="${esc(v.timeIn)}"></label><label>Out <input type="time" data-f="timeOut" data-name="${esc(name)}" value="${esc(v.timeOut)}"></label><label>W.hrs <input type="number" min="0" max="48" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}"></label></div>`;
                 } else if (cur === 'MC') {
-                    times = `<div class="att-times"><label>W.hrs <input type="number" min="0" max="24" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}"></label></div>`;
+                    times = `<div class="att-times"><label>W.hrs <input type="number" min="0" max="48" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}"></label></div>`;
                 }
                 return `<div class="att-row${name in av.picks ? ' changed' : ''}" data-row="${esc(name)}">
                     <div class="att-who"><strong>${esc(name)}</strong><span class="meta">${v && !(name in av.picks) ? 'Marked by ' + esc((r && r.markedBy) || 'office') : v ? 'Not saved yet' : 'Available'}</span></div>
@@ -830,7 +844,7 @@
                 const r = recOf(name);
                 if (r && !isHere(r)) { toast(`${name} is already taken by ${r.project || 'another project'} on ${fmtDate(date)}.`, 'err'); return; }
                 if (v && TIMED(v.status) && (toMin(v.timeIn) === null || toMin(v.timeOut) === null)) { toast(`${name}: choose the working time.`, 'err'); return; }
-                if (v && v.hours != null && (isNaN(v.hours) || v.hours < 0 || v.hours > 24)) { toast(`${name}: working hours must be between 0 and 24.`, 'err'); return; }
+                if (v && v.hours != null && (isNaN(v.hours) || v.hours < 0 || v.hours > 48)) { toast(`${name}: working hours must be between 0 and 48.`, 'err'); return; }
             }
             $('att-save').disabled = true;
             try {
