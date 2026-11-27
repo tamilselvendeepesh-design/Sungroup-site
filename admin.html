@@ -862,25 +862,25 @@
         window.downloadTimesheetPDF = async (from, to) => {
             const days = rangeDays(from, to);
             // Every cell is styled inline (font, padding, no wrapping) so the admin page's own table styles can't change the sheet.
-            const cell = (extra = '') => `style="border:1px solid #000; padding:1px 3px; font-size:8px; line-height:11px; height:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#000; font-weight:400; ${extra}"`;
+            const cell = (extra = '') => `style="border:1px solid #000; padding:1px 4px; font-size:10px; line-height:15px; height:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#000; font-weight:400; ${extra}"`;
             const head = (extra = '') => cell('font-weight:700; text-align:center; ' + extra);
-            const cols = [7, 5, 6, 11, 22, 12, 21, 11, 5]; // % widths: SGE/NO, T NO, COMP, FIN, Name, Location, Project, IN-OUT, W.hrs
+            const cols = [7, 4, 5, 10, 21, 12.5, 21.5, 14, 5]; // % widths: SGE/NO, T NO, COMP, FIN, Name, Location, Project, IN-OUT, W.hrs
             const pages = days.map(date => {
                 const ts = timesheetFor(date); let prev = null;
                 const body = ts.rows.map(r => {
-                    const gap = prev !== null && r.location !== prev ? `<tr><td colspan="9" ${cell('height:9px;')}></td></tr>` : ''; prev = r.location;
+                    const gap = prev !== null && r.location !== prev ? `<tr><td colspan="9" ${cell('height:15px;')}></td></tr>` : ''; prev = r.location;
                     const off = !TIMED(r.status);
                     return `${gap}<tr><td ${cell('text-align:center;')}>${r.no}</td><td ${cell('text-align:center;')}>${r.tno}</td><td ${cell('text-align:center;')}>SGE</td><td ${cell()}>${esc(r.fin)}</td><td ${cell()}>${esc(r.name)}</td><td ${cell('text-align:center;')}>${esc(r.location)}</td><td ${cell('text-align:center;')}>${esc(shortProject(r.project))}</td><td ${cell('text-align:center;' + (off ? ' color:#999;' : ''))}>${esc(timingOf(r))}</td><td ${cell('text-align:center;')}>${hrs1(r.hours)}</td></tr>`;
                 }).join('');
                 return `<div style="font-family:Calibri, Arial, sans-serif; color:#000; background:#fff;">
                     <table style="width:100%; border-collapse:collapse; table-layout:fixed; margin:0;">
                         <colgroup>${cols.map(w => `<col style="width:${w}%;">`).join('')}</colgroup>
-                        <tr><td colspan="9" ${head('font-size:14px; line-height:20px; height:20px; padding:3px;')}>Sun Group Engineering Pte Ltd</td></tr>
-                        <tr><td ${head()}></td><td colspan="4" ${head('font-size:9px;')}>Daily Manpower Plan Time Sheet</td><td ${head('font-size:9px;')}>Date :</td><td ${head('font-size:9px;')}>${esc(longDate(date))}</td><td ${head('font-size:9px;')}>Timing</td><td ${head('font-size:9px;')}>W.hrs</td></tr>
+                        <tr><td colspan="9" ${head('font-size:18px; line-height:26px; height:26px; padding:3px;')}>Sun Group Engineering Pte Ltd</td></tr>
+                        <tr><td ${head()}></td><td colspan="4" ${head('font-size:11px;')}>Daily Manpower Plan Time Sheet</td><td ${head('font-size:11px;')}>Date :</td><td ${head('font-size:11px;')}>${esc(longDate(date))}</td><td ${head('font-size:11px;')}>Timing</td><td ${head('font-size:11px;')}>W.hrs</td></tr>
                         <tr><td ${head()}>SGE/NO</td><td ${head()}>T NO</td><td ${head()}>COMP</td><td ${head()}>FIN No</td><td ${head()}>Name</td><td ${head()}>Location</td><td ${head()}>Project Name</td><td ${head()}>IN-OUT</td><td ${head()}></td></tr>
                         ${body || `<tr><td colspan="9" ${cell('text-align:center;')}>No staff on the list.</td></tr>`}
                     </table>
-                    <div style="text-align:right; font-size:9px; margin-top:2px;">${ts.holiday ? '<strong style="float:left;">HOLIDAY — nobody worked</strong>' : ''}${(Math.round(ts.total * 100) / 100).toFixed(2)}</div>
+                    <div style="text-align:right; font-size:11px; margin-top:3px;">${ts.holiday ? '<strong style="float:left;">HOLIDAY — nobody worked</strong>' : ''}${(Math.round(ts.total * 100) / 100).toFixed(2)}</div>
                 </div>`;
             });
             // html2pdf renders its own copy of the element, so the original can stay hidden.
@@ -891,7 +891,7 @@
             wrap.appendChild(el); document.body.appendChild(wrap);
             const name = days.length > 1 ? `Timesheet_${days[0]}_to_${days[days.length - 1]}.pdf` : `Timesheet_${days[0]}.pdf`;
             try {
-                await html2pdf().from(el).set({ margin: [0.4, 0.35], filename: name, pagebreak: { mode: ['legacy'] }, html2canvas: { scale: 2, scrollX: 0, scrollY: 0 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
+                await html2pdf().from(el).set({ margin: [0.35, 0.2], filename: name, pagebreak: { mode: ['legacy'] }, html2canvas: { scale: 2, scrollX: 0, scrollY: 0 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
             } finally { wrap.remove(); }
         };
         // ----- Excel (CSV): one row per person per day -----
