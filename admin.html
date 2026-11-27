@@ -140,6 +140,10 @@
         .ts-table tr.ts-gap td { background: #f4f7f9; padding: 3px; border-left: 0; border-right: 0; }
         .ts-table tfoot td { background: #f4f7f9; }
         .ts-table .btn-edit { padding: 4px 10px; font-size: 0.75rem; }
+        .leave-box { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: #fff7e6; border: 1px solid #f3d9a4; }
+        .leave-box > div { display: flex; flex-direction: column; min-width: 170px; }
+        .leave-na { display: flex; align-items: center; gap: 6px; font-weight: 600; padding-bottom: 8px; }
+        .leave-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #fff1d6; color: #8a5a00; font-weight: 700; font-size: .75rem; }
         .bulk-box { margin-top: 16px; border: 1px dashed var(--border, #cfd8e1); border-radius: 10px; padding: 10px 14px; }
         .bulk-box summary { cursor: pointer; font-weight: 700; color: #155a96; }
         .bulk-box textarea { width: 100%; font-family: Consolas, monospace; font-size: .8rem; }
@@ -345,7 +349,13 @@
                     <div><label>FIN No <span class="muted" style="text-transform:none; font-weight:400;">(admins only)</span></label><input type="text" id="mFin" maxlength="12" autocomplete="off" style="text-transform:uppercase;"></div>
                     <div><label>Location / Team</label><input type="text" id="mLoc" list="locList" placeholder="e.g. SEATRIUM TBY" style="text-transform:uppercase;"></div>
                     <div hidden><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
-                    <div><label>Status</label><select id="mStatus"><option>On-Site</option><option>Standby</option><option>MC</option><option>OFF</option></select></div>
+                    <div><label>Status</label><select id="mStatus" onchange="leaveFormSync()"><option>On-Site</option><option>Standby</option><option>MC</option><option>OFF</option><option>Home Leave</option></select></div>
+                </div>
+                <div id="mLeaveBox" class="leave-box" hidden>
+                    <div><label>Home Leave start</label><input type="date" id="mLeaveStart"></div>
+                    <div><label>Home Leave end</label><input type="date" id="mLeaveEnd" disabled></div>
+                    <label class="leave-na"><input type="checkbox" id="mLeaveNA" checked onchange="leaveFormSync()"> NA — return date not known yet</label>
+                    <p class="muted" style="margin:0; font-size:.8rem; flex-basis:100%;">Supervisors cannot pick this person from the start date until the end date (or until you set an end date, when NA). You can change the end date later with Edit.</p>
                 </div>
                 <details class="bulk-box">
                     <summary><i class="fas fa-paste"></i> Bulk update FIN No / Location</summary>
@@ -357,7 +367,7 @@
                     </div>
                 </details>
                 <datalist id="locList"><option value="SEATRIUM TBY"><option value="PACIFIC"><option value="WEST"><option value="DRIVER"><option value="MANAGER/DRIVER"><option value="OFFICE"></datalist>
-                <button onclick="saveManpower()" class="btn-main" style="background:var(--success)">Register Staff</button>
+                <button id="registerBtn" onclick="saveManpower()" class="btn-main" style="background:var(--success)">Register Staff</button>
             </div>
             <div class="card">
                 <p class="muted" style="font-size:0.8rem; margin-top:0;">Supervisors pick manpower from this list for their projects each day (Supervisor page → Daily Attendance). "Today" shows where each person is marked today.</p>
@@ -522,6 +532,8 @@
         const localDate = (d = new Date()) => { const z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
         // Batch attendance date: today by default, any past day allowed.
         { const bd = document.getElementById('batchDate'); bd.value = bd.max = localDate(); bd.onfocus = () => { bd.max = localDate(); }; }
+        // Home Leave: from leave.start until leave.end, or open-ended ("NA") when no end date is set.
+        const leaveOn = (m, date) => { const l = m && m.leave; return !!(l && l.start && l.start <= date && (!l.end || date <= l.end)); };
         const fmtDate = s => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }); };
         const daysAgo = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return Math.round((new Date(new Date().toDateString()) - new Date(y, m - 1, d)) / 86400000); };
         const jsArg = s => esc(JSON.stringify(String(s ?? '')));
@@ -697,7 +709,8 @@
                 if (m.status === 'On-Site') onsite++;
                 if (m.assignedTo === 'HQ' || m.status === 'Standby') { standby++; dash += `<tr><td>${esc(m.name)}</td><td>${esc(m.status)}</td></tr>`; }
                 const t = attCache.find(l => l.name === m.name && l.date === today);
-                const todayCell = t ? `${esc(t.status)}${t.project && t.project !== 'HQ' ? ' · ' + esc(t.project) : ''}${t.markedBy ? `<br><span class="muted" style="font-size:.75rem">by ${esc(t.markedBy)}</span>` : ''}` : '<span class="muted">Not marked</span>';
+                let todayCell = t ? `${esc(t.status)}${t.project && t.project !== 'HQ' ? ' · ' + esc(t.project) : ''}${t.markedBy ? `<br><span class="muted" style="font-size:.75rem">by ${esc(t.markedBy)}</span>` : ''}` : (leaveOn(m, today) ? '' : '<span class="muted">Not marked</span>');
+                if (m.leave && m.leave.start && (!m.leave.end || m.leave.end >= today)) todayCell += `${todayCell ? '<br>' : ''}<span class="leave-tag"><i class="fas fa-plane"></i> Home Leave</span> <span class="muted" style="font-size:.75rem">${esc(fmtDate(m.leave.start))} – ${m.leave.end ? esc(fmtDate(m.leave.end)) : 'NA'}</span>`;
                 return `<tr><td>${esc(m.name)}</td><td>${esc(finCache[m._id] || '')}</td><td>${esc(m.location || '')}</td><td>${todayCell}</td><td><button onclick="window.editMan(${jsArg(m._id)})" class="btn-edit">Edit</button><button onclick="window.kill('manpower',${jsArg(m._id)})" class="btn-del">X</button></td></tr>`;
             }).join('');
             dashB.innerHTML = dash;
@@ -1089,14 +1102,59 @@
             document.getElementById('pWeb').value = 'no';
         };
 
+        // Home Leave fields show only for the Home Leave status; "NA" leaves the end date open.
+        window.leaveFormSync = () => {
+            const on = document.getElementById('mStatus').value === 'Home Leave', na = document.getElementById('mLeaveNA').checked;
+            document.getElementById('mLeaveBox').hidden = !on;
+            document.getElementById('mLeaveEnd').disabled = na;
+            if (na) document.getElementById('mLeaveEnd').value = '';
+            if (on && !document.getElementById('mLeaveStart').value) document.getElementById('mLeaveStart').value = localDate();
+        };
+        function resetManForm() {
+            ['mName','editManId','mLoc','mFin','mLeaveStart','mLeaveEnd'].forEach(k => document.getElementById(k).value = '');
+            document.getElementById('mStatus').value = 'On-Site'; document.getElementById('mLeaveNA').checked = true;
+            document.getElementById('registerBtn').textContent = 'Register Staff';
+            leaveFormSync();
+        }
         window.saveManpower = async () => {
-            const n = document.getElementById('mName').value.trim(), s = document.getElementById('mStatus').value, p = document.getElementById('mAssign').value, id = document.getElementById('editManId').value || n;
+            const n = document.getElementById('mName').value.trim().replace(/\s+/g, ' '), s = document.getElementById('mStatus').value, p = document.getElementById('mAssign').value;
+            const oldId = document.getElementById('editManId').value, id = oldId || n;
             if (!n) { alert('Enter the staff name.'); return; }
+            if (/[\/]/.test(n) || n === '.' || n === '..') { alert('The name cannot contain "/".'); return; }
             const loc = document.getElementById('mLoc').value.trim().toUpperCase(), fin = document.getElementById('mFin').value.trim().toUpperCase();
+            let leave = null;
+            if (s === 'Home Leave') {
+                const start = document.getElementById('mLeaveStart').value, na = document.getElementById('mLeaveNA').checked, end = na ? null : document.getElementById('mLeaveEnd').value;
+                if (!start) { alert('Choose the Home Leave start date.'); return; }
+                if (!na && !end) { alert('Choose the Home Leave end date, or tick NA if the return date is not known.'); return; }
+                if (end && end < start) { alert('The Home Leave end date is before the start date.'); return; }
+                leave = { start, end: end || null };
+            }
+            if (!oldId && manCache.some(m => m._id === n)) { alert(`${n} is already on the staff list. Use Edit to change them.`); return; }
+            // Renaming: the staff ID is the name, so move the record (and their attendance) to the new name.
+            if (oldId && n !== oldId) {
+                if (manCache.some(m => m._id === n)) { alert(`${n} is already on the staff list.`); return; }
+                const logs = attCache.filter(l => l.name === oldId);
+                if (!confirm(`Rename ${oldId} to ${n}?\n\n${logs.length} attendance record(s) will move to the new name.`)) return;
+                const cur = manCache.find(m => m._id === oldId) || {};
+                const { _id, ...rest } = cur;
+                const writes = [
+                    b => b.set(doc(db, 'manpower', n), { ...rest, name: n, status: s, assignedTo: p, location: loc || null, leave }),
+                    b => b.set(doc(db, 'manpower_private', n), { fin: fin || null }),
+                    ...logs.map(l => b => { const { _id: lid, ...data } = l; b.set(doc(db, 'attendance_logs', `${n}_${l.date}`), { ...data, name: n }); }),
+                    ...logs.map(l => b => b.delete(doc(db, 'attendance_logs', l._id))),
+                    b => b.delete(doc(db, 'manpower_private', oldId)),
+                    b => b.delete(doc(db, 'manpower', oldId))
+                ];
+                // New records are written before the old ones are removed, in batches of 400.
+                for (let i = 0; i < writes.length; i += 400) { const b = writeBatch(db); writes.slice(i, i + 400).forEach(w => w(b)); await b.commit(); }
+                resetManForm();
+                return;
+            }
             // Attendance and hours are recorded on the time sheet, not here.
-            await setDoc(doc(db, "manpower", id), { name: n, status: s, assignedTo: p, location: loc || null }, { merge: true });
+            await setDoc(doc(db, "manpower", id), { name: n, status: s, assignedTo: p, location: loc || null, leave }, { merge: true });
             await setDoc(doc(db, "manpower_private", id), { fin: fin || null }, { merge: true });
-            ['mName','editManId','mLoc','mFin'].forEach(k=>document.getElementById(k).value='');
+            resetManForm();
         };
 
         window.saveEquipment = async () => {
@@ -1106,7 +1164,11 @@
         };
 
         window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pSite').value=d.site||''; document.getElementById('pStatus').value=d.status; document.getElementById('pWeb').value = d.inspection === 'Passed' ? 'yes' : 'no'; document.getElementById('editProjId').value=id; };
-        window.editMan = async (id) => { const d = manCache.find(x => x._id === id); if (!d) return; document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('mLoc').value=d.location||''; document.getElementById('mFin').value=finCache[id]||''; document.getElementById('editManId').value=id; document.getElementById('mName').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+        window.editMan = async (id) => { const d = manCache.find(x => x._id === id); if (!d) return; document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('mLoc').value=d.location||''; document.getElementById('mFin').value=finCache[id]||''; document.getElementById('editManId').value=id;
+            const l = d.status === 'Home Leave' && d.leave ? d.leave : null;
+            document.getElementById('mLeaveStart').value = l ? l.start || '' : ''; document.getElementById('mLeaveEnd').value = l && l.end ? l.end : ''; document.getElementById('mLeaveNA').checked = !(l && l.end);
+            document.getElementById('registerBtn').textContent = 'Save Changes'; leaveFormSync();
+            document.getElementById('mName').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
         window.editEq = async (id) => { const d = (await getDocs(collection(db,"equipment"))).docs.find(x=>x.id===id).data(); document.getElementById('eqName').value=d.name; document.getElementById('eqID').value=d.id; document.getElementById('eqProj').value=d.project; document.getElementById('editEqId').value=id; };
         
         window.kill = async (c, id) => {
