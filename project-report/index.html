@@ -689,7 +689,8 @@
             stopAttView();
             av.staff = []; av.picks = {};
             av.unsubs.push(onSnapshot(collection(db, 'manpower'), snap => {
-                av.staff = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+                // Office staff the admin hid from supervisors are left out.
+                av.staff = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => m.officeOnly !== true).sort((a, b) => String(a.name).localeCompare(String(b.name)));
                 renderAttView();
             }, () => { av.staff = []; renderAttView(); }));
             watchDay();
