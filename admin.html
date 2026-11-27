@@ -140,6 +140,15 @@
         .ts-table tr.ts-gap td { background: #f4f7f9; padding: 3px; border-left: 0; border-right: 0; }
         .ts-table tfoot td { background: #f4f7f9; }
         .ts-table .btn-edit { padding: 4px 10px; font-size: 0.75rem; }
+        .bulk-box { margin-top: 16px; border: 1px dashed var(--border, #cfd8e1); border-radius: 10px; padding: 10px 14px; }
+        .bulk-box summary { cursor: pointer; font-weight: 700; color: #155a96; }
+        .bulk-box textarea { width: 100%; font-family: Consolas, monospace; font-size: .8rem; }
+        .ts-range { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; padding: 10px 12px; background: #f4f7f9; border: 1px solid var(--border, #e1e6eb); border-radius: 10px; }
+        .ts-range-label { font-weight: 700; font-size: 0.85rem; color: #155a96; }
+        .ts-range label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 0.8rem; text-transform: none; }
+        .ts-range input[type="date"] { margin: 0; width: auto; padding: 7px 8px; }
+        .ts-quick { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+        .ts-quick .btn-edit { padding: 6px 10px; font-size: 0.75rem; }
 
         @media (max-width: 760px) {
             body { flex-direction: column; height: auto; overflow: auto; }
@@ -337,6 +346,15 @@
                     <div><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
                     <div><label>Status</label><select id="mStatus"><option>On-Site</option><option>Standby</option><option>MC</option><option>OFF</option></select></div>
                 </div>
+                <details class="bulk-box">
+                    <summary><i class="fas fa-paste"></i> Bulk update FIN No / Location</summary>
+                    <p class="muted" style="margin:8px 0;">Paste rows copied from your Excel time sheet (SGE/NO, T NO, COMP, FIN No, Name, Location…) or simple lines like <code>NAME, FIN No, LOCATION</code>. Each row is matched to the staff list by name; blank values are left unchanged.</p>
+                    <textarea id="bulkStaff" rows="6" placeholder="Paste rows here"></textarea>
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+                        <button class="btn-main" style="width:auto; padding:9px 18px;" onclick="bulkUpdateStaff()">Update Staff</button>
+                        <span id="bulkMsg" class="muted" style="font-size:.85rem;"></span>
+                    </div>
+                </details>
                 <datalist id="locList"><option value="SEATRIUM TBY"><option value="PACIFIC"><option value="WEST"><option value="DRIVER"><option value="MANAGER/DRIVER"><option value="OFFICE"></datalist>
                 <button onclick="saveManpower()" class="btn-main" style="background:var(--success)">Register Staff</button>
             </div>
@@ -375,19 +393,20 @@
                         <button class="btn-edit" style="padding:10px 14px;" onclick="downloadTimesheetCSV(tsDay(), tsDay())"><i class="fas fa-file-excel"></i> Excel</button>
                     </div>
                 </div>
+                <div class="ts-range">
+                    <span class="ts-range-label"><i class="fas fa-calendar-week"></i> Date range</span>
+                    <label>From <input type="date" id="attFrom"></label>
+                    <label>To <input type="date" id="attTo"></label>
+                    <span class="ts-quick">
+                        <button class="btn-edit" onclick="tsRange('week')">This week</button>
+                        <button class="btn-edit" onclick="tsRange('month')">This month</button>
+                        <button class="btn-edit" onclick="tsRange('last')">Last month</button>
+                    </span>
+                    <button onclick="downloadTimesheetPDF(document.getElementById('attFrom').value, document.getElementById('attTo').value)" class="btn-main" style="width:auto; padding:9px 16px;"><i class="fas fa-file-pdf"></i> Range PDF</button>
+                    <button onclick="downloadTimesheetCSV(document.getElementById('attFrom').value, document.getElementById('attTo').value)" class="btn-edit" style="padding:9px 14px;"><i class="fas fa-file-excel"></i> Range Excel</button>
+                    <span class="muted" id="tsRangeInfo" style="font-size:.8rem;"></span>
+                </div>
                 <div id="tsView" style="margin-top:14px; overflow-x:auto;"></div>
-            </div>
-            <div class="card">
-                <h3>Timesheets for a Date Range</h3>
-                <p class="muted" style="margin-top:0;">PDF has one page per day, like the paper time sheet. Excel has one row per person per day.</p>
-                <div class="grid-inputs">
-                    <div><label>From</label><input type="date" id="attFrom"></div>
-                    <div><label>To</label><input type="date" id="attTo"></div>
-                </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button onclick="downloadTimesheetPDF(document.getElementById('attFrom').value, document.getElementById('attTo').value)" class="btn-main" style="width:auto; padding:10px 20px;"><i class="fas fa-file-pdf"></i> Download PDF</button>
-                    <button onclick="downloadTimesheetCSV(document.getElementById('attFrom').value, document.getElementById('attTo').value)" class="btn-edit" style="padding:10px 18px;"><i class="fas fa-file-excel"></i> Download Excel (CSV)</button>
-                </div>
             </div>
             <div class="card"><h3>Attendance — last 60 days <span class="muted">(a day when nobody worked counts as a holiday)</span></h3><table><thead><tr><th>Date</th><th>Name</th><th>Project</th><th>Timing</th><th>W.hrs</th><th>Status</th><th>Actions</th></tr></thead><tbody id="attendTableBody"></tbody></table></div>
             <div class="card" style="border:1px solid var(--danger)"><button onclick="resetAttendance()" class="btn-del" style="width:100%">RESET ALL ATTENDANCE RECORDS</button></div>
@@ -685,6 +704,38 @@
             initBatchListeners();
         }
 
+        // Bulk FIN No / Location: rows pasted from the Excel time sheet or "NAME, FIN, LOCATION" lines.
+        const FIN_RE = /^[STFGM]\d{7}[A-Z]$/i;
+        const normName = s => String(s || '').toUpperCase().replace(/\s+/g, ' ').trim();
+        window.bulkUpdateStaff = async () => {
+            const msg = document.getElementById('bulkMsg');
+            const byName = new Map(manCache.map(m => [normName(m.name), m]));
+            const lines = document.getElementById('bulkStaff').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const updates = new Map(), unmatched = [];
+            lines.forEach(line => {
+                const cells = line.split(/\t|,/).map(c => c.trim());
+                const ni = cells.findIndex(c => byName.has(normName(c)));
+                if (ni < 0) { const guess = cells.find(c => /[A-Za-z]{3,}/.test(c) && !FIN_RE.test(c) && normName(c) !== 'SGE'); if (guess) unmatched.push(guess); return; }
+                const m = byName.get(normName(cells[ni]));
+                const fin = cells.find(c => FIN_RE.test(c));
+                // Location is the column right after the name (as on the time sheet), or a later known location.
+                let loc = cells.slice(ni + 1).find(c => LOC_ORDER.includes(normName(c))) || (cells[ni + 1] && !FIN_RE.test(cells[ni + 1]) && !/^\d/.test(cells[ni + 1]) ? cells[ni + 1] : '');
+                const u = updates.get(m._id) || {};
+                if (fin) u.fin = fin.toUpperCase();
+                if (loc) u.location = normName(loc);
+                updates.set(m._id, u);
+            });
+            if (!updates.size) { msg.textContent = 'No staff names matched.' + (unmatched.length ? ' Not found: ' + unmatched.slice(0, 8).join(', ') : ''); return; }
+            const batch = writeBatch(db); let nf = 0, nl = 0;
+            updates.forEach((u, id) => {
+                if (u.fin) { batch.set(doc(db, 'manpower_private', id), { fin: u.fin }, { merge: true }); nf++; }
+                if (u.location) { batch.set(doc(db, 'manpower', id), { location: u.location }, { merge: true }); nl++; }
+            });
+            await batch.commit();
+            msg.textContent = `Updated ${updates.size} staff (${nf} FIN, ${nl} location).` + (unmatched.length ? ` Not on the staff list: ${[...new Set(unmatched)].slice(0, 10).join(', ')}` : '');
+            document.getElementById('bulkStaff').value = '';
+        };
+
         // Batch Logic
         function initBatchListeners() {
             document.querySelectorAll('.batch-check').forEach(ck => {
@@ -725,7 +776,7 @@
         });
         const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return localDate(d); };
         const longDate = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        const timingOf = r => r.status === 'OFF' || !r.rec ? 'OFF' : TIMED(r.status) ? (r.timeIn && r.timeOut ? `${r.timeIn}-${r.timeOut}` : r.status) : r.status;
+        const timingOf = r => r.status === 'OFF' || !r.rec ? 'OFF' : TIMED(r.status) ? (r.timeIn && r.timeOut ? `${r.timeIn}-${r.timeOut}` : '') : r.status;
         // Every day from "from" to "to" (newest first), each with its attendance records.
         function attendanceDays(logs, from, to) {
             const byDay = {}; logs.forEach(l => (byDay[l.date] || (byDay[l.date] = [])).push(l));
@@ -763,6 +814,24 @@
         window.tsDay = () => tsDayInput().value || localDate();
         window.tsShift = n => { tsDayInput().value = addDays(tsDay(), n); renderTimesheet(); };
         { const t = tsDayInput(); t.value = localDate(); t.onchange = () => renderTimesheet(); }
+        // Date range for the PDF / Excel downloads: quick picks plus a running summary of the range.
+        window.tsRange = kind => {
+            const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+            let a, b;
+            if (kind === 'week') { const d = new Date(now); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); a = localDate(d); b = localDate(); }
+            else if (kind === 'month') { a = localDate(new Date(y, m, 1)); b = localDate(); }
+            else { a = localDate(new Date(y, m - 1, 1)); b = localDate(new Date(y, m, 0)); }
+            document.getElementById('attFrom').value = a; document.getElementById('attTo').value = b; tsRangeInfo();
+        };
+        function tsRangeInfo() {
+            const f = document.getElementById('attFrom').value, t = document.getElementById('attTo').value, info = document.getElementById('tsRangeInfo');
+            if (!f || !t) { info.textContent = ''; return; }
+            const days = rangeDays(f, t), logs = attCache.filter(l => l.date >= days[0] && l.date <= days[days.length - 1]);
+            const hrs = logs.reduce((s, l) => s + (Number(l.hours) || 0), 0);
+            const hol = days.filter(d => !worked(logs.filter(l => l.date === d))).length;
+            info.textContent = `${days.length} day${days.length > 1 ? 's' : ''} · ${hrs1(hrs)} W.hrs · ${hol} holiday${hol === 1 ? '' : 's'}${days.length >= 62 ? ' · max 62 days per download' : ''}`;
+        }
+        ['attFrom', 'attTo'].forEach(id => document.getElementById(id).addEventListener('change', tsRangeInfo));
         function renderTimesheet() {
             const box = document.getElementById('tsView'); if (!box) return;
             const date = tsDay(), ts = timesheetFor(date);
@@ -788,35 +857,41 @@
             const out = []; for (let d = s; d <= e && out.length < 62; d = addDays(d, 1)) out.push(d);
             return out;
         }
+        // Short project name for the printed sheet: "2GW HVDC Stations – Nederwiek Beta (S009-J30019)" -> "2GW HVDC Stations".
+        const shortProject = p => String(p || '').split(/\s[–-]\s|\s\(/)[0].trim();
         window.downloadTimesheetPDF = async (from, to) => {
             const days = rangeDays(from, to);
-            const c = 'border:1px solid #000; padding:2px 5px;';
+            // Every cell is styled inline (font, padding, no wrapping) so the admin page's own table styles can't change the sheet.
+            const cell = (extra = '') => `style="border:1px solid #000; padding:1px 3px; font-size:8px; line-height:11px; height:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#000; font-weight:400; ${extra}"`;
+            const head = (extra = '') => cell('font-weight:700; text-align:center; ' + extra);
+            const cols = [7, 5, 6, 11, 22, 12, 21, 11, 5]; // % widths: SGE/NO, T NO, COMP, FIN, Name, Location, Project, IN-OUT, W.hrs
             const pages = days.map(date => {
                 const ts = timesheetFor(date); let prev = null;
                 const body = ts.rows.map(r => {
-                    const gap = prev !== null && r.location !== prev ? `<tr><td style="${c} height:14px;" colspan="9"></td></tr>` : ''; prev = r.location;
+                    const gap = prev !== null && r.location !== prev ? `<tr><td colspan="9" ${cell('height:9px;')}></td></tr>` : ''; prev = r.location;
                     const off = !TIMED(r.status);
-                    return `${gap}<tr><td style="${c} text-align:center;">${r.no}</td><td style="${c} text-align:center;">${r.tno}</td><td style="${c} text-align:center;">SGE</td><td style="${c}">${esc(r.fin)}</td><td style="${c}">${esc(r.name)}</td><td style="${c} text-align:center;">${esc(r.location)}</td><td style="${c} text-align:center;">${esc(r.project)}</td><td style="${c} text-align:center;${off ? ' color:#999;' : ''}">${esc(timingOf(r))}</td><td style="${c} text-align:center;">${hrs1(r.hours)}</td></tr>`;
+                    return `${gap}<tr><td ${cell('text-align:center;')}>${r.no}</td><td ${cell('text-align:center;')}>${r.tno}</td><td ${cell('text-align:center;')}>SGE</td><td ${cell()}>${esc(r.fin)}</td><td ${cell()}>${esc(r.name)}</td><td ${cell('text-align:center;')}>${esc(r.location)}</td><td ${cell('text-align:center;')}>${esc(shortProject(r.project))}</td><td ${cell('text-align:center;' + (off ? ' color:#999;' : ''))}>${esc(timingOf(r))}</td><td ${cell('text-align:center;')}>${hrs1(r.hours)}</td></tr>`;
                 }).join('');
-                return `<div style="font-family:Calibri, Arial, sans-serif; font-size:9.5px; color:#000;">
-                    <table style="width:100%; border-collapse:collapse;">
-                        <tr><td colspan="9" style="${c} text-align:center; font-size:17px; font-weight:700; padding:5px;">Sun Group Engineering Pte Ltd</td></tr>
-                        <tr><td style="${c}"></td><td colspan="4" style="${c} text-align:center; font-weight:700; font-size:11px;">Daily Manpower Plan Time Sheet</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">Date :</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">${esc(longDate(date))}</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">Timing</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">W.hrs</td></tr>
-                        <tr style="font-weight:700;"><td style="${c} text-align:center;">SGE/NO</td><td style="${c} text-align:center;">T NO</td><td style="${c} text-align:center;">COMP</td><td style="${c} text-align:center;">FIN No</td><td style="${c} text-align:center;">Name</td><td style="${c} text-align:center;">Location</td><td style="${c} text-align:center;">Project Name</td><td style="${c} text-align:center;">IN-OUT</td><td style="${c}"></td></tr>
-                        ${body || `<tr><td colspan="9" style="${c} text-align:center; padding:10px;">No staff on the list.</td></tr>`}
+                return `<div style="font-family:Calibri, Arial, sans-serif; color:#000; background:#fff;">
+                    <table style="width:100%; border-collapse:collapse; table-layout:fixed; margin:0;">
+                        <colgroup>${cols.map(w => `<col style="width:${w}%;">`).join('')}</colgroup>
+                        <tr><td colspan="9" ${head('font-size:14px; line-height:20px; height:20px; padding:3px;')}>Sun Group Engineering Pte Ltd</td></tr>
+                        <tr><td ${head()}></td><td colspan="4" ${head('font-size:9px;')}>Daily Manpower Plan Time Sheet</td><td ${head('font-size:9px;')}>Date :</td><td ${head('font-size:9px;')}>${esc(longDate(date))}</td><td ${head('font-size:9px;')}>Timing</td><td ${head('font-size:9px;')}>W.hrs</td></tr>
+                        <tr><td ${head()}>SGE/NO</td><td ${head()}>T NO</td><td ${head()}>COMP</td><td ${head()}>FIN No</td><td ${head()}>Name</td><td ${head()}>Location</td><td ${head()}>Project Name</td><td ${head()}>IN-OUT</td><td ${head()}></td></tr>
+                        ${body || `<tr><td colspan="9" ${cell('text-align:center;')}>No staff on the list.</td></tr>`}
                     </table>
-                    <div style="text-align:right; font-size:11px; margin-top:3px;">${ts.holiday ? '<strong style="float:left;">HOLIDAY — nobody worked</strong>' : ''}${(Math.round(ts.total * 100) / 100).toFixed(2)}</div>
+                    <div style="text-align:right; font-size:9px; margin-top:2px;">${ts.holiday ? '<strong style="float:left;">HOLIDAY — nobody worked</strong>' : ''}${(Math.round(ts.total * 100) / 100).toFixed(2)}</div>
                 </div>`;
             });
             // html2pdf renders its own copy of the element, so the original can stay hidden.
             const wrap = document.createElement('div'); wrap.style.display = 'none';
             const el = document.createElement('div');
-            el.style.cssText = 'width:760px; background:#fff;';
+            el.style.cssText = 'width:100%; background:#fff;';
             el.innerHTML = pages.join('<div class="html2pdf__page-break"></div>');
             wrap.appendChild(el); document.body.appendChild(wrap);
             const name = days.length > 1 ? `Timesheet_${days[0]}_to_${days[days.length - 1]}.pdf` : `Timesheet_${days[0]}.pdf`;
             try {
-                await html2pdf().from(el).set({ margin: [0.35, 0.3], filename: name, pagebreak: { mode: ['legacy'] }, html2canvas: { scale: 2, scrollX: 0, scrollY: 0 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
+                await html2pdf().from(el).set({ margin: [0.4, 0.35], filename: name, pagebreak: { mode: ['legacy'] }, html2canvas: { scale: 2, scrollX: 0, scrollY: 0 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
             } finally { wrap.remove(); }
         };
         // ----- Excel (CSV): one row per person per day -----
@@ -892,7 +967,7 @@
 
         const statusOrder = { 'On-Site': 0, 'Standby': 1, 'MC': 2, 'OFF': 3 };
         function renderAttendance() {
-            renderTimesheet();
+            renderTimesheet(); tsRangeInfo();
             const b = document.getElementById('attendTableBody'); if (!b) return;
             const today = localDate();
             const oldest = attCache.reduce((m, l) => l.date && l.date < m ? l.date : m, today);
