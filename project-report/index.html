@@ -756,6 +756,9 @@
         $('att-def-shift').onchange = () => remember('shift:' + dayType($('att-date').value), $('att-def-shift').value);
 
         const recOf = name => av.day.find(l => l.name === name);
+        // Home Leave (set by admins): from the start date until the end date, or open-ended ("NA") when no end is set.
+        const leaveOn = (m, date) => { const l = m && m.leave; return !!(l && l.start && l.start <= date && (!l.end || date <= l.end)); };
+        const leaveText = l => `Home Leave from ${fmtDate(l.start)} · ${l.end ? 'back after ' + fmtDate(l.end) : 'return date NA'}`;
         const isHere = r => !!r && ((r.projectId && r.projectId === av.pid) || (!r.projectId && projects[av.pid] && r.project === projects[av.pid].name));
         function valueOf(name) {
             if (name in av.picks) return av.picks[name];
@@ -789,11 +792,14 @@
                     : `<i class="fas fa-umbrella-beach"></i> <strong>${esc(fmtDate(date))} is a holiday</strong> — nobody worked.`;
             } else hol.hidden = true;
             const q = $('att-search').value.trim().toLowerCase(), only = $('att-only').checked;
-            let here = 0, taken = 0, hrs = 0;
-            av.staff.forEach(m => { const v = valueOf(m.name), r = recOf(m.name); if (v) { here++; hrs += Number(v.hours) || 0; } else if (r && !isHere(r)) taken++; });
+            let here = 0, taken = 0, away = 0, hrs = 0;
+            av.staff.forEach(m => { const v = valueOf(m.name), r = recOf(m.name); if (v) { here++; hrs += Number(v.hours) || 0; } else if (r && !isHere(r)) taken++; else if (leaveOn(m, date)) away++; });
             const rows = av.staff.filter(m => (!q || String(m.name).toLowerCase().includes(q)) && (!only || valueOf(m.name)));
             $('att-list').innerHTML = rows.length ? rows.map(m => {
                 const name = m.name, r = recOf(name), v = valueOf(name);
+                if (leaveOn(m, date) && !(r && isHere(r))) {
+                    return `<div class="att-row att-taken"><div class="att-who"><strong>${esc(name)}</strong><span class="meta"><i class="fas fa-plane"></i> ${esc(leaveText(m.leave))}</span></div></div>`;
+                }
                 if (r && !isHere(r)) {
                     return `<div class="att-row att-taken"><div class="att-who"><strong>${esc(name)}</strong><span class="meta"><i class="fas fa-lock"></i> Taken — ${esc(r.status)} at ${esc(r.project || 'another project')}${r.markedBy ? ' (by ' + esc(r.markedBy) + ')' : ''}</span></div></div>`;
                 }
@@ -812,7 +818,7 @@
                     ${times}
                 </div>`;
             }).join('') : `<div class="empty">${av.staff.length ? 'No manpower matches.' : 'No manpower on the list yet. The office adds staff in the admin panel (Manpower).'}</div>`;
-            $('att-sum').textContent = `${fmtDate(date)} · ${here} at this project · ${fmtHrs(hrs)} W.hrs · ${taken} taken by other projects` + (Object.keys(av.picks).length ? ' · unsaved changes' : '');
+            $('att-sum').textContent = `${fmtDate(date)} · ${here} at this project · ${fmtHrs(hrs)} W.hrs · ${taken} taken by other projects` + (away ? ` · ${away} on home leave` : '') + (Object.keys(av.picks).length ? ' · unsaved changes' : '');
             $('att-list').querySelectorAll('.att-opt').forEach(b => b.onclick = () => {
                 const name = b.dataset.name, v = valueOf(name);
                 const next = v && v.status === b.dataset.s ? null : b.dataset.s; // tap again to clear
@@ -843,6 +849,7 @@
             for (const [name, v] of changes) {
                 const r = recOf(name);
                 if (r && !isHere(r)) { toast(`${name} is already taken by ${r.project || 'another project'} on ${fmtDate(date)}.`, 'err'); return; }
+                if (v && leaveOn(av.staff.find(m => m.name === name), date)) { toast(`${name} is on home leave on ${fmtDate(date)}.`, 'err'); return; }
                 if (v && TIMED(v.status) && (toMin(v.timeIn) === null || toMin(v.timeOut) === null)) { toast(`${name}: choose the working time.`, 'err'); return; }
                 if (v && v.hours != null && (isNaN(v.hours) || v.hours < 0 || v.hours > 48)) { toast(`${name}: working hours must be between 0 and 48.`, 'err'); return; }
             }
