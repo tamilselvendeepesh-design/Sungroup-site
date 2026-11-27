@@ -352,6 +352,7 @@
                     <div hidden><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
                     <div><label>Status</label><select id="mStatus" onchange="leaveFormSync()"><option>On-Site</option><option>Standby</option><option>MC</option><option>OFF</option><option>Home Leave</option></select></div>
                 </div>
+                <label class="leave-na" style="margin-top:10px;"><input type="checkbox" id="mOffice"> Office staff — hide from supervisors (they can't pick this person in Daily Attendance)</label>
                 <div id="mLeaveBox" class="leave-box" hidden>
                     <div><label>Home Leave start</label><input type="date" id="mLeaveStart"></div>
                     <div><label>Home Leave end</label><input type="date" id="mLeaveEnd" disabled></div>
@@ -712,7 +713,7 @@
                 const t = attCache.find(l => l.name === m.name && l.date === today);
                 let todayCell = t ? `${esc(t.status)}${t.project && t.project !== 'HQ' ? ' · ' + esc(t.project) : ''}${t.markedBy ? `<br><span class="muted" style="font-size:.75rem">by ${esc(t.markedBy)}</span>` : ''}` : (leaveOn(m, today) ? '' : '<span class="muted">Not marked</span>');
                 if (m.leave && m.leave.start && (!m.leave.end || m.leave.end >= today)) todayCell += `${todayCell ? '<br>' : ''}<span class="leave-tag"><i class="fas fa-plane"></i> Home Leave</span> <span class="muted" style="font-size:.75rem">${esc(fmtDate(m.leave.start))} – ${m.leave.end ? esc(fmtDate(m.leave.end)) : 'NA'}</span>`;
-                return `<tr><td>${esc(m.name)}</td><td>${esc(finCache[m._id] || '')}</td><td>${esc(m.location || '')}</td><td>${todayCell}</td><td><button onclick="window.editMan(${jsArg(m._id)})" class="btn-edit">Edit</button><button onclick="window.kill('manpower',${jsArg(m._id)})" class="btn-del">X</button></td></tr>`;
+                return `<tr><td>${esc(m.name)}</td><td>${esc(finCache[m._id] || '')}</td><td>${esc(m.location || '')}${m.officeOnly ? '<br><span class="muted" style="font-size:.75rem"><i class="fas fa-eye-slash"></i> Hidden from supervisors</span>' : ''}</td><td>${todayCell}</td><td><button onclick="window.editMan(${jsArg(m._id)})" class="btn-edit">Edit</button><button onclick="window.kill('manpower',${jsArg(m._id)})" class="btn-del">X</button></td></tr>`;
             }).join('');
             dashB.innerHTML = dash;
             document.getElementById('stat-onsite').innerText = onsite;
@@ -1118,7 +1119,7 @@
         };
         function resetManForm() {
             ['mName','editManId','mLoc','mFin','mLeaveStart','mLeaveEnd'].forEach(k => document.getElementById(k).value = '');
-            document.getElementById('mStatus').value = 'On-Site'; document.getElementById('mLeaveNA').checked = true;
+            document.getElementById('mStatus').value = 'On-Site'; document.getElementById('mLeaveNA').checked = true; document.getElementById('mOffice').checked = false;
             document.getElementById('registerBtn').textContent = 'Register Staff';
             leaveFormSync();
         }
@@ -1128,6 +1129,7 @@
             if (!n) { alert('Enter the staff name.'); return; }
             if (/[\/]/.test(n) || n === '.' || n === '..') { alert('The name cannot contain "/".'); return; }
             const loc = document.getElementById('mLoc').value.trim().toUpperCase(), fin = document.getElementById('mFin').value.trim().toUpperCase();
+            const officeOnly = document.getElementById('mOffice').checked;
             let leave = null;
             if (s === 'Home Leave') {
                 const start = document.getElementById('mLeaveStart').value, na = document.getElementById('mLeaveNA').checked, end = na ? null : document.getElementById('mLeaveEnd').value;
@@ -1145,7 +1147,7 @@
                 const cur = manCache.find(m => m._id === oldId) || {};
                 const { _id, ...rest } = cur;
                 const writes = [
-                    b => b.set(doc(db, 'manpower', n), { ...rest, name: n, status: s, assignedTo: p, location: loc || null, leave }),
+                    b => b.set(doc(db, 'manpower', n), { ...rest, name: n, status: s, assignedTo: p, location: loc || null, leave, officeOnly }),
                     b => b.set(doc(db, 'manpower_private', n), { fin: fin || null }),
                     ...logs.map(l => b => { const { _id: lid, ...data } = l; b.set(doc(db, 'attendance_logs', `${n}_${l.date}`), { ...data, name: n }); }),
                     ...logs.map(l => b => b.delete(doc(db, 'attendance_logs', l._id))),
@@ -1158,7 +1160,7 @@
                 return;
             }
             // Attendance and hours are recorded on the time sheet, not here.
-            await setDoc(doc(db, "manpower", id), { name: n, status: s, assignedTo: p, location: loc || null, leave }, { merge: true });
+            await setDoc(doc(db, "manpower", id), { name: n, status: s, assignedTo: p, location: loc || null, leave, officeOnly }, { merge: true });
             await setDoc(doc(db, "manpower_private", id), { fin: fin || null }, { merge: true });
             resetManForm();
         };
@@ -1173,6 +1175,7 @@
         window.editMan = async (id) => { const d = manCache.find(x => x._id === id); if (!d) return; document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('mLoc').value=d.location||''; document.getElementById('mFin').value=finCache[id]||''; document.getElementById('editManId').value=id;
             const l = d.status === 'Home Leave' && d.leave ? d.leave : null;
             document.getElementById('mLeaveStart').value = l ? l.start || '' : ''; document.getElementById('mLeaveEnd').value = l && l.end ? l.end : ''; document.getElementById('mLeaveNA').checked = !(l && l.end);
+            document.getElementById('mOffice').checked = d.officeOnly === true;
             document.getElementById('registerBtn').textContent = 'Save Changes'; leaveFormSync();
             document.getElementById('mName').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
         window.editEq = async (id) => { const d = (await getDocs(collection(db,"equipment"))).docs.find(x=>x.id===id).data(); document.getElementById('eqName').value=d.name; document.getElementById('eqID').value=d.id; document.getElementById('eqProj').value=d.project; document.getElementById('editEqId').value=id; };
