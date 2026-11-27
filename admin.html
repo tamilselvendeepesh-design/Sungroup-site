@@ -126,6 +126,20 @@
         .log-undone td { opacity: .6; }
 
         #pdf-export-container { display: none; background: white; color: black; padding: 40px; }
+        /* batch attendance times */
+        .batch-times { display: inline-flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .batch-times label { display: inline-flex; align-items: center; gap: 6px; color: #fff; font-size: 0.8rem; font-weight: 600; margin: 0; text-transform: none; }
+        .batch-times input { margin: 0; padding: 6px 8px; width: auto; }
+        .batch-times input:disabled { opacity: .45; }
+        /* daily manpower time sheet */
+        .ts-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 860px; }
+        .ts-table th, .ts-table td { border: 1px solid var(--border, #e1e6eb); padding: 6px 8px; text-align: left; white-space: nowrap; }
+        .ts-table thead th { background: #eaf3fb; color: #155a96; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .04em; }
+        .ts-table td:nth-child(1), .ts-table td:nth-child(2), .ts-table td:nth-child(3) { text-align: center; color: #6b7680; }
+        .ts-table .ts-off { color: #9aa5b1; }
+        .ts-table tr.ts-gap td { background: #f4f7f9; padding: 3px; border-left: 0; border-right: 0; }
+        .ts-table tfoot td { background: #f4f7f9; }
+        .ts-table .btn-edit { padding: 4px 10px; font-size: 0.75rem; }
 
         @media (max-width: 760px) {
             body { flex-direction: column; height: auto; overflow: auto; }
@@ -176,7 +190,12 @@
         <span style="font-weight:bold; white-space:nowrap;"><span id="batch-count">0</span> Selected</span>
         <input type="date" id="batchDate" title="Attendance date" aria-label="Attendance date" style="max-width:160px; margin:0;">
         <select id="batchProj" class="proj-select-list" style="max-width:200px;"></select>
-        <select id="batchStatus" style="max-width:150px;"><option>On-Site</option><option>Standby</option><option>MC</option></select>
+        <select id="batchStatus" style="max-width:130px;"><option>On-Site</option><option>Standby</option><option>MC</option><option>OFF</option></select>
+        <span class="batch-times" id="batchTimes">
+            <label>In <input type="time" id="batchIn" value="08:00"></label>
+            <label>Out <input type="time" id="batchOut" value="17:00"></label>
+            <label>W.hrs <input type="number" id="batchHrs" min="0" max="24" step="0.1" inputmode="decimal" style="width:70px;"></label>
+        </span>
         <button onclick="applyBatch()" class="btn-main" style="background:var(--success); width:auto; padding:10px 25px;">Deploy Selected</button>
         <button onclick="clearSelection()" style="background:none; border:none; color:white; cursor:pointer;">Cancel</button>
     </div>
@@ -313,14 +332,17 @@
                 <div class="grid-inputs">
                     <input type="hidden" id="editManId">
                     <div><label>Staff Name</label><input type="text" id="mName"></div>
+                    <div><label>FIN No <span class="muted" style="text-transform:none; font-weight:400;">(admins only)</span></label><input type="text" id="mFin" maxlength="12" autocomplete="off" style="text-transform:uppercase;"></div>
+                    <div><label>Location / Team</label><input type="text" id="mLoc" list="locList" placeholder="e.g. SEATRIUM TBY" style="text-transform:uppercase;"></div>
                     <div><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
-                    <div><label>Status</label><select id="mStatus"><option>On-Site</option><option>Standby</option><option>MC</option></select></div>
+                    <div><label>Status</label><select id="mStatus"><option>On-Site</option><option>Standby</option><option>MC</option><option>OFF</option></select></div>
                 </div>
+                <datalist id="locList"><option value="SEATRIUM TBY"><option value="PACIFIC"><option value="WEST"><option value="DRIVER"><option value="MANAGER/DRIVER"><option value="OFFICE"></datalist>
                 <button onclick="saveManpower()" class="btn-main" style="background:var(--success)">Register Staff</button>
             </div>
             <div class="card">
                 <p style="font-size:0.7rem; color:var(--primary)">TIP: Check multiple boxes to use Batch Attendance at the bottom.</p>
-                <table><thead><tr><th><input type="checkbox" onclick="toggleAll(this)"></th><th>Name</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody id="manTableBody"></tbody></table>
+                <table><thead><tr><th><input type="checkbox" onclick="toggleAll(this)"></th><th>Name</th><th>FIN No</th><th>Location / Team</th><th>Assigned To</th><th>Status</th><th>Actions</th></tr></thead><tbody id="manTableBody"></tbody></table>
             </div>
         </div>
 
@@ -340,16 +362,35 @@
 
         <div id="tab-attendance" class="tab-content hidden">
             <div class="card">
-                <h3>Export Logs</h3>
+                <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:space-between;">
+                    <div>
+                        <h3 style="margin-bottom:4px;">Daily Manpower Time Sheet</h3>
+                        <p class="muted" style="margin:0;">Everyone on the staff list for the day, grouped by location. Click Edit on a row to change times or hours.</p>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                        <div><label>Date</label><input type="date" id="tsDate" style="margin:0;"></div>
+                        <button class="btn-edit" onclick="tsShift(-1)" title="Previous day" aria-label="Previous day"><i class="fas fa-chevron-left"></i></button>
+                        <button class="btn-edit" onclick="tsShift(1)" title="Next day" aria-label="Next day"><i class="fas fa-chevron-right"></i></button>
+                        <button class="btn-main" style="width:auto; padding:10px 16px;" onclick="downloadTimesheetPDF(tsDay(), tsDay())"><i class="fas fa-file-pdf"></i> PDF</button>
+                        <button class="btn-edit" style="padding:10px 14px;" onclick="downloadTimesheetCSV(tsDay(), tsDay())"><i class="fas fa-file-excel"></i> Excel</button>
+                    </div>
+                </div>
+                <div id="tsView" style="margin-top:14px; overflow-x:auto;"></div>
+            </div>
+            <div class="card">
+                <h3>Timesheets for a Date Range</h3>
+                <p class="muted" style="margin-top:0;">PDF has one page per day, like the paper time sheet. Excel has one row per person per day.</p>
                 <div class="grid-inputs">
                     <div><label>From</label><input type="date" id="attFrom"></div>
                     <div><label>To</label><input type="date" id="attTo"></div>
-                    <div><label>Project</label><select id="attProjFilter" class="proj-select-list"></select></div>
                 </div>
-                <button onclick="generateFilteredPDF('attendance')" class="btn-main">Download PDF</button>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button onclick="downloadTimesheetPDF(document.getElementById('attFrom').value, document.getElementById('attTo').value)" class="btn-main" style="width:auto; padding:10px 20px;"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                    <button onclick="downloadTimesheetCSV(document.getElementById('attFrom').value, document.getElementById('attTo').value)" class="btn-edit" style="padding:10px 18px;"><i class="fas fa-file-excel"></i> Download Excel (CSV)</button>
+                </div>
             </div>
+            <div class="card"><h3>Attendance — last 60 days <span class="muted">(a day when nobody worked counts as a holiday)</span></h3><table><thead><tr><th>Date</th><th>Name</th><th>Project</th><th>Timing</th><th>W.hrs</th><th>Status</th><th>Actions</th></tr></thead><tbody id="attendTableBody"></tbody></table></div>
             <div class="card" style="border:1px solid var(--danger)"><button onclick="resetAttendance()" class="btn-del" style="width:100%">RESET ALL ATTENDANCE RECORDS</button></div>
-            <div class="card"><h3>Attendance — last 60 days <span class="muted">(a day with nobody marked counts as a holiday)</span></h3><table><thead><tr><th>Date</th><th>Name</th><th>Project</th><th>Status</th><th>Actions</th></tr></thead><tbody id="attendTableBody"></tbody></table></div>
         </div>
 
         <!-- SUPERVISOR ACCOUNTS -->
@@ -416,6 +457,30 @@
         </div>
     </div>
 
+    <!-- EDIT ATTENDANCE / TIMESHEET ENTRY (admin) -->
+    <div id="att-modal" class="modal hidden">
+        <div class="modal-card" style="max-width:520px;">
+            <h3 style="margin-bottom:2px;">Timesheet Entry</h3>
+            <p class="muted" id="am-sub" style="margin-top:0;"></p>
+            <div class="grid-inputs">
+                <div><label>Status</label><select id="am-status"><option value="On-Site">On-Site</option><option value="Standby">Standby</option><option value="MC">MC</option><option value="OFF">OFF</option></select></div>
+                <div><label>Project</label><select id="am-project" class="proj-select-list"></select></div>
+                <div><label>Time In</label><input type="time" id="am-in"></div>
+                <div><label>Time Out</label><input type="time" id="am-out"></div>
+                <div><label>Break (hrs)</label><input type="number" id="am-brk" min="0" max="5" step="0.25" value="1" inputmode="decimal"></div>
+                <div><label>W.hrs</label><input type="number" id="am-hrs" min="0" max="24" step="0.1" inputmode="decimal"></div>
+            </div>
+            <p id="am-error" style="color:var(--danger); font-size:0.8rem; min-height:1em;"></p>
+            <div style="display:flex; gap:10px; justify-content:space-between; flex-wrap:wrap;">
+                <button class="btn-del" id="am-delete" onclick="deleteAttEntry()">Remove Entry</button>
+                <span style="display:flex; gap:10px;">
+                    <button class="btn-edit" onclick="closeAttEdit()">Cancel</button>
+                    <button class="btn-main" style="width:auto; padding:10px 24px;" id="am-save" onclick="saveAttEntry()">Save</button>
+                </span>
+            </div>
+        </div>
+    </div>
+
     <div id="pdf-export-container"><h1 style="color:#1e73be">SUNGROUP</h1><div id="pdf-content"></div></div>
 
     <script type="module">
@@ -432,6 +497,7 @@
 
         // Caches used by the Project Reports / project detail views
         let projCache = {}, manCache = [], eqCache = [], attCache = [], repCache = [];
+        let finCache = {}; // manpower doc id -> FIN No (kept in the admin-only "manpower_private" collection)
         let detailId = null;
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const localDate = (d = new Date()) => { const z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
@@ -575,19 +641,14 @@
             });
 
             onSnapshot(collection(db, "manpower"), snap => {
-                activeStaff = {}; const b = document.getElementById('manTableBody'); b.innerHTML = ''; 
-                const dashB = document.getElementById('dashStandbyBody'); dashB.innerHTML = '';
-                let onsite = 0, standby = 0;
-                snap.forEach(d => {
-                    const m = d.data(); activeStaff[m.name] = m.assignedTo;
-                    if(m.status==='On-Site') onsite++;
-                    if(m.assignedTo==='HQ' || m.status==='Standby'){ standby++; dashB.innerHTML += `<tr><td>${m.name}</td><td>${m.status}</td></tr>`; }
-                    b.innerHTML += `<tr><td><input type="checkbox" class="batch-check" value="${m.name}"></td><td>${m.name}</td><td>${m.assignedTo}</td><td>${m.status}</td><td><button onclick="window.editMan('${d.id}')" class="btn-edit">Edit</button><button onclick="window.kill('manpower','${d.id}')" class="btn-del">X</button></td></tr>`;
-                });
-                document.getElementById('stat-onsite').innerText = onsite;
-                document.getElementById('stat-standby').innerText = standby;
-                initBatchListeners();
-                manCache = snap.docs.map(d => d.data()); renderDetail();
+                manCache = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+                activeStaff = {}; manCache.forEach(m => { activeStaff[m.name] = m.assignedTo; });
+                renderManpower(); renderDetail(); renderTimesheet();
+            });
+            // FIN numbers are personal data: stored separately so only admins can read them.
+            onSnapshot(collection(db, "manpower_private"), snap => {
+                finCache = {}; snap.forEach(d => { finCache[d.id] = d.data().fin || ''; });
+                renderManpower(); renderTimesheet();
             });
 
             onSnapshot(collection(db, "equipment"), snap => {
@@ -605,6 +666,23 @@
                 const b = document.getElementById('leadTableBody'); b.innerHTML = '';
                 snap.forEach(d => { const l = d.data(); b.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.message}</td><td><button onclick="window.kill('leads','${d.id}')" class="btn-del">X</button></td></tr>`; });
             });
+        }
+
+        // Staff list (Manpower tab) and the dashboard standby list.
+        function renderManpower() {
+            const b = document.getElementById('manTableBody'), dashB = document.getElementById('dashStandbyBody');
+            const keep = new Set([...document.querySelectorAll('.batch-check:checked')].map(ck => ck.value));
+            let onsite = 0, standby = 0, dash = '';
+            const list = manCache.slice().sort((x, y) => String(x.location || '~').localeCompare(String(y.location || '~')) || String(x.name).localeCompare(String(y.name)));
+            b.innerHTML = list.map(m => {
+                if (m.status === 'On-Site') onsite++;
+                if (m.assignedTo === 'HQ' || m.status === 'Standby') { standby++; dash += `<tr><td>${esc(m.name)}</td><td>${esc(m.status)}</td></tr>`; }
+                return `<tr><td><input type="checkbox" class="batch-check" value="${esc(m.name)}"${keep.has(m.name) ? ' checked' : ''}></td><td>${esc(m.name)}</td><td>${esc(finCache[m._id] || '')}</td><td>${esc(m.location || '')}</td><td>${esc(m.assignedTo)}</td><td>${esc(m.status)}</td><td><button onclick="window.editMan(${jsArg(m._id)})" class="btn-edit">Edit</button><button onclick="window.kill('manpower',${jsArg(m._id)})" class="btn-del">X</button></td></tr>`;
+            }).join('');
+            dashB.innerHTML = dash;
+            document.getElementById('stat-onsite').innerText = onsite;
+            document.getElementById('stat-standby').innerText = standby;
+            initBatchListeners();
         }
 
         // Batch Logic
@@ -625,48 +703,242 @@
             document.getElementById('batch-count').innerText = checked.length;
         };
 
-        // ---------- Attendance ----------
-        // A day on which nobody at all has attendance counts as a holiday.
+        // ---------- Attendance & timesheets ----------
+        // One record per person per day: status, project, time in / out and working hours (W.hrs).
+        // A day on which nobody at all worked (On-Site / Standby) counts as a holiday.
+        const TIMED = s => s === 'On-Site' || s === 'Standby';
+        const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+        // Hours between IN and OUT (past midnight counts as the next day), minus the break.
+        function calcHours(tin, tout, brk) {
+            const a = toMin(tin), b = toMin(tout); if (a === null || b === null) return null;
+            let d = b - a; if (d <= 0) d += 1440;
+            return Math.max(0, Math.round((d / 60 - (Number(brk) || 0)) * 10) / 10);
+        }
+        const hrs1 = n => (Math.round((Number(n) || 0) * 10) / 10).toFixed(1).replace(/\.0$/, '');
         const projIdOf = name => { const p = Object.values(projCache).find(x => x.name === name); return p ? p.id : null; };
-        const attRecord = (name, status, date, project) => ({
+        const staffOf = name => manCache.find(m => m.name === name);
+        const attRecord = (name, status, date, project, extra = {}) => ({
             name, status, date, project: project || null, projectId: project ? projIdOf(project) : null,
-            markedBy: auth.currentUser.email, markedByUid: auth.currentUser.uid, source: 'Admin panel', updatedAt: serverTimestamp()
+            timeIn: null, timeOut: null, hours: 0, location: (staffOf(name) && staffOf(name).location) || null,
+            markedBy: auth.currentUser.email, markedByUid: auth.currentUser.uid, source: 'Admin panel', updatedAt: serverTimestamp(),
+            ...extra
         });
         const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return localDate(d); };
-        // Every day from "from" to "to" (newest first), each with its attendance records; empty list = holiday.
+        const longDate = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const timingOf = r => r.status === 'OFF' || !r.rec ? 'OFF' : TIMED(r.status) ? (r.timeIn && r.timeOut ? `${r.timeIn}-${r.timeOut}` : r.status) : r.status;
+        // Every day from "from" to "to" (newest first), each with its attendance records.
         function attendanceDays(logs, from, to) {
             const byDay = {}; logs.forEach(l => (byDay[l.date] || (byDay[l.date] = [])).push(l));
             const out = [];
             for (let d = to; d >= from && out.length < 400; d = addDays(d, -1)) out.push({ date: d, logs: byDay[d] || [] });
             return out;
         }
-        const statusOrder = { 'On-Site': 0, 'Standby': 1, 'MC': 2 };
+        const worked = logs => logs.some(l => TIMED(l.status));
+
+        // ----- daily manpower time sheet (same layout as the paper sheet) -----
+        const LOC_ORDER = ['SEATRIUM TBY', 'PACIFIC', 'WEST', 'DRIVER', 'MANAGER/DRIVER', 'OFFICE'];
+        const locRank = l => { const i = LOC_ORDER.indexOf(l); return i >= 0 ? i : (l ? 50 : 99); };
+        function timesheetFor(date) {
+            const recs = attCache.filter(l => l.date === date);
+            const byName = new Map(recs.map(l => [l.name, l]));
+            const people = new Map();
+            manCache.forEach(m => people.set(m.name, m));
+            recs.forEach(l => { if (!people.has(l.name)) people.set(l.name, { name: l.name }); });
+            const rows = [...people.values()].map(m => {
+                const l = byName.get(m.name) || null;
+                const assigned = m.assignedTo && m.assignedTo !== 'HQ' ? m.assignedTo : '';
+                return {
+                    name: m.name, fin: finCache[m._id || m.name] || '', location: String((l && l.location) || m.location || '').toUpperCase(),
+                    project: l ? (l.project && l.project !== 'HQ' ? l.project : '') : assigned,
+                    status: l ? l.status : 'OFF', timeIn: (l && l.timeIn) || '', timeOut: (l && l.timeOut) || '', hours: l ? Number(l.hours) || 0 : 0, rec: l
+                };
+            }).sort((a, b) => locRank(a.location) - locRank(b.location) || a.location.localeCompare(b.location)
+                || (TIMED(b.status) - TIMED(a.status)) || a.name.localeCompare(b.name));
+            // Running number overall (SGE/NO) and within each location (T NO).
+            let n = 0, t = 0, prev = null;
+            rows.forEach(r => { if (r.location !== prev) { t = 0; prev = r.location; } r.no = ++n; r.tno = ++t; });
+            return { rows, total: rows.reduce((s, r) => s + r.hours, 0), holiday: !worked(recs) };
+        }
+        const tsDayInput = () => document.getElementById('tsDate');
+        window.tsDay = () => tsDayInput().value || localDate();
+        window.tsShift = n => { tsDayInput().value = addDays(tsDay(), n); renderTimesheet(); };
+        { const t = tsDayInput(); t.value = localDate(); t.onchange = () => renderTimesheet(); }
+        function renderTimesheet() {
+            const box = document.getElementById('tsView'); if (!box) return;
+            const date = tsDay(), ts = timesheetFor(date);
+            if (!ts.rows.length) { box.innerHTML = '<p class="muted">No staff yet. Add staff in Manpower.</p>'; return; }
+            let prev = null;
+            box.innerHTML = `<p style="margin:0 0 10px;"><strong>${esc(longDate(date))}</strong> · ${ts.rows.filter(r => TIMED(r.status)).length} working · total <strong>${hrs1(ts.total)}</strong> W.hrs
+                ${ts.holiday ? ' <span class="badge b-holiday">🏖 Holiday — nobody worked</span>' : ''}</p>
+                <table class="ts-table"><thead><tr><th>SGE/NO</th><th>T NO</th><th>COMP</th><th>FIN No</th><th>Name</th><th>Location</th><th>Project Name</th><th>IN-OUT</th><th>W.hrs</th><th></th></tr></thead><tbody>
+                ${ts.rows.map(r => {
+                    const gap = prev !== null && r.location !== prev ? '<tr class="ts-gap"><td colspan="10"></td></tr>' : ''; prev = r.location;
+                    const off = !TIMED(r.status);
+                    return `${gap}<tr><td>${r.no}</td><td>${r.tno}</td><td>SGE</td><td>${esc(r.fin)}</td><td>${esc(r.name)}</td><td>${esc(r.location)}</td><td>${esc(r.project)}</td>
+                        <td class="${off ? 'ts-off' : ''}">${esc(timingOf(r))}</td><td style="text-align:right;">${hrs1(r.hours)}</td>
+                        <td><button class="btn-edit" onclick="openAttEdit(${jsArg(r.name)}, ${jsArg(date)})">Edit</button></td></tr>`;
+                }).join('')}
+                </tbody><tfoot><tr><td colspan="8" style="text-align:right; font-weight:700;">Total W.hrs</td><td style="text-align:right; font-weight:800;">${hrs1(ts.total)}</td><td></td></tr></tfoot></table>`;
+        }
+
+        // ----- PDF: one page per day, laid out like the paper time sheet -----
+        function rangeDays(from, to) {
+            const a = from || to || localDate(), b = to || from || localDate();
+            const [s, e] = a <= b ? [a, b] : [b, a];
+            const out = []; for (let d = s; d <= e && out.length < 62; d = addDays(d, 1)) out.push(d);
+            return out;
+        }
+        window.downloadTimesheetPDF = async (from, to) => {
+            const days = rangeDays(from, to);
+            const c = 'border:1px solid #000; padding:2px 5px;';
+            const pages = days.map(date => {
+                const ts = timesheetFor(date); let prev = null;
+                const body = ts.rows.map(r => {
+                    const gap = prev !== null && r.location !== prev ? `<tr><td style="${c} height:14px;" colspan="9"></td></tr>` : ''; prev = r.location;
+                    const off = !TIMED(r.status);
+                    return `${gap}<tr><td style="${c} text-align:center;">${r.no}</td><td style="${c} text-align:center;">${r.tno}</td><td style="${c} text-align:center;">SGE</td><td style="${c}">${esc(r.fin)}</td><td style="${c}">${esc(r.name)}</td><td style="${c} text-align:center;">${esc(r.location)}</td><td style="${c} text-align:center;">${esc(r.project)}</td><td style="${c} text-align:center;${off ? ' color:#999;' : ''}">${esc(timingOf(r))}</td><td style="${c} text-align:center;">${hrs1(r.hours)}</td></tr>`;
+                }).join('');
+                return `<div style="font-family:Calibri, Arial, sans-serif; font-size:9.5px; color:#000;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <tr><td colspan="9" style="${c} text-align:center; font-size:17px; font-weight:700; padding:5px;">Sun Group Engineering Pte Ltd</td></tr>
+                        <tr><td style="${c}"></td><td colspan="4" style="${c} text-align:center; font-weight:700; font-size:11px;">Daily Manpower Plan Time Sheet</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">Date :</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">${esc(longDate(date))}</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">Timing</td><td style="${c} text-align:center; font-weight:700; font-size:11px;">W.hrs</td></tr>
+                        <tr style="font-weight:700;"><td style="${c} text-align:center;">SGE/NO</td><td style="${c} text-align:center;">T NO</td><td style="${c} text-align:center;">COMP</td><td style="${c} text-align:center;">FIN No</td><td style="${c} text-align:center;">Name</td><td style="${c} text-align:center;">Location</td><td style="${c} text-align:center;">Project Name</td><td style="${c} text-align:center;">IN-OUT</td><td style="${c}"></td></tr>
+                        ${body || `<tr><td colspan="9" style="${c} text-align:center; padding:10px;">No staff on the list.</td></tr>`}
+                    </table>
+                    <div style="text-align:right; font-size:11px; margin-top:3px;">${ts.holiday ? '<strong style="float:left;">HOLIDAY — nobody worked</strong>' : ''}${(Math.round(ts.total * 100) / 100).toFixed(2)}</div>
+                </div>`;
+            });
+            // html2pdf renders its own copy of the element, so the original can stay hidden.
+            const wrap = document.createElement('div'); wrap.style.display = 'none';
+            const el = document.createElement('div');
+            el.style.cssText = 'width:760px; background:#fff;';
+            el.innerHTML = pages.join('<div class="html2pdf__page-break"></div>');
+            wrap.appendChild(el); document.body.appendChild(wrap);
+            const name = days.length > 1 ? `Timesheet_${days[0]}_to_${days[days.length - 1]}.pdf` : `Timesheet_${days[0]}.pdf`;
+            try {
+                await html2pdf().from(el).set({ margin: [0.35, 0.3], filename: name, pagebreak: { mode: ['legacy'] }, html2canvas: { scale: 2, scrollX: 0, scrollY: 0 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).save();
+            } finally { wrap.remove(); }
+        };
+        // ----- Excel (CSV): one row per person per day -----
+        window.downloadTimesheetCSV = (from, to) => {
+            const days = rangeDays(from, to);
+            const q = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+            const lines = [['Date', 'SGE/NO', 'T NO', 'COMP', 'FIN No', 'Name', 'Location', 'Project Name', 'Status', 'Time In', 'Time Out', 'IN-OUT', 'W.hrs'].join(',')];
+            days.forEach(date => {
+                const ts = timesheetFor(date);
+                ts.rows.forEach(r => lines.push([date, r.no, r.tno, 'SGE', r.fin, r.name, r.location, r.project, r.rec ? r.status : 'OFF', r.timeIn, r.timeOut, timingOf(r), hrs1(r.hours)].map(q).join(',')));
+                lines.push([date, '', '', '', '', '', '', '', '', '', '', 'Total', hrs1(ts.total)].map(q).join(','));
+            });
+            const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = days.length > 1 ? `Timesheet_${days[0]}_to_${days[days.length - 1]}.csv` : `Timesheet_${days[0]}.csv`;
+            document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        };
+
+        // ----- edit one person's entry for one day -----
+        let amCtx = null, amManual = false;
+        const am = id => document.getElementById(id);
+        function amRefresh() {
+            const timed = TIMED(am('am-status').value);
+            ['am-in', 'am-out', 'am-brk'].forEach(id => am(id).disabled = !timed);
+            am('am-hrs').disabled = am('am-status').value === 'OFF';
+            if (am('am-status').value === 'OFF') am('am-hrs').value = 0;
+            else if (timed && !amManual) { const h = calcHours(am('am-in').value, am('am-out').value, am('am-brk').value); am('am-hrs').value = h ?? ''; }
+        }
+        ['am-in', 'am-out', 'am-brk', 'am-status'].forEach(id => am(id).addEventListener('input', amRefresh));
+        am('am-status').addEventListener('change', amRefresh);
+        am('am-hrs').addEventListener('input', () => { amManual = true; });
+        window.openAttEdit = (name, date) => {
+            const rec = attCache.find(l => l.name === name && l.date === date) || null;
+            const staff = staffOf(name) || {};
+            amCtx = { name, date, rec }; amManual = !!rec;
+            am('am-sub').textContent = `${name} · ${longDate(date)}`;
+            am('am-status').value = rec ? rec.status : 'On-Site';
+            const proj = rec ? rec.project : (staff.assignedTo || 'HQ');
+            const sel = am('am-project'); if (proj && ![...sel.options].some(o => o.value === proj)) sel.insertAdjacentHTML('beforeend', `<option value="${esc(proj)}">${esc(proj)}</option>`);
+            sel.value = proj || 'HQ';
+            am('am-in').value = (rec && rec.timeIn) || document.getElementById('batchIn').value || '08:00';
+            am('am-out').value = (rec && rec.timeOut) || document.getElementById('batchOut').value || '17:00';
+            am('am-brk').value = 1;
+            am('am-hrs').value = rec ? (rec.hours ?? 0) : '';
+            am('am-delete').hidden = !rec;
+            am('am-error').textContent = '';
+            amRefresh();
+            am('att-modal').classList.remove('hidden');
+        };
+        window.closeAttEdit = () => { am('att-modal').classList.add('hidden'); amCtx = null; };
+        window.saveAttEntry = async () => {
+            if (!amCtx) return;
+            const status = am('am-status').value, timed = TIMED(status);
+            const tin = am('am-in').value, tout = am('am-out').value, hours = Number(am('am-hrs').value);
+            if (timed && (toMin(tin) === null || toMin(tout) === null)) { am('am-error').textContent = 'Enter both time in and time out.'; return; }
+            if (status !== 'OFF' && (am('am-hrs').value === '' || isNaN(hours) || hours < 0 || hours > 24)) { am('am-error').textContent = 'W.hrs must be between 0 and 24.'; return; }
+            am('am-save').disabled = true;
+            try {
+                const proj = am('am-project').value;
+                await setDoc(doc(db, 'attendance_logs', `${amCtx.name}_${amCtx.date}`), attRecord(amCtx.name, status, amCtx.date, proj === 'HQ' ? 'HQ' : proj, {
+                    timeIn: timed ? tin : null, timeOut: timed ? tout : null, hours: status === 'OFF' ? 0 : Math.round(hours * 10) / 10
+                }));
+                closeAttEdit();
+            } catch (e) { am('am-error').textContent = 'Could not save: ' + e.message; }
+            finally { am('am-save').disabled = false; }
+        };
+        window.deleteAttEntry = async () => {
+            if (!amCtx || !amCtx.rec) return;
+            if (!confirm(`Remove ${amCtx.name}'s entry for ${longDate(amCtx.date)}? They will show as OFF on the time sheet.`)) return;
+            await deleteDoc(doc(db, 'attendance_logs', `${amCtx.name}_${amCtx.date}`));
+            closeAttEdit();
+        };
+
+        const statusOrder = { 'On-Site': 0, 'Standby': 1, 'MC': 2, 'OFF': 3 };
         function renderAttendance() {
+            renderTimesheet();
             const b = document.getElementById('attendTableBody'); if (!b) return;
             const today = localDate();
             const oldest = attCache.reduce((m, l) => l.date && l.date < m ? l.date : m, today);
             const from = oldest < addDays(today, -60) ? addDays(today, -60) : oldest; // last 60 days at most
             const days = attendanceDays(attCache.filter(l => l.date >= from && l.date <= today), from, today);
             b.innerHTML = days.map(({ date, logs }) => {
-                if (!logs.length) return `<tr class="att-holiday"><td>${esc(fmtDate(date))}</td><td colspan="4"><span class="badge b-holiday">🏖 Holiday</span> <span class="muted">${date === today ? 'No attendance marked yet today — counts as a holiday if nobody is marked.' : 'Nobody was marked present.'}</span></td></tr>`;
-                return logs.slice().sort((x, y) => (statusOrder[x.status] ?? 9) - (statusOrder[y.status] ?? 9) || String(x.name).localeCompare(String(y.name))).map(l =>
-                    `<tr><td>${esc(fmtDate(l.date))}</td><td>${esc(l.name)}</td><td>${esc(l.project || '—')}</td><td>${esc(l.status)}${l.markedBy ? `<br><span class="muted" style="font-size:.75rem">by ${esc(l.markedBy)}</span>` : ''}</td><td><button onclick="window.adjustLog(${jsArg(l._id)})" class="btn-edit">Edit</button><button onclick="window.kill('attendance_logs',${jsArg(l._id)})" class="btn-del">X</button></td></tr>`).join('');
-            }).join('') || '<tr><td colspan="5" class="muted">No attendance records.</td></tr>';
+                const hol = !worked(logs) ? `<tr class="att-holiday"><td>${esc(fmtDate(date))}</td><td colspan="6"><span class="badge b-holiday">🏖 Holiday</span> <span class="muted">${date === today ? 'Nobody marked as working yet today — counts as a holiday if nobody works.' : 'Nobody worked.'}</span></td></tr>` : '';
+                return hol + logs.slice().sort((x, y) => (statusOrder[x.status] ?? 9) - (statusOrder[y.status] ?? 9) || String(x.name).localeCompare(String(y.name))).map(l => {
+                    const r = { status: l.status, timeIn: l.timeIn, timeOut: l.timeOut, rec: l };
+                    return `<tr><td>${esc(fmtDate(l.date))}</td><td>${esc(l.name)}</td><td>${esc(l.project || '—')}</td><td>${esc(timingOf(r))}</td><td>${hrs1(l.hours)}</td><td>${esc(l.status)}${l.markedBy ? `<br><span class="muted" style="font-size:.75rem">by ${esc(l.markedBy)}</span>` : ''}</td><td><button onclick="openAttEdit(${jsArg(l.name)}, ${jsArg(l.date)})" class="btn-edit">Edit</button><button onclick="window.kill('attendance_logs',${jsArg(l._id)})" class="btn-del">X</button></td></tr>`;
+                }).join('');
+            }).join('') || '<tr><td colspan="7" class="muted">No attendance records.</td></tr>';
         }
 
+        // ----- batch attendance (Manpower tab) -----
+        let batchManual = false;
+        function batchRefresh() {
+            const s = document.getElementById('batchStatus').value, timed = TIMED(s);
+            document.getElementById('batchIn').disabled = document.getElementById('batchOut').disabled = !timed;
+            const h = document.getElementById('batchHrs');
+            h.disabled = s === 'OFF';
+            if (s === 'OFF') h.value = 0;
+            else if (timed && !batchManual) { const v = calcHours(document.getElementById('batchIn').value, document.getElementById('batchOut').value, 1); h.value = v ?? ''; }
+        }
+        ['batchIn', 'batchOut', 'batchStatus'].forEach(id => document.getElementById(id).addEventListener('input', batchRefresh));
+        document.getElementById('batchStatus').addEventListener('change', () => { batchManual = false; batchRefresh(); });
+        document.getElementById('batchHrs').addEventListener('input', () => { batchManual = true; });
+        batchRefresh();
         window.applyBatch = async () => {
             const proj = document.getElementById('batchProj').value;
-            const stat = document.getElementById('batchStatus').value;
+            const stat = document.getElementById('batchStatus').value, timed = TIMED(stat);
+            const tin = document.getElementById('batchIn').value, tout = document.getElementById('batchOut').value;
+            const hours = Number(document.getElementById('batchHrs').value) || 0;
             const today = localDate();
             const date = document.getElementById('batchDate').value || today;
             if (date > today) { alert('Attendance date cannot be in the future.'); return; }
+            if (timed && (toMin(tin) === null || toMin(tout) === null)) { alert('Enter time in and time out.'); return; }
             const checked = [...document.querySelectorAll('.batch-check:checked')].map(ck => ck.value);
             if (date !== today && !confirm(`Mark ${checked.length} staff as ${stat} at ${proj} for ${fmtDate(date)}?\n\nTheir current assignment will not change (only today's attendance does that).`)) return;
             const batch = writeBatch(db);
             checked.forEach(name => {
                 // Only today's attendance changes where the staff member is currently deployed.
                 if (date === today) batch.set(doc(db, "manpower", name), { assignedTo: proj, status: stat }, { merge: true });
-                batch.set(doc(db, "attendance_logs", `${name}_${date}`), attRecord(name, stat, date, proj), { merge: true });
+                batch.set(doc(db, "attendance_logs", `${name}_${date}`), attRecord(name, stat, date, proj, {
+                    timeIn: timed ? tin : null, timeOut: timed ? tout : null, hours: stat === 'OFF' ? 0 : Math.round(hours * 10) / 10
+                }));
             });
             await batch.commit();
             window.clearSelection();
@@ -694,11 +966,13 @@
         };
 
         window.saveManpower = async () => {
-            const n = document.getElementById('mName').value, s = document.getElementById('mStatus').value, p = document.getElementById('mAssign').value, id = document.getElementById('editManId').value || n;
-            const today = localDate();
-            await setDoc(doc(db, "manpower", id), { name: n, status: s, assignedTo: p }, { merge: true });
-            await setDoc(doc(db, "attendance_logs", `${n}_${today}`), attRecord(n, s, today, p), { merge: true });
-            ['mName','editManId'].forEach(k=>document.getElementById(k).value='');
+            const n = document.getElementById('mName').value.trim(), s = document.getElementById('mStatus').value, p = document.getElementById('mAssign').value, id = document.getElementById('editManId').value || n;
+            if (!n) { alert('Enter the staff name.'); return; }
+            const loc = document.getElementById('mLoc').value.trim().toUpperCase(), fin = document.getElementById('mFin').value.trim().toUpperCase();
+            // Attendance and hours are recorded on the time sheet, not here.
+            await setDoc(doc(db, "manpower", id), { name: n, status: s, assignedTo: p, location: loc || null }, { merge: true });
+            await setDoc(doc(db, "manpower_private", id), { fin: fin || null }, { merge: true });
+            ['mName','editManId','mLoc','mFin'].forEach(k=>document.getElementById(k).value='');
         };
 
         window.saveEquipment = async () => {
@@ -708,13 +982,14 @@
         };
 
         window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pStatus').value=d.status; document.getElementById('pWeb').value = d.inspection === 'Passed' ? 'yes' : 'no'; document.getElementById('editProjId').value=id; };
-        window.editMan = async (id) => { const d = (await getDocs(collection(db,"manpower"))).docs.find(x=>x.id===id).data(); document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('editManId').value=id; };
+        window.editMan = async (id) => { const d = manCache.find(x => x._id === id); if (!d) return; document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('mLoc').value=d.location||''; document.getElementById('mFin').value=finCache[id]||''; document.getElementById('editManId').value=id; document.getElementById('mName').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
         window.editEq = async (id) => { const d = (await getDocs(collection(db,"equipment"))).docs.find(x=>x.id===id).data(); document.getElementById('eqName').value=d.name; document.getElementById('eqID').value=d.id; document.getElementById('eqProj').value=d.project; document.getElementById('editEqId').value=id; };
         
         window.kill = async (c, id) => {
             const reports = c === 'projects' ? repCache.filter(r => r.projectId === id) : [];
             if (!confirm(reports.length ? `Delete this project and its ${reports.length} daily report(s)? This cannot be undone.` : "Delete?")) return;
             await deleteDoc(doc(db, c, id));
+            if (c === 'manpower') await deleteDoc(doc(db, "manpower_private", id));
             if (c === 'projects') {
                 await deleteDoc(doc(db, "project_private", id));
                 for (let i = 0; i < reports.length; i += 400) {
@@ -825,28 +1100,6 @@
             await deleteDoc(doc(db, "supervisors", username));
         };
         window.resetAttendance = async () => { if(confirm("Purge all logs?") && prompt("Type RESET:") === "RESET") { const snap = await getDocs(collection(db, "attendance_logs")); const batch = writeBatch(db); snap.forEach(d => batch.delete(d.ref)); await batch.commit(); } };
-        window.adjustLog = async (id) => { const s = prompt("New Status:"); if(s) await setDoc(doc(db, "attendance_logs", id), { status: s }, { merge: true }); };
-
-        window.generateFilteredPDF = async (type) => {
-            const cont = document.getElementById('pdf-content'); cont.innerHTML = '';
-            const from = document.getElementById('attFrom').value, to = document.getElementById('attTo').value, proj = document.getElementById('attProjFilter').value;
-            const td = 'style="border:1px solid #ddd;padding:8px"';
-            let html = `<h2>Attendance${proj && proj !== 'HQ' ? ' — ' + esc(proj) : ''}</h2><p>${from ? esc(fmtDate(from)) : 'Start'} to ${esc(fmtDate(to || localDate()))} · A day with nobody marked counts as a holiday.</p><table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#eee"><th>Date</th><th>Name</th><th>Project</th><th>Status</th></tr></thead><tbody>`;
-            const snap = await getDocs(query(collection(db, "attendance_logs"), orderBy("date", "asc")));
-            const all = snap.docs.map(d => d.data());
-            const end = to || localDate();
-            const start = from || all.reduce((m, l) => l.date && l.date < m ? l.date : m, end);
-            // Holidays are company-wide: nobody at all was marked that day.
-            attendanceDays(all.filter(l => l.date >= start && l.date <= end), start, end).reverse().forEach(({ date, logs }) => {
-                if (!logs.length) { html += `<tr style="background:#fff4e5"><td ${td}>${esc(fmtDate(date))}</td><td ${td} colspan="3"><strong>Holiday</strong></td></tr>`; return; }
-                logs.filter(l => proj === 'HQ' || (l.project || activeStaff[l.name]) === proj).forEach(l => {
-                    html += `<tr><td ${td}>${esc(fmtDate(l.date))}</td><td ${td}>${esc(l.name)}</td><td ${td}>${esc(l.project || activeStaff[l.name] || '—')}</td><td ${td}>${esc(l.status)}</td></tr>`;
-                });
-            });
-            cont.innerHTML = html + `</tbody></table>`;
-            const el = document.getElementById('pdf-export-container'); el.style.display = 'block';
-            html2pdf().from(el).set({ margin: 0.5, filename: `Sungroup_Report.pdf` }).save().then(() => el.style.display = 'none');
-        };
 
         // ---------- Edit / delete reports + change logs ----------
         const LOG_FIELDS = ['date', 'block', 'progress', 'health', 'workDone', 'itemsDone', 'rework', 'manpower', 'hours', 'issues', 'nextPlan'];
