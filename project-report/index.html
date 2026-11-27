@@ -128,6 +128,14 @@
         .att-opt.on[data-s="Standby"] { background: var(--warn); border-color: var(--warn); color: #fff; }
         .att-opt.on[data-s="MC"] { background: var(--bad); border-color: var(--bad); color: #fff; }
         .notice.att-holiday { background: #fff4e5; border-color: #f0a123; color: #8a4b00; }
+        .att-opt.on[data-s="OFF"] { background: #6b7680; border-color: #6b7680; color: #fff; }
+        .att-defaults { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: #f4f7f9; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 12px; font-size: 13px; }
+        .att-def-label { font-weight: 700; color: var(--text); }
+        .att-defaults label, .att-times label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; margin: 0; }
+        .att-defaults input, .att-times input { width: auto; padding: 6px 8px; font-size: 14px; }
+        .att-defaults input[type="number"] { width: 64px; }
+        .att-times { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px 14px; padding-top: 4px; }
+        .att-times input[type="number"] { width: 76px; }
         @media (max-width: 520px) { .report dl { grid-template-columns: 1fr; } .report dd { margin-bottom: 6px; } }
 
         #login-view, #pw-view { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 70px); padding: 20px 16px; }
@@ -247,8 +255,15 @@
 
                 <div class="card" id="att-card">
                     <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
-                        <h2 style="margin:0;"><i class="fas fa-user-check" style="color:var(--blue)"></i> Attendance</h2>
+                        <h2 style="margin:0;"><i class="fas fa-user-clock" style="color:var(--blue)"></i> Attendance &amp; Timesheet</h2>
                         <div class="field" style="margin:0; min-width:170px;"><label for="att-date">Date</label><input type="date" id="att-date"></div>
+                    </div>
+                    <div class="att-defaults">
+                        <span class="att-def-label">Default timing</span>
+                        <label>In <input type="time" id="att-def-in" value="08:00"></label>
+                        <label>Out <input type="time" id="att-def-out" value="17:00"></label>
+                        <label>Break <input type="number" id="att-def-brk" min="0" max="5" step="0.25" value="1" inputmode="decimal"> h</label>
+                        <span class="meta" id="att-def-hrs"></span>
                     </div>
                     <p class="meta" id="att-sum" style="margin:8px 0;"></p>
                     <div class="notice att-holiday" id="att-holiday" hidden></div>
@@ -569,11 +584,35 @@
             startAttendance();
         }
 
-        // ---------- attendance mark list ----------
-        // Staff deployed to this project (set by the office in Manpower) are marked On-Site / Standby / MC per day.
-        // A day on which nobody at all has attendance counts as a holiday.
-        const ATT_STATUSES = ['On-Site', 'Standby', 'MC'];
+        // ---------- attendance & timesheet ----------
+        // Staff deployed to this project (set by the office in Manpower) are marked per day with
+        // a status, time in / time out and working hours (W.hrs) — this builds the daily timesheet.
+        // A day on which nobody at all worked counts as a holiday.
+        const ATT_STATUSES = ['On-Site', 'Standby', 'MC', 'OFF'];
+        const TIMED = s => s === 'On-Site' || s === 'Standby';   // statuses that need IN / OUT times
+        const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+        // Hours between IN and OUT (past midnight counts as the next day), minus the break.
+        function calcHours(tin, tout, brk) {
+            const a = toMin(tin), b = toMin(tout); if (a === null || b === null) return null;
+            let d = b - a; if (d <= 0) d += 1440;
+            return Math.max(0, Math.round((d / 60 - (Number(brk) || 0)) * 10) / 10);
+        }
+        const fmtHrs = n => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('en-SG', { maximumFractionDigits: 1 });
         let attUnsubs = [], attDayUnsub = null, attStaff = [], attDay = [], attPicks = {}, attDayLoaded = false;
+        // Default timing per project, remembered on this device.
+        const defKey = () => 'attDefaults:' + currentId;
+        function attDefaults() {
+            let d = null; try { d = JSON.parse(localStorage.getItem(defKey())); } catch (e) { /* storage unavailable */ }
+            return { timeIn: (d && d.timeIn) || '08:00', timeOut: (d && d.timeOut) || '17:00', brk: d && d.brk != null ? d.brk : 1 };
+        }
+        function saveDefaults() {
+            const d = { timeIn: $('att-def-in').value, timeOut: $('att-def-out').value, brk: Number($('att-def-brk').value) || 0 };
+            try { localStorage.setItem(defKey(), JSON.stringify(d)); } catch (e) { /* storage unavailable */ }
+            const h = calcHours(d.timeIn, d.timeOut, d.brk);
+            $('att-def-hrs').textContent = h === null ? '' : `= ${fmtHrs(h)} W.hrs`;
+            return d;
+        }
+        ['att-def-in', 'att-def-out', 'att-def-brk'].forEach(id => $(id).addEventListener('input', saveDefaults));
         function stopAttendance() {
             attUnsubs.forEach(f => f()); attUnsubs = [];
             if (attDayUnsub) { attDayUnsub(); attDayUnsub = null; }
@@ -583,6 +622,7 @@
             const p = projects[currentId]; if (!p) return;
             attStaff = []; attDay = []; attPicks = {};
             $('att-date').value = $('att-date').max = localDate();
+            const d = attDefaults(); $('att-def-in').value = d.timeIn; $('att-def-out').value = d.timeOut; $('att-def-brk').value = d.brk; saveDefaults();
             attUnsubs.push(onSnapshot(query(collection(db, 'manpower'), where('assignedTo', '==', p.name)), snap => {
                 attStaff = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAttendance();
             }, () => { attStaff = []; renderAttendance(); }));
@@ -601,50 +641,99 @@
             watchAttendanceDay();
         };
         const attRecordOf = name => attDay.find(l => l.name === name);
+        const savedHere = name => { const r = attRecordOf(name), p = projects[currentId]; return r && p && r.project === p.name ? r : null; };
+        // What the row shows now: unsaved edits, else the saved record at this project, else nothing.
+        function rowValue(name) {
+            if (name in attPicks) return attPicks[name];
+            const r = savedHere(name);
+            return r ? { status: r.status, timeIn: r.timeIn || '', timeOut: r.timeOut || '', hours: r.hours ?? null, manual: false } : null;
+        }
+        const sameAsSaved = (name, v) => {
+            const r = savedHere(name);
+            if (!v) return !r;
+            return !!r && r.status === v.status && (r.timeIn || '') === (v.timeIn || '') && (r.timeOut || '') === (v.timeOut || '') && Number(r.hours || 0) === Number(v.hours || 0);
+        };
+        function setPick(name, v) { if (sameAsSaved(name, v)) delete attPicks[name]; else attPicks[name] = v; }
+        // Status chosen for a person: fill in the default times for working statuses.
+        function withStatus(name, status) {
+            const cur = rowValue(name), d = saveDefaults();
+            if (!status) return null;
+            if (TIMED(status)) {
+                const tin = (cur && cur.timeIn) || d.timeIn, tout = (cur && cur.timeOut) || d.timeOut;
+                const hours = cur && cur.manual && TIMED(cur.status) ? cur.hours : calcHours(tin, tout, d.brk);
+                return { status, timeIn: tin, timeOut: tout, hours, manual: !!(cur && cur.manual && TIMED(cur.status)) };
+            }
+            return { status, timeIn: '', timeOut: '', hours: status === 'MC' ? ((cur && cur.status === 'MC' ? cur.hours : 0) || 0) : 0, manual: false };
+        }
+        function updateSummary() {
+            const p = projects[currentId]; if (!p) return;
+            const names = attNames(p), counts = {}; let unmarked = 0, hrs = 0;
+            names.forEach(n => { const v = rowValue(n); if (v && v.status) { counts[v.status] = (counts[v.status] || 0) + 1; hrs += Number(v.hours) || 0; } else unmarked++; });
+            $('att-sum').textContent = `${fmtDate($('att-date').value)} · ` + (ATT_STATUSES.filter(s => counts[s]).map(s => `${counts[s]} ${s}`).join(' · ') || 'nobody marked')
+                + (unmarked ? ` · ${unmarked} not marked` : '') + ` · ${fmtHrs(hrs)} W.hrs` + (Object.keys(attPicks).length ? ' · unsaved changes' : '');
+        }
+        // People deployed here now, plus anyone already marked at this project on that day.
+        const attNames = p => [...new Set([...attStaff.map(m => m.name), ...attDay.filter(l => l.project === p.name).map(l => l.name)])].sort((a, b) => String(a).localeCompare(String(b)));
         function renderAttendance() {
             const p = projects[currentId]; if (!p) return;
             const date = $('att-date').value;
-            // People deployed here now, plus anyone already marked at this project on that day.
-            const names = [...new Set([...attStaff.map(m => m.name), ...attDay.filter(l => l.project === p.name).map(l => l.name)])].sort((a, b) => String(a).localeCompare(String(b)));
+            const names = attNames(p);
             const hol = $('att-holiday');
-            if (attDayLoaded && !attDay.length) {
+            const worked = attDay.some(l => TIMED(l.status));
+            if (attDayLoaded && !worked) {
                 hol.hidden = false;
                 hol.innerHTML = date === localDate()
-                    ? `<i class="fas fa-umbrella-beach"></i> Nobody has attendance marked for today yet. If nobody is marked, today counts as a <strong>holiday</strong>.`
-                    : `<i class="fas fa-umbrella-beach"></i> <strong>${esc(fmtDate(date))} is a holiday</strong> — nobody was marked. Marking anyone below makes it a working day.`;
+                    ? `<i class="fas fa-umbrella-beach"></i> Nobody is marked as working today yet. If nobody works, today counts as a <strong>holiday</strong>.`
+                    : `<i class="fas fa-umbrella-beach"></i> <strong>${esc(fmtDate(date))} is a holiday</strong> — nobody worked. Marking anyone On-Site or Standby makes it a working day.`;
             } else hol.hidden = true;
             if (!names.length) {
                 $('att-list').innerHTML = '<div class="empty">No staff are deployed to this project. The office assigns staff in the admin panel (Manpower).</div>';
                 $('att-sum').textContent = ''; $('att-save').disabled = true; $('att-all').disabled = true; return;
             }
             $('att-save').disabled = false; $('att-all').disabled = false;
-            const counts = {}; let unmarked = 0;
             $('att-list').innerHTML = names.map(name => {
                 const rec = attRecordOf(name);
                 const elsewhere = rec && rec.project && rec.project !== p.name;
-                const cur = name in attPicks ? attPicks[name] : (rec && !elsewhere ? rec.status : null);
-                if (cur) counts[cur] = (counts[cur] || 0) + 1; else unmarked++;
+                const v = rowValue(name), cur = v ? v.status : null;
                 const note = elsewhere ? `Marked ${esc(rec.status)} at ${esc(rec.project)}${rec.markedBy ? ' by ' + esc(rec.markedBy) : ''}`
                     : rec ? `Marked by ${esc(rec.markedBy || 'office')}` : 'Not marked';
-                return `<div class="att-row${name in attPicks ? ' changed' : ''}">
+                const times = cur && (TIMED(cur) || cur === 'MC') ? `<div class="att-times">
+                        ${TIMED(cur) ? `<label>In <input type="time" data-f="timeIn" data-name="${esc(name)}" value="${esc(v.timeIn)}" aria-label="Time in for ${esc(name)}"></label>
+                        <label>Out <input type="time" data-f="timeOut" data-name="${esc(name)}" value="${esc(v.timeOut)}" aria-label="Time out for ${esc(name)}"></label>` : ''}
+                        <label>W.hrs <input type="number" min="0" max="24" step="0.1" inputmode="decimal" data-f="hours" data-name="${esc(name)}" value="${v.hours ?? ''}" aria-label="Working hours for ${esc(name)}"></label>
+                    </div>` : '';
+                return `<div class="att-row${name in attPicks ? ' changed' : ''}" data-row="${esc(name)}">
                     <div class="att-who"><strong>${esc(name)}</strong><span class="meta">${note}</span></div>
                     <div class="att-opts" role="group" aria-label="Attendance for ${esc(name)}">${ATT_STATUSES.map(s =>
                         `<button type="button" class="att-opt${cur === s ? ' on' : ''}" data-s="${s}" data-name="${esc(name)}" aria-pressed="${cur === s}">${s}</button>`).join('')}</div>
+                    ${times}
                 </div>`;
             }).join('');
-            $('att-sum').textContent = `${fmtDate(date)} · ` + (ATT_STATUSES.filter(s => counts[s]).map(s => `${counts[s]} ${s}`).join(' · ') || 'nobody marked') + (unmarked ? ` · ${unmarked} not marked` : '') + (Object.keys(attPicks).length ? ' · unsaved changes' : '');
+            updateSummary();
             $('att-list').querySelectorAll('.att-opt').forEach(b => b.onclick = () => {
-                const name = b.dataset.name, rec = attRecordOf(name);
-                const saved = rec && rec.project === p.name ? rec.status : null;
-                const cur = name in attPicks ? attPicks[name] : saved;
-                const next = cur === b.dataset.s ? null : b.dataset.s; // tap again to clear
-                if (next === saved) delete attPicks[name]; else attPicks[name] = next;
+                const name = b.dataset.name, v = rowValue(name);
+                const next = v && v.status === b.dataset.s ? null : b.dataset.s; // tap again to clear
+                setPick(name, withStatus(name, next));
                 renderAttendance();
+            });
+            // Typing times or hours updates in place (no re-render, so the cursor stays put).
+            $('att-list').querySelectorAll('.att-times input').forEach(inp => inp.oninput = () => {
+                const name = inp.dataset.name, v = { ...(rowValue(name) || withStatus(name, 'On-Site')) };
+                const row = inp.closest('.att-row');
+                if (inp.dataset.f === 'hours') { v.hours = inp.value === '' ? null : Number(inp.value); v.manual = true; }
+                else {
+                    v[inp.dataset.f] = inp.value;
+                    if (!v.manual) { v.hours = calcHours(v.timeIn, v.timeOut, saveDefaults().brk); const h = row.querySelector('[data-f="hours"]'); if (h) h.value = v.hours ?? ''; }
+                }
+                setPick(name, v);
+                row.classList.toggle('changed', name in attPicks);
+                updateSummary();
             });
         }
         $('att-all').onclick = () => {
             const p = projects[currentId]; if (!p) return;
-            attStaff.forEach(m => { const rec = attRecordOf(m.name); if (!(rec && rec.project === p.name && rec.status === 'On-Site')) attPicks[m.name] = 'On-Site'; });
+            const d = saveDefaults(), h = calcHours(d.timeIn, d.timeOut, d.brk);
+            attStaff.forEach(m => setPick(m.name, { status: 'On-Site', timeIn: d.timeIn, timeOut: d.timeOut, hours: h, manual: false }));
             renderAttendance();
         };
         $('att-save').onclick = async () => {
@@ -653,17 +742,27 @@
             if (!date || date > localDate()) { toast('Pick today or a past date.', 'err'); return; }
             const changes = Object.entries(attPicks);
             if (!changes.length) { toast('No attendance changes to save.'); return; }
-            const moving = changes.filter(([n, s]) => s && attRecordOf(n) && attRecordOf(n).project && attRecordOf(n).project !== p.name).map(([n]) => n);
+            for (const [name, v] of changes) {
+                if (v && TIMED(v.status) && (toMin(v.timeIn) === null || toMin(v.timeOut) === null)) { toast(`${name}: enter both time in and time out.`, 'err'); return; }
+                if (v && (v.hours != null) && (isNaN(v.hours) || v.hours < 0 || v.hours > 24)) { toast(`${name}: working hours must be between 0 and 24.`, 'err'); return; }
+            }
+            const moving = changes.filter(([n, v]) => v && attRecordOf(n) && attRecordOf(n).project && attRecordOf(n).project !== p.name).map(([n]) => n);
             if (moving.length && !confirm(`${moving.join(', ')} ${moving.length > 1 ? 'are' : 'is'} already marked at another project on ${fmtDate(date)}. Mark them at ${p.name} instead?`)) return;
             $('att-save').disabled = true;
             try {
-                for (const [name, status] of changes) {
+                for (const [name, v] of changes) {
                     const ref = doc(db, 'attendance_logs', `${name}_${date}`);
-                    if (status) await setDoc(ref, { name, status, date, project: p.name, projectId: currentId, markedBy: myName, markedByUid: user.uid, source: 'Supervisor page', updatedAt: serverTimestamp() });
-                    else if (attRecordOf(name) && attRecordOf(name).project === p.name) await deleteDoc(ref);
+                    const staff = attStaff.find(m => m.name === name);
+                    if (v && v.status) await setDoc(ref, {
+                        name, status: v.status, date, project: p.name, projectId: currentId,
+                        timeIn: TIMED(v.status) ? v.timeIn : null, timeOut: TIMED(v.status) ? v.timeOut : null,
+                        hours: Math.round((Number(v.hours) || 0) * 10) / 10, location: (staff && staff.location) || null,
+                        markedBy: myName, markedByUid: user.uid, source: 'Supervisor page', updatedAt: serverTimestamp()
+                    });
+                    else if (savedHere(name)) await deleteDoc(ref);
                 }
                 attPicks = {}; renderAttendance();
-                toast(`Attendance saved for ${fmtDate(date)}`);
+                toast(`Timesheet saved for ${fmtDate(date)}`);
             } catch (err) { toast('Could not save attendance: ' + err.message, 'err'); }
             finally { $('att-save').disabled = false; }
         };
