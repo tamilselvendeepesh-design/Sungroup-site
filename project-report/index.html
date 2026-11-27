@@ -797,8 +797,11 @@
             const rows = av.staff.filter(m => (!q || String(m.name).toLowerCase().includes(q)) && (!only || valueOf(m.name)));
             $('att-list').innerHTML = rows.length ? rows.map(m => {
                 const name = m.name, r = recOf(name), v = valueOf(name);
-                if (leaveOn(m, date) && !(r && isHere(r))) {
-                    return `<div class="att-row att-taken"><div class="att-who"><strong>${esc(name)}</strong><span class="meta"><i class="fas fa-plane"></i> ${esc(leaveText(m.leave))}</span></div></div>`;
+                if (leaveOn(m, date)) {
+                    // On Home Leave: cannot be picked. If they were already marked here, offer to remove that entry.
+                    const marked = r && isHere(r), removing = name in av.picks && !av.picks[name];
+                    const note = marked ? (removing ? ' · will be removed when you save' : ` · but marked ${esc(r.status)} here`) : '';
+                    return `<div class="att-row att-taken${removing ? ' changed' : ''}"><div class="att-who"><strong>${esc(name)}</strong><span class="meta"><i class="fas fa-plane"></i> ${esc(leaveText(m.leave))}${note}</span></div>${marked && !removing ? `<div class="att-opts"><button type="button" class="att-opt att-unmark" data-name="${esc(name)}">Remove entry</button></div>` : ''}</div>`;
                 }
                 if (r && !isHere(r)) {
                     return `<div class="att-row att-taken"><div class="att-who"><strong>${esc(name)}</strong><span class="meta"><i class="fas fa-lock"></i> Taken — ${esc(r.status)} at ${esc(r.project || 'another project')}${r.markedBy ? ' (by ' + esc(r.markedBy) + ')' : ''}</span></div></div>`;
@@ -819,7 +822,8 @@
                 </div>`;
             }).join('') : `<div class="empty">${av.staff.length ? 'No manpower matches.' : 'No manpower on the list yet. The office adds staff in the admin panel (Manpower).'}</div>`;
             $('att-sum').textContent = `${fmtDate(date)} · ${here} at this project · ${fmtHrs(hrs)} W.hrs · ${taken} taken by other projects` + (away ? ` · ${away} on home leave` : '') + (Object.keys(av.picks).length ? ' · unsaved changes' : '');
-            $('att-list').querySelectorAll('.att-opt').forEach(b => b.onclick = () => {
+            $('att-list').querySelectorAll('.att-unmark').forEach(b => b.onclick = () => { setPick(b.dataset.name, null); renderAttView(); });
+            $('att-list').querySelectorAll('.att-opt:not(.att-unmark)').forEach(b => b.onclick = () => {
                 const name = b.dataset.name, v = valueOf(name);
                 const next = v && v.status === b.dataset.s ? null : b.dataset.s; // tap again to clear
                 let val = null;
