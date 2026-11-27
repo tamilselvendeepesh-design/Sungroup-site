@@ -241,6 +241,7 @@
                     <input type="hidden" id="editProjId">
                     <div><label>Name</label><input type="text" id="pName"></div>
                     <div><label>Client</label><input type="text" id="pClient"></div>
+                    <div><label>Location</label><select id="pSite"><option value="">Not set</option><option>Seatrium TBY</option><option>Seatrium PY</option><option>Pacific</option><option>West</option><option>Supply</option><option>Office</option></select></div>
                     <div><label>Status</label><select id="pStatus"><option value="Active">Active</option><option value="Completed">Completed</option></select></div>
                     <div><label>Inspection</label><select id="pWeb"><option value="no">Awaiting inspection (not on website)</option><option value="yes">Passed inspection (shows on website)</option></select></div>
                 </div>
@@ -343,7 +344,7 @@
                     <div><label>Staff Name</label><input type="text" id="mName"></div>
                     <div><label>FIN No <span class="muted" style="text-transform:none; font-weight:400;">(admins only)</span></label><input type="text" id="mFin" maxlength="12" autocomplete="off" style="text-transform:uppercase;"></div>
                     <div><label>Location / Team</label><input type="text" id="mLoc" list="locList" placeholder="e.g. SEATRIUM TBY" style="text-transform:uppercase;"></div>
-                    <div><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
+                    <div hidden><label>Assignment</label><select id="mAssign" class="proj-select-list"></select></div>
                     <div><label>Status</label><select id="mStatus"><option>On-Site</option><option>Standby</option><option>MC</option><option>OFF</option></select></div>
                 </div>
                 <details class="bulk-box">
@@ -359,8 +360,8 @@
                 <button onclick="saveManpower()" class="btn-main" style="background:var(--success)">Register Staff</button>
             </div>
             <div class="card">
-                <p style="font-size:0.7rem; color:var(--primary)">TIP: Check multiple boxes to use Batch Attendance at the bottom.</p>
-                <table><thead><tr><th><input type="checkbox" onclick="toggleAll(this)"></th><th>Name</th><th>FIN No</th><th>Location / Team</th><th>Assigned To</th><th>Status</th><th>Actions</th></tr></thead><tbody id="manTableBody"></tbody></table>
+                <p class="muted" style="font-size:0.8rem; margin-top:0;">Supervisors pick manpower from this list for their projects each day (Supervisor page → Daily Attendance). "Today" shows where each person is marked today.</p>
+                <table><thead><tr><th>Name</th><th>FIN No</th><th>Location / Team</th><th>Today</th><th>Actions</th></tr></thead><tbody id="manTableBody"></tbody></table>
             </div>
         </div>
 
@@ -482,6 +483,7 @@
             <div class="grid-inputs">
                 <div><label>Status</label><select id="am-status"><option value="On-Site">On-Site</option><option value="Standby">Standby</option><option value="MC">MC</option><option value="OFF">OFF</option></select></div>
                 <div><label>Project</label><select id="am-project" class="proj-select-list"></select></div>
+                <div id="am-shift-wrap" style="grid-column:1/-1;"><label>Working time <span class="muted" id="am-shift-note" style="text-transform:none; font-weight:400;"></span></label><select id="am-shift"></select></div>
                 <div><label>Time In</label><input type="time" id="am-in"></div>
                 <div><label>Time Out</label><input type="time" id="am-out"></div>
                 <div><label>Break (hrs)</label><input type="number" id="am-brk" min="0" max="5" step="0.25" value="1" inputmode="decimal"></div>
@@ -615,7 +617,7 @@
                     const p = { ...(privRaw[id] || {}), ...raw, id }; projCache[id] = p;
                     if(p.status==='Active'){ opts += `<option value="${esc(p.name)}">${esc(p.name)}</option>`; actives++; }
                     const web = '<br>' + inspectionBadge(p) + (p.inspection === 'Passed' ? '' : ` <button class="btn-pass" onclick="window.passInspection(${jsArg(id)})"><i class="fas fa-check"></i> Pass Inspection</button>`);
-                    b.innerHTML += `<tr><td>${esc(p.name)}</td><td>${esc(p.client)}</td><td>${esc(p.status)}${web}</td><td>${pbar(p.progress)}<span class="muted">${pct(p.progress)}%</span></td><td>${lastCell(p)}</td><td><button onclick="window.viewProject(${jsArg(id)})" class="btn-view">View</button> <button onclick="window.editProj(${jsArg(id)})" class="btn-edit">Edit</button> <button onclick="window.kill('projects',${jsArg(id)})" class="btn-del">X</button></td></tr>`;
+                    b.innerHTML += `<tr><td>${esc(p.name)}${p.site ? `<br><span class="badge b-muted"><i class="fas fa-location-dot"></i> ${esc(p.site)}</span>` : (p.status === 'Active' ? `<br><span class="badge b-warn">Location not set</span>` : '')}</td><td>${esc(p.client)}</td><td>${esc(p.status)}${web}</td><td>${pbar(p.progress)}<span class="muted">${pct(p.progress)}%</span></td><td>${lastCell(p)}</td><td><button onclick="window.viewProject(${jsArg(id)})" class="btn-view">View</button> <button onclick="window.editProj(${jsArg(id)})" class="btn-edit">Edit</button> <button onclick="window.kill('projects',${jsArg(id)})" class="btn-del">X</button></td></tr>`;
                 });
                 dropdowns.forEach(s => s.innerHTML = opts);
                 document.getElementById('stat-proj').innerText = actives;
@@ -676,7 +678,7 @@
             });
 
             onSnapshot(query(collection(db, "attendance_logs"), orderBy("date", "desc")), snap => {
-                attCache = snap.docs.map(d => ({ ...d.data(), _id: d.id })); renderDetail(); renderAttendance(); renderOverview();
+                attCache = snap.docs.map(d => ({ ...d.data(), _id: d.id })); renderDetail(); renderAttendance(); renderOverview(); renderManpower();
             });
 
             onSnapshot(collection(db, "leads"), snap => {
@@ -688,13 +690,15 @@
         // Staff list (Manpower tab) and the dashboard standby list.
         function renderManpower() {
             const b = document.getElementById('manTableBody'), dashB = document.getElementById('dashStandbyBody');
-            const keep = new Set([...document.querySelectorAll('.batch-check:checked')].map(ck => ck.value));
+            const today = localDate();
             let onsite = 0, standby = 0, dash = '';
             const list = manCache.slice().sort((x, y) => String(x.location || '~').localeCompare(String(y.location || '~')) || String(x.name).localeCompare(String(y.name)));
             b.innerHTML = list.map(m => {
                 if (m.status === 'On-Site') onsite++;
                 if (m.assignedTo === 'HQ' || m.status === 'Standby') { standby++; dash += `<tr><td>${esc(m.name)}</td><td>${esc(m.status)}</td></tr>`; }
-                return `<tr><td><input type="checkbox" class="batch-check" value="${esc(m.name)}"${keep.has(m.name) ? ' checked' : ''}></td><td>${esc(m.name)}</td><td>${esc(finCache[m._id] || '')}</td><td>${esc(m.location || '')}</td><td>${esc(m.assignedTo)}</td><td>${esc(m.status)}</td><td><button onclick="window.editMan(${jsArg(m._id)})" class="btn-edit">Edit</button><button onclick="window.kill('manpower',${jsArg(m._id)})" class="btn-del">X</button></td></tr>`;
+                const t = attCache.find(l => l.name === m.name && l.date === today);
+                const todayCell = t ? `${esc(t.status)}${t.project && t.project !== 'HQ' ? ' · ' + esc(t.project) : ''}${t.markedBy ? `<br><span class="muted" style="font-size:.75rem">by ${esc(t.markedBy)}</span>` : ''}` : '<span class="muted">Not marked</span>';
+                return `<tr><td>${esc(m.name)}</td><td>${esc(finCache[m._id] || '')}</td><td>${esc(m.location || '')}</td><td>${todayCell}</td><td><button onclick="window.editMan(${jsArg(m._id)})" class="btn-edit">Edit</button><button onclick="window.kill('manpower',${jsArg(m._id)})" class="btn-del">X</button></td></tr>`;
             }).join('');
             dashB.innerHTML = dash;
             document.getElementById('stat-onsite').innerText = onsite;
@@ -756,6 +760,17 @@
         // One record per person per day: status, project, time in / out and working hours (W.hrs).
         // A day on which nobody at all worked (On-Site / Standby) counts as a holiday.
         const TIMED = s => s === 'On-Site' || s === 'Standby';
+        // Working-hour rules for Seatrium TBY / PY: [in, out, W.hrs, basic, OT] by day type.
+        const RULED = s => s === 'Seatrium TBY' || s === 'Seatrium PY';
+        const SHIFTS = {
+            wk:  [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:45', 10.5, 8, 2.5], ['08:00', '21:15', 13.5, 8, 5.5]],
+            fri: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 8.2, 8.2, 0], ['08:00', '18:30', 10.5, 8, 2.5], ['08:00', '21:00', 13.5, 8, 5.5]],
+            sat: [['08:00', '12:30', 4.5, 4.5, 0], ['08:00', '17:15', 10.6, 4, 6.6], ['08:00', '18:30', 12.5, 4, 8.5], ['08:00', '21:00', 16.6, 4, 12.6]],
+            sun: [['08:00', '12:30', 9, 0, 9], ['08:00', '17:15', 16.6, 0, 16.6], ['08:00', '18:30', 19, 0, 19], ['08:00', '21:00', 24, 0, 24]]
+        };
+        const dayType = iso => { const d = new Date(iso + 'T00:00:00').getDay(); return d === 0 ? 'sun' : d === 6 ? 'sat' : d === 5 ? 'fri' : 'wk'; };
+        const shiftsFor = (site, date) => RULED(site) ? SHIFTS[dayType(date)].map(([timeIn, timeOut, hours, basic, ot]) => ({ key: timeIn + '-' + timeOut, timeIn, timeOut, hours, basic, ot })) : [];
+        const siteOfProject = name => { const p = Object.values(projCache).find(x => x.name === name); return p ? (p.site || null) : null; };
         const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
         // Hours between IN and OUT (past midnight counts as the next day), minus the break.
         function calcHours(tin, tout, brk) {
@@ -768,7 +783,7 @@
         const staffOf = name => manCache.find(m => m.name === name);
         const attRecord = (name, status, date, project, extra = {}) => ({
             name, status, date, project: project || null, projectId: project ? projIdOf(project) : null,
-            timeIn: null, timeOut: null, hours: 0, location: (staffOf(name) && staffOf(name).location) || null,
+            timeIn: null, timeOut: null, hours: 0, location: siteOfProject(project) || (staffOf(name) && staffOf(name).location) || null, basicHours: null, otHours: null, shift: null,
             markedBy: auth.currentUser.email, markedByUid: auth.currentUser.uid, source: 'Admin panel', updatedAt: serverTimestamp(),
             ...extra
         });
@@ -785,7 +800,7 @@
         const worked = logs => logs.some(l => TIMED(l.status));
 
         // ----- daily manpower time sheet (same layout as the paper sheet) -----
-        const LOC_ORDER = ['SEATRIUM TBY', 'PACIFIC', 'WEST', 'DRIVER', 'MANAGER/DRIVER', 'OFFICE'];
+        const LOC_ORDER = ['SEATRIUM TBY', 'SEATRIUM PY', 'PACIFIC', 'WEST', 'SUPPLY', 'DRIVER', 'MANAGER/DRIVER', 'OFFICE'];
         const locRank = l => { const i = LOC_ORDER.indexOf(l); return i >= 0 ? i : (l ? 50 : 99); };
         function timesheetFor(date) {
             const recs = attCache.filter(l => l.date === date);
@@ -799,7 +814,7 @@
                 return {
                     name: m.name, fin: finCache[m._id || m.name] || '', location: String((l && l.location) || m.location || '').toUpperCase(),
                     project: l ? (l.project && l.project !== 'HQ' ? l.project : '') : assigned,
-                    status: l ? l.status : 'OFF', timeIn: (l && l.timeIn) || '', timeOut: (l && l.timeOut) || '', hours: l ? Number(l.hours) || 0 : 0, rec: l
+                    status: l ? l.status : 'OFF', timeIn: (l && l.timeIn) || '', timeOut: (l && l.timeOut) || '', hours: l ? Number(l.hours) || 0 : 0, basic: l && l.basicHours != null ? l.basicHours : '', ot: l && l.otHours != null ? l.otHours : '', rec: l
                 };
             }).sort((a, b) => locRank(a.location) - locRank(b.location) || a.location.localeCompare(b.location)
                 || (TIMED(b.status) - TIMED(a.status)) || a.name.localeCompare(b.name));
@@ -896,11 +911,11 @@
         window.downloadTimesheetCSV = (from, to) => {
             const days = rangeDays(from, to);
             const q = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-            const lines = [['Date', 'SGE/NO', 'T NO', 'COMP', 'FIN No', 'Name', 'Location', 'Project Name', 'Status', 'Time In', 'Time Out', 'IN-OUT', 'W.hrs'].join(',')];
+            const lines = [['Date', 'SGE/NO', 'T NO', 'COMP', 'FIN No', 'Name', 'Location', 'Project Name', 'Status', 'Time In', 'Time Out', 'IN-OUT', 'W.hrs', 'Basic hrs', 'OT hrs'].join(',')];
             days.forEach(date => {
                 const ts = timesheetFor(date);
-                ts.rows.forEach(r => lines.push([date, r.no, r.tno, 'SGE', r.fin, r.name, r.location, r.project, r.rec ? r.status : 'OFF', r.timeIn, r.timeOut, timingOf(r), hrs1(r.hours)].map(q).join(',')));
-                lines.push([date, '', '', '', '', '', '', '', '', '', '', 'Total', hrs1(ts.total)].map(q).join(','));
+                ts.rows.forEach(r => lines.push([date, r.no, r.tno, 'SGE', r.fin, r.name, r.location, r.project, r.rec ? r.status : 'OFF', r.timeIn, r.timeOut, timingOf(r), hrs1(r.hours), r.basic === '' ? '' : hrs1(r.basic), r.ot === '' ? '' : hrs1(r.ot)].map(q).join(',')));
+                lines.push([date, '', '', '', '', '', '', '', '', '', '', 'Total', hrs1(ts.total), '', ''].map(q).join(','));
             });
             const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -919,8 +934,26 @@
             else if (timed && !amManual) { const h = calcHours(am('am-in').value, am('am-out').value, am('am-brk').value); am('am-hrs').value = h ?? ''; }
         }
         ['am-in', 'am-out', 'am-brk', 'am-status'].forEach(id => am(id).addEventListener('input', amRefresh));
-        am('am-status').addEventListener('change', amRefresh);
-        am('am-hrs').addEventListener('input', () => { amManual = true; });
+        am('am-status').addEventListener('change', () => { amRefresh(); amShifts(); });
+        am('am-hrs').addEventListener('input', () => { amManual = true; am('am-shift').value = ''; });
+        ['am-in', 'am-out'].forEach(id => am(id).addEventListener('input', () => { am('am-shift').value = ''; }));
+        // Seatrium TBY / PY projects: pick the working time from the company rules for that day.
+        function amShifts(keep) {
+            const shifts = amCtx ? shiftsFor(siteOfProject(am('am-project').value), amCtx.date) : [];
+            const show = shifts.length && TIMED(am('am-status').value);
+            am('am-shift-wrap').hidden = !show;
+            if (!show) { am('am-shift').innerHTML = ''; return; }
+            am('am-shift-note').textContent = '(' + ({ wk: 'Mon–Thu', fri: 'Friday', sat: 'Saturday', sun: 'Sunday, all OT' })[dayType(amCtx.date)] + ')';
+            const fmt = s => `${s.timeIn}–${s.timeOut} · ${hrs1(s.hours)} hrs${s.basic && s.ot ? ` (${hrs1(s.basic)} basic + ${hrs1(s.ot)} OT)` : !s.basic && s.ot ? ' (all OT)' : ''}`;
+            am('am-shift').innerHTML = '<option value="">Custom times</option>' + shifts.map(s => `<option value="${s.key}">${fmt(s)}</option>`).join('');
+            const want = keep !== undefined ? keep : (am('am-in').value + '-' + am('am-out').value);
+            am('am-shift').value = shifts.some(s => s.key === want) ? want : '';
+        }
+        am('am-project').addEventListener('change', () => amShifts());
+        am('am-shift').addEventListener('change', () => {
+            const s = shiftsFor(siteOfProject(am('am-project').value), amCtx.date).find(x => x.key === am('am-shift').value); if (!s) return;
+            am('am-in').value = s.timeIn; am('am-out').value = s.timeOut; am('am-hrs').value = s.hours; amManual = true;
+        });
         window.openAttEdit = (name, date) => {
             const rec = attCache.find(l => l.name === name && l.date === date) || null;
             const staff = staffOf(name) || {};
@@ -937,6 +970,7 @@
             am('am-delete').hidden = !rec;
             am('am-error').textContent = '';
             amRefresh();
+            amShifts(rec && rec.shift ? rec.shift : undefined);
             am('att-modal').classList.remove('hidden');
         };
         window.closeAttEdit = () => { am('att-modal').classList.add('hidden'); amCtx = null; };
@@ -949,8 +983,10 @@
             am('am-save').disabled = true;
             try {
                 const proj = am('am-project').value;
+                const s = timed ? shiftsFor(siteOfProject(proj), amCtx.date).find(x => x.key === am('am-shift').value) : null;
                 await setDoc(doc(db, 'attendance_logs', `${amCtx.name}_${amCtx.date}`), attRecord(amCtx.name, status, amCtx.date, proj === 'HQ' ? 'HQ' : proj, {
-                    timeIn: timed ? tin : null, timeOut: timed ? tout : null, hours: status === 'OFF' ? 0 : Math.round(hours * 10) / 10
+                    timeIn: timed ? tin : null, timeOut: timed ? tout : null, hours: status === 'OFF' ? 0 : Math.round(hours * 10) / 10,
+                    basicHours: s ? s.basic : null, otHours: s ? s.ot : null, shift: s ? s.key : null
                 }));
                 closeAttEdit();
             } catch (e) { am('am-error').textContent = 'Could not save: ' + e.message; }
@@ -1027,14 +1063,14 @@
             const n = document.getElementById('pName').value, s = document.getElementById('pStatus').value, id = document.getElementById('editProjId').value || n;
             const passed = document.getElementById('pWeb').value === 'yes';
             const wasPassed = projCache[id] && projCache[id].inspection === 'Passed';
-            const data = { name: n, client: document.getElementById('pClient').value, status: s, inspection: passed ? 'Passed' : 'Pending', showOnWebsite: passed };
+            const data = { name: n, client: document.getElementById('pClient').value, site: document.getElementById('pSite').value || null, status: s, inspection: passed ? 'Passed' : 'Pending', showOnWebsite: passed };
             if (passed && !wasPassed) Object.assign(data, { inspectionPassedAt: new Date().toISOString(), inspectionPassedBy: auth.currentUser.email });
             await setDoc(doc(db, "projects", id), data, { merge: true });
             if(s === 'Completed') {
                 const mSnap = await getDocs(query(collection(db, "manpower"), where("assignedTo", "==", n)));
                 mSnap.forEach(d => setDoc(doc(db, "manpower", d.id), { assignedTo: "HQ", status: "Standby" }, { merge: true }));
             }
-            ['pName','pClient','editProjId'].forEach(k=>document.getElementById(k).value='');
+            ['pName','pClient','editProjId','pSite'].forEach(k=>document.getElementById(k).value='');
             document.getElementById('pWeb').value = 'no';
         };
 
@@ -1054,7 +1090,7 @@
             ['eqName','eqID','editEqId'].forEach(k=>document.getElementById(k).value='');
         };
 
-        window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pStatus').value=d.status; document.getElementById('pWeb').value = d.inspection === 'Passed' ? 'yes' : 'no'; document.getElementById('editProjId').value=id; };
+        window.editProj = async (id) => { const d = (await getDocs(collection(db,"projects"))).docs.find(x=>x.id===id).data(); document.getElementById('pName').value=d.name; document.getElementById('pClient').value=d.client; document.getElementById('pSite').value=d.site||''; document.getElementById('pStatus').value=d.status; document.getElementById('pWeb').value = d.inspection === 'Passed' ? 'yes' : 'no'; document.getElementById('editProjId').value=id; };
         window.editMan = async (id) => { const d = manCache.find(x => x._id === id); if (!d) return; document.getElementById('mName').value=d.name; document.getElementById('mAssign').value=d.assignedTo; document.getElementById('mStatus').value=d.status; document.getElementById('mLoc').value=d.location||''; document.getElementById('mFin').value=finCache[id]||''; document.getElementById('editManId').value=id; document.getElementById('mName').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
         window.editEq = async (id) => { const d = (await getDocs(collection(db,"equipment"))).docs.find(x=>x.id===id).data(); document.getElementById('eqName').value=d.name; document.getElementById('eqID').value=d.id; document.getElementById('eqProj').value=d.project; document.getElementById('editEqId').value=id; };
         
